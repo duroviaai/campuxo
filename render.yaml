@@ -2,10 +2,9 @@ services:
   # ── Spring Boot API ──────────────────────────────────────────────
   - type: web
     name: collegeportal-api
-    runtime: java
+    runtime: docker
     rootDir: api/collegeportal
-    buildCommand: ./mvnw -q clean package -DskipTests
-    startCommand: java -jar target/demo-0.0.1-SNAPSHOT.jar
+    dockerfilePath: ./Dockerfile
     plan: free
     envVars:
       - key: DB_URL
