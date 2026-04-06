@@ -16,6 +16,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.approved = false")
     List<User> findPendingApprovalUsers();
 
+    @Query("SELECT COUNT(u) FROM User u WHERE u.approved = false")
+    long countPendingApprovalUsers();
+
     @Query("SELECT u FROM User u WHERE u.registrationNumber = ?1")
     Optional<User> findByRegistrationNumber(String registrationNumber);
 

@@ -1,19 +1,17 @@
 import { useState, useCallback } from 'react';
 import { getAttendanceByCourseAndDate, markAttendanceBatch } from '../services/attendanceService';
-import { getCourses } from '../../course/services/courseService';
-import { getCourseById } from '../../course/services/courseService';
+import { getCourses, getCourseStudents } from '../../course/services/courseService';
 
 const useAttendance = () => {
-  const [courseId, setCourseId]   = useState('');
-  const [date, setDate]           = useState('');
-  const [students, setStudents]   = useState([]);   // [{ id, name, registrationNumber, status }]
+  const [courseId, setCourseId]     = useState('');
+  const [date, setDate]             = useState('');
+  const [students, setStudents]     = useState([]);
   const [courseList, setCourseList] = useState([]);
-  const [loading, setLoading]     = useState(false);
+  const [loading, setLoading]       = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]         = useState(null);
-  const [success, setSuccess]     = useState(false);
+  const [error, setError]           = useState(null);
+  const [success, setSuccess]       = useState(false);
 
-  // Load course list once
   const loadCourses = useCallback(() => {
     getCourses({ size: 200 }).then((d) => setCourseList(d.content ?? d)).catch(() => {});
   }, []);
@@ -24,18 +22,19 @@ const useAttendance = () => {
     setError(null);
     setSuccess(false);
     try {
-      // Get enrolled students from course
-      const course = await getCourseById(cId);
-      const enrolled = course.students ?? [];
+      const [enrolled, existing] = await Promise.all([
+        getCourseStudents(cId),
+        getAttendanceByCourseAndDate(cId, d),
+      ]);
 
-      // Get existing attendance records for that day
-      const existing = await getAttendanceByCourseAndDate(cId, d);
-      const existingMap = Object.fromEntries(existing.map((r) => [r.studentId ?? r.id, r.status]));
+      const existingMap = Object.fromEntries(
+        existing.map((r) => [r.studentId ?? r.id, r.status])
+      );
 
       setStudents(enrolled.map((s) => ({
         id:                 s.id,
         name:               s.fullName || `${s.firstName ?? ''} ${s.lastName ?? ''}`.trim() || s.email,
-        registrationNumber: s.registrationNumber || s.email || '—',
+        registrationNumber: s.registrationNumber || '—',
         status:             existingMap[s.id] ?? 'PRESENT',
       })));
     } catch {
@@ -45,9 +44,8 @@ const useAttendance = () => {
     }
   }, []);
 
-  const updateStatus = (studentId, status) => {
+  const updateStatus = (studentId, status) =>
     setStudents((prev) => prev.map((s) => s.id === studentId ? { ...s, status } : s));
-  };
 
   const submitAttendance = async () => {
     if (!courseId || !date || !students.length) return;

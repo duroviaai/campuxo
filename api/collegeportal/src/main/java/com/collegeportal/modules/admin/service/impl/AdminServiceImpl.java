@@ -68,7 +68,7 @@ public class AdminServiceImpl implements AdminService {
                 .totalStudents(studentRepository.count())
                 .totalFaculty(facultyRepository.count())
                 .totalCourses(courseRepository.count())
-                .pendingApprovals(userRepository.findPendingApprovalUsers().size())
+                .pendingApprovals(userRepository.countPendingApprovalUsers())
                 .build();
     }
 

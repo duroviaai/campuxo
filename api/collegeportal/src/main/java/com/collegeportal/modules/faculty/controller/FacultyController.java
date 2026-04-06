@@ -28,7 +28,12 @@ public class FacultyController {
     @GetMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<PageResponseDTO<FacultyResponseDTO>> getAllFaculty(
-            @PageableDefault(size = 10, sort = "id") Pageable pageable) {
+            @PageableDefault(size = 10, sort = "id") Pageable pageable,
+            @RequestParam(required = false) String department,
+            @RequestParam(required = false) String search) {
+        if (department != null || search != null) {
+            return ResponseEntity.ok(facultyService.getFilteredFaculty(department, search, pageable));
+        }
         return ResponseEntity.ok(facultyService.getAllFaculty(pageable));
     }
 
@@ -74,5 +79,32 @@ public class FacultyController {
     @PreAuthorize("hasRole('ROLE_FACULTY')")
     public ResponseEntity<List<FacultyCourseAssignmentResponseDTO>> getMyAssignments() {
         return ResponseEntity.ok(facultyService.getMyAssignments());
+    }
+
+    @GetMapping("/me/profile")
+    @PreAuthorize("hasRole('ROLE_FACULTY')")
+    public ResponseEntity<FacultyResponseDTO> getMyProfile() {
+        return ResponseEntity.ok(facultyService.getMyProfile());
+    }
+
+    @GetMapping("/{id}/courses")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<List<CourseResponseDTO>> getAssignedCourses(@PathVariable Long id) {
+        return ResponseEntity.ok(facultyService.getAssignedCourses(id));
+    }
+
+    @PostMapping("/{id}/courses")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Void> assignCourses(@PathVariable Long id,
+                                              @RequestBody java.util.Map<String, List<Long>> body) {
+        facultyService.assignCourses(id, body.get("courseIds"));
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}/courses/{courseId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Void> removeCourse(@PathVariable Long id, @PathVariable Long courseId) {
+        facultyService.removeCourse(id, courseId);
+        return ResponseEntity.noContent().build();
     }
 }

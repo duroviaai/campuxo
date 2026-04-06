@@ -1,5 +1,6 @@
 const ROUTES = {
   HOME: '/',
+  LANDING: '/home',
   LOGIN: '/login',
   REGISTER: '/register',
   DASHBOARD: '/dashboard',
@@ -10,6 +11,7 @@ const ROUTES = {
   ADMIN_FACULTY:        '/admin/faculty',
   ADMIN_FACULTY_CREATE:  '/admin/faculty/create',
   ADMIN_FACULTY_EDIT:    '/admin/faculty/:id/edit',
+  ADMIN_FACULTY_ASSIGN_COURSES: '/admin/faculty/:id/assign-courses',
   ADMIN_COURSES:        '/admin/courses',
   ADMIN_COURSES_CREATE:  '/admin/courses/create',
   ADMIN_COURSES_EDIT:    '/admin/courses/:id/edit',
@@ -34,6 +36,10 @@ const ROUTES = {
 
   // Admin mark attendance
   ADMIN_MARK_ATTENDANCE: '/admin/attendance/mark',
+  ADMIN_CLASSES: '/admin/classes',
+
+  // Faculty — view individual student attendance
+  FACULTY_STUDENT_ATTENDANCE: '/faculty/students/:studentId/attendance',
 };
 
 export default ROUTES;

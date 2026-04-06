@@ -17,6 +17,13 @@ public class PageResponseDTO<T> {
     private int totalPages;
     private boolean last;
 
+    public static <T> PageResponseDTO<T> empty() {
+        return PageResponseDTO.<T>builder()
+                .content(List.of())
+                .page(0).size(0).totalElements(0).totalPages(0).last(true)
+                .build();
+    }
+
     public static <T> PageResponseDTO<T> from(Page<T> page) {
         return PageResponseDTO.<T>builder()
                 .content(page.getContent())

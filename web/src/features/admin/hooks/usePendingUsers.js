@@ -1,36 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import {
-  getPendingUsers,
-  approveUser as approveUserService,
-  rejectUser as rejectUserService,
-} from '../../../services/adminService';
+import { useGetPendingUsersQuery, useApproveUserMutation, useRejectUserMutation } from '../state/adminApi';
 
 const usePendingUsers = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data: users = [], isLoading: loading, error } = useGetPendingUsersQuery();
+  const [approveUserMutation] = useApproveUserMutation();
+  const [rejectUserMutation]  = useRejectUserMutation();
 
-  useEffect(() => {
-    getPendingUsers()
-      .then(setUsers)
-      .catch(setError)
-      .finally(() => setLoading(false));
-  }, []);
+  const approveUser = (id) =>
+    approveUserMutation(id).then(() => toast.success('User approved successfully'));
 
-  const removeUser = useCallback((id) => setUsers((prev) => prev.filter((u) => u.id !== id)), []);
-
-  const approveUser = useCallback((id) =>
-    approveUserService(id).then(() => {
-      removeUser(id);
-      toast.success('User approved successfully');
-    }), [removeUser]);
-
-  const rejectUser = useCallback((id) =>
-    rejectUserService(id).then(() => {
-      removeUser(id);
-      toast.success('User rejected successfully');
-    }), [removeUser]);
+  const rejectUser = (id) =>
+    rejectUserMutation(id).then(() => toast.success('User rejected successfully'));
 
   return { users, loading, error, approveUser, rejectUser };
 };

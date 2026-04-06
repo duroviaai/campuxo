@@ -3,7 +3,7 @@ import FacultyRow from './FacultyRow';
 import { FACULTY_COLS } from '../utils/facultyHelpers';
 import EmptyState from '../../../shared/components/feedback/EmptyState';
 
-const FacultyTable = memo(({ faculty, onEdit, onDelete }) => {
+const FacultyTable = memo(({ faculty, onEdit, onDelete, onAssignCourses }) => {
   if (!faculty?.length) return <EmptyState message="No faculty found." />;
 
   return (
@@ -18,7 +18,7 @@ const FacultyTable = memo(({ faculty, onEdit, onDelete }) => {
         </thead>
         <tbody>
           {faculty.map((f, i) => (
-            <FacultyRow key={f.id} faculty={f} onEdit={onEdit} onDelete={onDelete} zebra={i % 2 === 1} />
+            <FacultyRow key={f.id} faculty={f} onEdit={onEdit} onDelete={onDelete} onAssignCourses={onAssignCourses} zebra={i % 2 === 1} />
           ))}
         </tbody>
       </table>

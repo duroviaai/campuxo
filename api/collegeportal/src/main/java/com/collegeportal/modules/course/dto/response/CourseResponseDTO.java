@@ -11,6 +11,9 @@ public class CourseResponseDTO {
     private String name;
     private String code;
     private Integer credits;
+    private Long facultyId;
     private String facultyName;
     private Integer studentCount;
+    private String programType;
+    private Boolean enrolled; // true if the requesting student is enrolled
 }

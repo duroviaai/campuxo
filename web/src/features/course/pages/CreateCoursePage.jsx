@@ -8,13 +8,23 @@ const CreateCoursePage = () => {
 
   const handleSubmit = async (data) => {
     await createCourse(data);
-    navigate(ROUTES.ADMIN_COURSES);
+    navigate(ROUTES.ADMIN_COURSES, { state: { dept: data.programType } });
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 max-w-xl">
-      <h2 className="text-sm font-semibold text-gray-800 mb-4">Create Course</h2>
-      <CourseForm onSubmit={handleSubmit} />
+    <div className="space-y-4 max-w-xl">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => navigate(ROUTES.ADMIN_COURSES)}
+          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors text-sm"
+        >
+          ←
+        </button>
+        <h1 className="text-2xl font-bold text-gray-900">Add Course</h1>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <CourseForm onSubmit={handleSubmit} />
+      </div>
     </div>
   );
 };

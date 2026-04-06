@@ -17,6 +17,8 @@ public class CourseRequestDTO {
 
     private Integer credits;
 
+    private String programType;
+
     @NotNull
     private Long facultyId;
 }

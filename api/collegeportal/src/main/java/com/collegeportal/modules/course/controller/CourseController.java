@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/courses")
 @RequiredArgsConstructor
@@ -25,16 +27,61 @@ public class CourseController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_STUDENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_STUDENT')") 
     public ResponseEntity<PagedResponseDTO<CourseResponseDTO>> getAllCourses(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(courseService.getAllCourses(page, size));
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FACULTY', 'ROLE_STUDENT')")
+    public ResponseEntity<CourseResponseDTO> getCourseById(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.getCourseById(id));
+    }
+
+    @GetMapping("/{id}/students")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FACULTY')")
+    public ResponseEntity<List<com.collegeportal.modules.student.dto.response.StudentResponseDTO>> getCourseStudents(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.getCourseStudents(id));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<CourseResponseDTO> updateCourse(@PathVariable Long id,
+                                                          @Valid @RequestBody CourseRequestDTO request) {
+        return ResponseEntity.ok(courseService.updateCourse(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Void> deleteCourse(@PathVariable Long id) {
+        courseService.deleteCourse(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/programs")
+    @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_FACULTY')")
+    public ResponseEntity<List<String>> getPrograms() {
+        return ResponseEntity.ok(courseService.getDistinctPrograms());
+    }
+
+    @GetMapping("/programs/{programType}")
+    @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_FACULTY')")
+    public ResponseEntity<List<CourseResponseDTO>> getCoursesByProgram(@PathVariable String programType) {
+        return ResponseEntity.ok(courseService.getCoursesByProgram(programType));
+    }
+
     @PostMapping("/{id}/enroll")
     @PreAuthorize("hasRole('ROLE_STUDENT')")
     public ResponseEntity<CourseResponseDTO> enrollStudent(@PathVariable Long id) {
         return ResponseEntity.ok(courseService.enrollStudent(id));
+    }
+
+    @DeleteMapping("/{id}/enroll")
+    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    public ResponseEntity<Void> unenrollStudent(@PathVariable Long id) {
+        courseService.unenrollStudent(id);
+        return ResponseEntity.noContent().build();
     }
 }

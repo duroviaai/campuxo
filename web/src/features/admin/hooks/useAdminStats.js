@@ -1,24 +1,14 @@
-import { useEffect, useState } from 'react';
-import { getStats } from '../../../services/adminService';
+import { useGetStatsQuery } from '../state/adminApi';
 
 export default function useAdminStats() {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data, isLoading: loading, error } = useGetStatsQuery();
 
-  useEffect(() => {
-    getStats()
-      .then((data) =>
-        setStats({
-          students: data.totalStudents,
-          faculty: data.totalFaculty,
-          courses: data.totalCourses,
-          pending: data.pendingApprovals,
-        })
-      )
-      .catch(setError)
-      .finally(() => setLoading(false));
-  }, []);
+  const stats = data ? {
+    students: data.totalStudents,
+    faculty:  data.totalFaculty,
+    courses:  data.totalCourses,
+    pending:  data.pendingApprovals,
+  } : null;
 
   return { stats, loading, error };
 }

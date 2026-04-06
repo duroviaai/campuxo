@@ -6,6 +6,8 @@ import com.collegeportal.shared.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,6 +25,12 @@ public class Student extends BaseEntity {
     private String phone;
 
     private String department;
+
+    private LocalDate dateOfBirth;
+
+    private Integer yearOfStudy;
+
+    private String photoUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_batch_id")

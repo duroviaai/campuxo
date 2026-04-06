@@ -59,6 +59,15 @@ public class FacultyServiceImpl implements FacultyService {
 
     @Override
     @Transactional(readOnly = true)
+    public PageResponseDTO<FacultyResponseDTO> getFilteredFaculty(String department, String search, Pageable pageable) {
+        return PageResponseDTO.from(
+                facultyRepository.findWithFilters(department, search, pageable)
+                        .map(facultyMapper::toResponseDTO)
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public FacultyResponseDTO getFacultyById(Long id) {
         return facultyMapper.toResponseDTO(
                 facultyRepository.findById(id)
@@ -92,6 +101,7 @@ public class FacultyServiceImpl implements FacultyService {
         Faculty faculty = Faculty.builder()
                 .firstName(parts[0])
                 .lastName(parts.length > 1 ? parts[1] : "")
+                .department(request.getDepartment())
                 .user(user)
                 .build();
         return facultyMapper.toResponseDTO(facultyRepository.save(faculty));
@@ -141,6 +151,46 @@ public class FacultyServiceImpl implements FacultyService {
     private Faculty resolveCurrentFaculty() {
         return facultyRepository.findByUser(securityUtils.getCurrentUser())
                 .orElseThrow(() -> new ResourceNotFoundException("Faculty profile not found"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FacultyResponseDTO getMyProfile() {
+        return facultyMapper.toResponseDTO(resolveCurrentFaculty());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseResponseDTO> getAssignedCourses(Long facultyId) {
+        facultyRepository.findById(facultyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + facultyId));
+        return courseRepository.findByFacultyId(facultyId)
+                .stream().map(courseMapper::toResponseDTO).toList();
+    }
+
+    @Override
+    @Transactional
+    public void assignCourses(Long facultyId, List<Long> courseIds) {
+        Faculty faculty = facultyRepository.findById(facultyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + facultyId));
+        courseIds.forEach(courseId -> {
+            Course course = courseRepository.findById(courseId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+            course.setFaculty(faculty);
+            courseRepository.save(course);
+        });
+    }
+
+    @Override
+    @Transactional
+    public void removeCourse(Long facultyId, Long courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+        if (course.getFaculty() == null || !course.getFaculty().getId().equals(facultyId)) {
+            throw new BadRequestException("Course is not assigned to this faculty");
+        }
+        course.setFaculty(null);
+        courseRepository.save(course);
     }
 
     @Override

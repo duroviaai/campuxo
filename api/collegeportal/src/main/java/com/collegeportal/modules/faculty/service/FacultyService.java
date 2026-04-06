@@ -14,6 +14,8 @@ public interface FacultyService {
 
     PageResponseDTO<FacultyResponseDTO> getAllFaculty(Pageable pageable);
 
+    PageResponseDTO<FacultyResponseDTO> getFilteredFaculty(String department, String search, Pageable pageable);
+
     FacultyResponseDTO getFacultyById(Long id);
 
     FacultyResponseDTO createFaculty(FacultyRequestDTO request);
@@ -27,4 +29,12 @@ public interface FacultyService {
     List<AttendanceResponseDTO> getMyAttendance();
 
     List<FacultyCourseAssignmentResponseDTO> getMyAssignments();
+
+    FacultyResponseDTO getMyProfile();
+
+    List<CourseResponseDTO> getAssignedCourses(Long facultyId);
+
+    void assignCourses(Long facultyId, List<Long> courseIds);
+
+    void removeCourse(Long facultyId, Long courseId);
 }

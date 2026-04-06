@@ -7,7 +7,7 @@ const AdminGuard = () => {
   const { token, user } = useAuthContext();
 
   if (!token || isTokenExpired()) return <Navigate to={ROUTES.LOGIN} replace />;
-  if (!user?.roles?.includes('ROLE_ADMIN')) return <Navigate to={ROUTES.STUDENT_DASHBOARD} replace />;
+  if (!user?.roles?.includes('ROLE_ADMIN')) return <Navigate to={ROUTES.DASHBOARD} replace />;
 
   return <Outlet />;
 };

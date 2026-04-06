@@ -19,12 +19,16 @@ public class FacultyMapper {
     }
 
     public FacultyResponseDTO toResponseDTO(Faculty faculty) {
+        String fullName = (faculty.getFirstName() != null ? faculty.getFirstName() : "") +
+                (faculty.getLastName() != null && !faculty.getLastName().isBlank() ? " " + faculty.getLastName() : "");
         return FacultyResponseDTO.builder()
                 .id(faculty.getId())
                 .firstName(faculty.getFirstName())
                 .lastName(faculty.getLastName())
+                .fullName(fullName.isBlank() ? null : fullName.trim())
                 .department(faculty.getDepartment())
                 .email(faculty.getUser() != null ? faculty.getUser().getEmail() : null)
+                .facultyId(faculty.getUser() != null ? faculty.getUser().getFacultyId() : null)
                 .build();
     }
 }

@@ -1,43 +1,39 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getStudents } from '../services/studentService';
+import { useState } from 'react';
+import { useGetStudentsQuery } from '../state/studentApi';
 
 const useStudents = () => {
-  const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [search, setSearch] = useState('');
+  const [page, setPage]   = useState(0);
+  const [search, setSearchState] = useState('');
+  const [dept, setDept]   = useState('');
+  const [classId, setClassId] = useState('');
 
-  const fetchStudents = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    getStudents({ page, size: 10, search: search || undefined })
-      .then((data) => {
-        setStudents(data.content ?? data);
-        setTotalPages(data.totalPages ?? 0);
-      })
-      .catch(setError)
-      .finally(() => setLoading(false));
-  }, [page, search]);
+  const { data, isLoading: loading, error, refetch } = useGetStudentsQuery({
+    page,
+    size: 10,
+    search:       search   || undefined,
+    department:   dept     || undefined,
+    classBatchId: classId  || undefined,
+    sort: 'id',
+  });
 
-  useEffect(() => { fetchStudents(); }, [fetchStudents]);
-
-  const handleSetSearch = (value) => {
-    setPage(0);
-    setSearch(value);
-  };
+  const setSearch  = (v) => { setPage(0); setSearchState(v); };
+  const handleDept = (v) => { setPage(0); setDept(v); setClassId(''); };
+  const handleClass = (v) => { setPage(0); setClassId(v); };
 
   return {
-    students,
+    students:   data?.content ?? data ?? [],
+    totalPages: data?.totalPages ?? 0,
     loading,
     error,
     page,
-    totalPages,
     search,
+    dept,
+    classId,
     setPage,
-    setSearch: handleSetSearch,
-    fetchStudents,
+    setSearch,
+    setDept: handleDept,
+    setClassId: handleClass,
+    fetchStudents: refetch,
   };
 };
 

@@ -14,7 +14,20 @@ public class StudentMapper {
                 .lastName(dto.getLastName())
                 .phone(dto.getPhone())
                 .department(dto.getDepartment())
+                .dateOfBirth(dto.getDateOfBirth())
+                .yearOfStudy(dto.getYearOfStudy())
+                .photoUrl(dto.getPhotoUrl())
                 .build();
+    }
+
+    public void updateEntity(Student student, StudentRequestDTO dto) {
+        student.setFirstName(dto.getFirstName());
+        student.setLastName(dto.getLastName());
+        student.setPhone(dto.getPhone());
+        student.setDepartment(dto.getDepartment());
+        student.setDateOfBirth(dto.getDateOfBirth());
+        student.setYearOfStudy(dto.getYearOfStudy());
+        if (dto.getPhotoUrl() != null) student.setPhotoUrl(dto.getPhotoUrl());
     }
 
     public StudentResponseDTO toResponseDTO(Student student) {
@@ -26,6 +39,12 @@ public class StudentMapper {
                 .department(student.getDepartment())
                 .fullName(student.getUser().getFullName())
                 .email(student.getUser().getEmail())
+                .registrationNumber(student.getUser().getRegistrationNumber())
+                .dateOfBirth(student.getDateOfBirth())
+                .yearOfStudy(student.getYearOfStudy())
+                .photoUrl(student.getPhotoUrl())
+                .classBatchName(student.getClassBatch() != null ? student.getClassBatch().getName() : null)
+                .classBatchId(student.getClassBatch() != null ? student.getClassBatch().getId() : null)
                 .build();
     }
 }

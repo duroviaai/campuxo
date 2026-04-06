@@ -26,6 +26,9 @@ public class Course extends BaseEntity {
 
     private Integer credits;
 
+    // e.g. BCA, BSc, BBA — groups courses into programs
+    private String programType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "faculty_id")
     private Faculty faculty;

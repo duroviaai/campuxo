@@ -12,9 +12,19 @@ const CreateFacultyPage = () => {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 max-w-xl">
-      <h2 className="text-sm font-semibold text-gray-800 mb-4">Add Faculty</h2>
-      <FacultyForm onSubmit={handleSubmit} />
+    <div className="space-y-4 max-w-xl">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => navigate(ROUTES.ADMIN_FACULTY)}
+          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors text-sm"
+        >
+          ←
+        </button>
+        <h1 className="text-2xl font-bold text-gray-900">Add Faculty</h1>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <FacultyForm onSubmit={handleSubmit} />
+      </div>
     </div>
   );
 };

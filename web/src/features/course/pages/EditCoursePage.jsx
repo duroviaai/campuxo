@@ -21,16 +21,26 @@ const EditCoursePage = () => {
 
   const handleSubmit = async (data) => {
     await updateCourse(id, data);
-    navigate(ROUTES.ADMIN_COURSES);
+    navigate(ROUTES.ADMIN_COURSES, { state: { dept: data.programType } });
   };
 
   if (loading) return <Loader />;
   if (error)   return <p className="text-sm text-red-500">{error}</p>;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 max-w-xl">
-      <h2 className="text-sm font-semibold text-gray-800 mb-4">Edit Course</h2>
-      <CourseForm initialData={course} onSubmit={handleSubmit} />
+    <div className="space-y-4 max-w-xl">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => navigate(ROUTES.ADMIN_COURSES, { state: { dept: course?.programType } })}
+          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors text-sm"
+        >
+          ←
+        </button>
+        <h1 className="text-2xl font-bold text-gray-900">Edit Course</h1>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <CourseForm initialData={course} onSubmit={handleSubmit} />
+      </div>
     </div>
   );
 };

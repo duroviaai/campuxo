@@ -3,7 +3,7 @@ import StudentRow from './StudentRow';
 import { STUDENT_COLS } from '../utils/studentHelpers';
 import EmptyState from '../../../shared/components/feedback/EmptyState';
 
-const StudentTable = memo(({ students, onEdit, onDelete }) => {
+const StudentTable = memo(({ students, onEdit, onDelete, onView }) => {
   if (!students?.length) return <EmptyState message="No students found." />;
 
   return (
@@ -18,7 +18,7 @@ const StudentTable = memo(({ students, onEdit, onDelete }) => {
         </thead>
         <tbody>
           {students.map((s, i) => (
-            <StudentRow key={s.id} student={s} onEdit={onEdit} onDelete={onDelete} zebra={i % 2 === 1} />
+            <StudentRow key={s.id} student={s} onEdit={onEdit} onDelete={onDelete} onView={onView} zebra={i % 2 === 1} />
           ))}
         </tbody>
       </table>

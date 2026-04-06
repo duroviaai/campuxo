@@ -16,7 +16,13 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "attendance", uniqueConstraints = {
+@Table(name = "attendance",
+        indexes = {
+                @Index(name = "idx_attendance_student", columnList = "student_id"),
+                @Index(name = "idx_attendance_course_batch_date", columnList = "course_id, class_batch_id, date"),
+                @Index(name = "idx_attendance_student_course", columnList = "student_id, course_id")
+        },
+        uniqueConstraints = {
         @UniqueConstraint(columnNames = {"student_id", "course_id", "class_batch_id", "date"})
 })
 public class Attendance extends BaseEntity {

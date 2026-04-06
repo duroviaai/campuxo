@@ -17,10 +17,11 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // Split vendor libs into their own chunks
-        manualChunks: {
-          'vendor-react':    ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui':       ['react-hot-toast', 'recharts'],
-          'vendor-network':  ['axios'],
+        manualChunks: (id) => {
+          if (['react', 'react-dom', 'react-router-dom'].some((p) => id.includes(`/node_modules/${p}/`))) return 'vendor-react';
+          if (['@reduxjs/toolkit', 'react-redux'].some((p) => id.includes(`/node_modules/${p}/`))) return 'vendor-redux';
+          if (['react-hot-toast', 'recharts'].some((p) => id.includes(`/node_modules/${p}/`))) return 'vendor-ui';
+          if (id.includes('/node_modules/axios/')) return 'vendor-network';
         },
       },
     },

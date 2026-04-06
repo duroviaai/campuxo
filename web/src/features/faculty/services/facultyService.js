@@ -11,6 +11,14 @@ export const deleteFaculty  = (id)     => axiosInstance.delete(`${BASE}/${id}`).
 export const getFacultyCourses    = () => axiosInstance.get('/api/v1/faculty/me/courses').then((r) => r.data);
 export const getFacultyAttendance = () => axiosInstance.get('/api/v1/faculty/me/attendance').then((r) => r.data);
 export const getFacultyAssignments = () => axiosInstance.get('/api/v1/faculty/me/assignments').then((r) => r.data);
+export const getMyProfile          = () => axiosInstance.get('/api/v1/faculty/me/profile').then((r) => r.data);
+
+export const getFacultyAssignedCourses = (facultyId) =>
+  axiosInstance.get(`${BASE}/${facultyId}/courses`).then((r) => r.data);
+export const assignCoursesToFaculty = (facultyId, courseIds) =>
+  axiosInstance.post(`${BASE}/${facultyId}/courses`, { courseIds }).then((r) => r.data);
+export const removeCourseFromFaculty = (facultyId, courseId) =>
+  axiosInstance.delete(`${BASE}/${facultyId}/courses/${courseId}`).then((r) => r.data);
 
 export const getClassStudents = (classId) =>
   axiosInstance.get(`/api/v1/classes/${classId}/students`).then((r) => r.data);

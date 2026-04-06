@@ -3,6 +3,8 @@ package com.collegeportal.modules.attendance.controller;
 import com.collegeportal.modules.attendance.dto.request.AttendanceBatchRequestDTO;
 import com.collegeportal.modules.attendance.dto.request.AttendanceRequestDTO;
 import com.collegeportal.modules.attendance.dto.response.AttendanceResponseDTO;
+import com.collegeportal.modules.attendance.dto.response.AttendanceSummaryDTO;
+import com.collegeportal.modules.attendance.dto.response.StudentAttendanceOverviewDTO;
 import com.collegeportal.modules.attendance.service.AttendanceService;
 import com.collegeportal.shared.dto.PageResponseDTO;
 import jakarta.validation.Valid;
@@ -60,5 +62,25 @@ public class AttendanceController {
     public ResponseEntity<PageResponseDTO<AttendanceResponseDTO>> getMyAttendance(
             @PageableDefault(size = 10, sort = "date") Pageable pageable) {
         return ResponseEntity.ok(attendanceService.getMyAttendance(pageable));
+    }
+
+    @GetMapping("/me/summary")
+    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    public ResponseEntity<List<AttendanceSummaryDTO>> getMyAttendanceSummary() {
+        return ResponseEntity.ok(attendanceService.getMyAttendanceSummary());
+    }
+
+    @GetMapping("/student/{studentId}/summary")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FACULTY')")
+    public ResponseEntity<List<AttendanceSummaryDTO>> getStudentAttendanceSummary(@PathVariable Long studentId) {
+        return ResponseEntity.ok(attendanceService.getStudentAttendanceSummary(studentId));
+    }
+
+    @GetMapping("/class/{classId}/course/{courseId}/overview")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FACULTY')")
+    public ResponseEntity<List<StudentAttendanceOverviewDTO>> getClassCourseOverview(
+            @PathVariable Long classId,
+            @PathVariable Long courseId) {
+        return ResponseEntity.ok(attendanceService.getClassCourseOverview(classId, courseId));
     }
 }

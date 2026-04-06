@@ -10,11 +10,21 @@ import java.util.List;
 
 public interface StudentService {
 
+    StudentResponseDTO getStudentById(Long id);
+
+    StudentResponseDTO updateStudent(Long id, StudentRequestDTO request);
+
+    void deleteStudent(Long id);
+
     StudentResponseDTO createStudent(StudentRequestDTO request);
 
     PageResponseDTO<StudentResponseDTO> getAllStudents(Pageable pageable);
 
+    PageResponseDTO<StudentResponseDTO> getFilteredStudents(String department, Long classBatchId, String search, Pageable pageable);
+
     StudentResponseDTO getMyProfile();
+
+    StudentResponseDTO updateMyProfile(StudentRequestDTO request);
 
     List<CourseResponseDTO> getMyCourses();
 }

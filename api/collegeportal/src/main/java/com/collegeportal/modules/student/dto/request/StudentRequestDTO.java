@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 public class StudentRequestDTO {
@@ -16,4 +18,10 @@ public class StudentRequestDTO {
     private String phone;
 
     private String department;
+
+    private LocalDate dateOfBirth;
+
+    private Integer yearOfStudy;
+
+    private String photoUrl;
 }

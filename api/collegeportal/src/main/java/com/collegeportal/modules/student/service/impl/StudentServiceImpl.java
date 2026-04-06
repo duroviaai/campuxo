@@ -32,17 +32,40 @@ public class StudentServiceImpl implements StudentService {
     private final CourseMapper courseMapper;
 
     @Override
+    @Transactional(readOnly = true)
+    public StudentResponseDTO getStudentById(Long id) {
+        return studentMapper.toResponseDTO(
+                studentRepository.findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id))
+        );
+    }
+
+    @Override
+    @Transactional
+    public StudentResponseDTO updateStudent(Long id, StudentRequestDTO request) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
+        studentMapper.updateEntity(student, request);
+        return studentMapper.toResponseDTO(studentRepository.save(student));
+    }
+
+    @Override
+    @Transactional
+    public void deleteStudent(Long id) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
+        studentRepository.delete(student);
+    }
+
+    @Override
     @Transactional
     public StudentResponseDTO createStudent(StudentRequestDTO request) {
         User currentUser = securityUtils.getCurrentUser();
-
         if (studentRepository.existsByUser(currentUser)) {
             throw new BadRequestException("Student profile already exists for this user");
         }
-
         Student student = studentMapper.toEntity(request);
         student.setUser(currentUser);
-
         return studentMapper.toResponseDTO(studentRepository.save(student));
     }
 
@@ -56,6 +79,15 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     @Transactional(readOnly = true)
+    public PageResponseDTO<StudentResponseDTO> getFilteredStudents(String department, Long classBatchId, String search, Pageable pageable) {
+        return PageResponseDTO.from(
+                studentRepository.findWithFilters(department, classBatchId, search, pageable)
+                        .map(studentMapper::toResponseDTO)
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public StudentResponseDTO getMyProfile() {
         User currentUser = securityUtils.getCurrentUser();
         Student student = studentRepository.findByUser(currentUser)
@@ -64,12 +96,22 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<CourseResponseDTO> getMyCourses() {
+    @Transactional
+    public StudentResponseDTO updateMyProfile(StudentRequestDTO request) {
         User currentUser = securityUtils.getCurrentUser();
         Student student = studentRepository.findByUser(currentUser)
                 .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
-        return courseRepository.findByStudentsId(student.getId())
-                .stream().map(courseMapper::toResponseDTO).toList();
+        studentMapper.updateEntity(student, request);
+        return studentMapper.toResponseDTO(studentRepository.save(student));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseResponseDTO> getMyCourses() {
+        User currentUser = securityUtils.getCurrentUser();
+        return studentRepository.findByUser(currentUser)
+                .map(student -> courseRepository.findByStudentsId(student.getId())
+                        .stream().map(courseMapper::toResponseDTO).toList())
+                .orElse(List.of());
     }
 }

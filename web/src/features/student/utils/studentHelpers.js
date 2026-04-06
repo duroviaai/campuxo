@@ -3,8 +3,14 @@ export const getFullName = (student) =>
 
 export const STUDENT_COLS = ['Name', 'Email', 'Registration Number', 'Actions'];
 
+export const DEPARTMENTS = ['BCA', 'BSc', 'BCom', 'BA'];
+
 export const EMPTY_STUDENT_FORM = {
-  name: '',
-  email: '',
-  registrationNumber: '',
+  firstName: '',
+  lastName: '',
+  phone: '',
+  department: '',
+  classBatchId: '',
+  yearOfStudy: '',
+  dateOfBirth: '',
 };

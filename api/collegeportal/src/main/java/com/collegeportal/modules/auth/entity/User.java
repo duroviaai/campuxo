@@ -44,7 +44,7 @@ public class User extends BaseEntity {
     
     private LocalDateTime resetTokenExpiry;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
