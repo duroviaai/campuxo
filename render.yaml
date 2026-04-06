@@ -2,13 +2,14 @@ services:
   # ── Spring Boot API ──────────────────────────────────────────────
   - type: web
     name: collegeportal-api
-    runtime: docker
+    runtime: java
     rootDir: api/collegeportal
-    dockerfilePath: ./Dockerfile
+    buildCommand: ./mvnw -q clean package -DskipTests
+    startCommand: java -jar target/demo-0.0.1-SNAPSHOT.jar
     plan: free
     envVars:
       - key: DB_URL
-        sync: false          # set manually in Render dashboard
+        sync: false
       - key: DB_USERNAME
         sync: false
       - key: DB_PASSWORD
@@ -18,7 +19,7 @@ services:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
       - key: CORS_ALLOWED_ORIGINS
-        sync: false          # set to your frontend URL, e.g. https://collegeportal-web.onrender.com
+        sync: false
 
   # ── React / Vite Frontend ────────────────────────────────────────
   - type: web
