@@ -1,0 +1,6 @@
+{
+    "java.jdt.ls.lombokSupport.enabled": true,
+    "java.project.referencedLibraries": [
+        "C:/Users/HP/.m2/repository/org/projectlombok/lombok/1.18.44/lombok-1.18.44.jar"
+    ]
+}

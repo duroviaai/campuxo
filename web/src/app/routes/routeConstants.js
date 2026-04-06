@@ -1,0 +1,39 @@
+const ROUTES = {
+  HOME: '/',
+  LOGIN: '/login',
+  REGISTER: '/register',
+  DASHBOARD: '/dashboard',
+  ADMIN_DASHBOARD: '/admin/dashboard',
+  ADMIN_STUDENTS:        '/admin/students',
+  ADMIN_STUDENTS_CREATE: '/admin/students/create',
+  ADMIN_STUDENTS_EDIT:   '/admin/students/:id/edit',
+  ADMIN_FACULTY:        '/admin/faculty',
+  ADMIN_FACULTY_CREATE:  '/admin/faculty/create',
+  ADMIN_FACULTY_EDIT:    '/admin/faculty/:id/edit',
+  ADMIN_COURSES:        '/admin/courses',
+  ADMIN_COURSES_CREATE:  '/admin/courses/create',
+  ADMIN_COURSES_EDIT:    '/admin/courses/:id/edit',
+  ADMIN_ATTENDANCE:  '/admin/attendance',
+
+  // Faculty
+  FACULTY_DASHBOARD:  '/faculty/dashboard',
+  FACULTY_COURSES:    '/faculty/courses',
+  FACULTY_ATTENDANCE: '/faculty/attendance',
+
+  // Student
+  STUDENT_DASHBOARD:  '/student/dashboard',
+  STUDENT_COURSES:    '/student/courses',
+  STUDENT_ATTENDANCE: '/student/attendance',
+  STUDENT_PROFILE:    '/student/profile',
+
+  // Faculty profile
+  FACULTY_PROFILE: '/faculty/profile',
+
+  // Admin student detail
+  ADMIN_STUDENTS_DETAIL: '/admin/students/:id',
+
+  // Admin mark attendance
+  ADMIN_MARK_ATTENDANCE: '/admin/attendance/mark',
+};
+
+export default ROUTES;

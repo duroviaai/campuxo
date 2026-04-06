@@ -1,0 +1,9 @@
+export { default as FacultyListPage }   from './pages/FacultyListPage';
+export { default as CreateFacultyPage } from './pages/CreateFacultyPage';
+export { default as EditFacultyPage }   from './pages/EditFacultyPage';
+export { default as FacultyTable }      from './components/FacultyTable';
+export { default as FacultyRow }        from './components/FacultyRow';
+export { default as FacultyForm }       from './components/FacultyForm';
+export { default as FacultyFilters }    from './components/FacultyFilters';
+export { default as useFaculty }        from './hooks/useFaculty';
+export { default as useFacultyForm }    from './hooks/useFacultyForm';
