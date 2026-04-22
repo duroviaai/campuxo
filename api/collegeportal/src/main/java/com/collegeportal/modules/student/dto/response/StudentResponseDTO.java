@@ -19,7 +19,10 @@ public class StudentResponseDTO {
     private String registrationNumber;
     private LocalDate dateOfBirth;
     private Integer yearOfStudy;
+    private Integer courseStartYear;
+    private Integer courseEndYear;
     private String photoUrl;
     private String classBatchName;
     private Long classBatchId;
+    private String classBatchDisplayName;
 }

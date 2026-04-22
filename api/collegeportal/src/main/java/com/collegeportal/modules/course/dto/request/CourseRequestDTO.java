@@ -19,6 +19,8 @@ public class CourseRequestDTO {
 
     private String programType;
 
+    private Long classBatchId;
+
     @NotNull
     private Long facultyId;
 }

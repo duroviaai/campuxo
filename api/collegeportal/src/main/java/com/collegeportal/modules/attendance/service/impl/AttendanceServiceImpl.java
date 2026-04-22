@@ -158,12 +158,10 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Override
     @Transactional(readOnly = true)
     public List<StudentAttendanceOverviewDTO> getClassCourseOverview(Long classId, Long courseId) {
-        courseRepository.findById(courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
         classBatchRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
 
-        List<Student> students = studentRepository.findByClassBatchId(classId);
+        List<Student> students = studentRepository.findByClassBatchIdAndCourseId(classId, courseId);
         if (students.isEmpty()) return List.of();
 
         List<Long> studentIds = students.stream().map(Student::getId).toList();

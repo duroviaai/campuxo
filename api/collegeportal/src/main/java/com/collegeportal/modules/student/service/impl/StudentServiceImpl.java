@@ -3,6 +3,9 @@ package com.collegeportal.modules.student.service.impl;
 import com.collegeportal.exception.custom.BadRequestException;
 import com.collegeportal.exception.custom.ResourceNotFoundException;
 import com.collegeportal.modules.auth.entity.User;
+import com.collegeportal.modules.classbatch.entity.ClassBatch;
+import com.collegeportal.modules.classbatch.repository.ClassBatchRepository;
+import com.collegeportal.modules.attendance.repository.AttendanceRepository;
 import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.course.mapper.CourseMapper;
 import com.collegeportal.modules.course.repository.CourseRepository;
@@ -30,22 +33,32 @@ public class StudentServiceImpl implements StudentService {
     private final SecurityUtils securityUtils;
     private final CourseRepository courseRepository;
     private final CourseMapper courseMapper;
+    private final ClassBatchRepository classBatchRepository;
+    private final AttendanceRepository attendanceRepository;
+
+    private Student findStudentById(Long id) {
+        return studentRepository.findWithUserById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
+    }
 
     @Override
     @Transactional(readOnly = true)
     public StudentResponseDTO getStudentById(Long id) {
-        return studentMapper.toResponseDTO(
-                studentRepository.findById(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id))
-        );
+        return studentMapper.toResponseDTO(findStudentById(id));
     }
 
     @Override
     @Transactional
     public StudentResponseDTO updateStudent(Long id, StudentRequestDTO request) {
-        Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
+        Student student = findStudentById(id);
         studentMapper.updateEntity(student, request);
+        if (request.getClassBatchId() != null) {
+            ClassBatch batch = classBatchRepository.findById(request.getClassBatchId())
+                    .orElseThrow(() -> new ResourceNotFoundException("ClassBatch not found with id: " + request.getClassBatchId()));
+            student.setClassBatch(batch);
+        } else {
+            student.setClassBatch(null);
+        }
         return studentMapper.toResponseDTO(studentRepository.save(student));
     }
 
@@ -54,6 +67,8 @@ public class StudentServiceImpl implements StudentService {
     public void deleteStudent(Long id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
+        attendanceRepository.deleteAll(attendanceRepository.findByStudent(student));
+        courseRepository.removeStudentFromAllCourses(id);
         studentRepository.delete(student);
     }
 
@@ -71,18 +86,11 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponseDTO<StudentResponseDTO> getAllStudents(Pageable pageable) {
+    public PageResponseDTO<StudentResponseDTO> getAllStudents(Pageable pageable, String search, String department, Long classBatchId) {
+        String s = search != null ? search.trim() : "";
+        String d = department != null ? department.trim() : "";
         return PageResponseDTO.from(
-                studentRepository.findAll(pageable).map(studentMapper::toResponseDTO)
-        );
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PageResponseDTO<StudentResponseDTO> getFilteredStudents(String department, Long classBatchId, String search, Pageable pageable) {
-        return PageResponseDTO.from(
-                studentRepository.findWithFilters(department, classBatchId, search, pageable)
-                        .map(studentMapper::toResponseDTO)
+                studentRepository.search(s, d, classBatchId, pageable).map(studentMapper::toResponseDTO)
         );
     }
 
@@ -111,7 +119,8 @@ public class StudentServiceImpl implements StudentService {
         User currentUser = securityUtils.getCurrentUser();
         return studentRepository.findByUser(currentUser)
                 .map(student -> courseRepository.findByStudentsId(student.getId())
-                        .stream().map(courseMapper::toResponseDTO).toList())
+                        .stream().map(c -> courseMapper.toResponseDTO(c,
+                                (int) courseRepository.countStudentsByCourseId(c.getId()), true)).toList())
                 .orElse(List.of());
     }
 }

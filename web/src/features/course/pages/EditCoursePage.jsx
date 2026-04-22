@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { getCourseById, updateCourse } from '../services/courseService';
 import CourseForm from '../components/CourseForm';
 import Loader from '../../../shared/components/feedback/Loader';
@@ -21,6 +22,7 @@ const EditCoursePage = () => {
 
   const handleSubmit = async (data) => {
     await updateCourse(id, data);
+    toast.success('Course updated successfully');
     navigate(ROUTES.ADMIN_COURSES, { state: { dept: data.programType } });
   };
 

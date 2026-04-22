@@ -3,6 +3,7 @@ package com.collegeportal.modules.admin.dto.response;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Data
@@ -16,5 +17,7 @@ public class AdminResponseDTO {
     private Set<String> roles;
     private boolean approved;
     private boolean enabled;
+    private LocalDateTime createdAt;
     private String message;
+    private String rejectionReason;
 }

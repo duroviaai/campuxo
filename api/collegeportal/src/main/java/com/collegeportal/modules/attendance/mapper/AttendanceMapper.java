@@ -10,6 +10,7 @@ public class AttendanceMapper {
     public AttendanceResponseDTO toResponseDTO(Attendance attendance) {
         return AttendanceResponseDTO.builder()
                 .id(attendance.getId())
+                .studentId(attendance.getStudent().getId())
                 .date(attendance.getDate())
                 .status(attendance.getStatus())
                 .studentName(attendance.getStudent().getFirstName() + " " + attendance.getStudent().getLastName())

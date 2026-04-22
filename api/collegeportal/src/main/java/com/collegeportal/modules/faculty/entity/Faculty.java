@@ -21,6 +21,8 @@ public class Faculty extends BaseEntity {
 
     private String department;
 
+    private String phone;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false, unique = true)
     private User user;

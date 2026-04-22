@@ -8,13 +8,14 @@ import com.collegeportal.modules.classbatch.entity.ClassBatch;
 import com.collegeportal.modules.classbatch.repository.ClassBatchRepository;
 import com.collegeportal.modules.classbatch.service.ClassBatchService;
 import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
-import com.collegeportal.modules.course.entity.Course;
 import com.collegeportal.modules.course.mapper.CourseMapper;
 import com.collegeportal.modules.course.repository.CourseRepository;
 import com.collegeportal.modules.student.dto.response.StudentResponseDTO;
 import com.collegeportal.modules.student.mapper.StudentMapper;
 import com.collegeportal.modules.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class ClassBatchServiceImpl implements ClassBatchService {
     private final CourseMapper courseMapper;
 
     @Override
+    @Cacheable("classes")
     @Transactional(readOnly = true)
     public List<ClassBatchResponseDTO> getAllClasses() {
         return classBatchRepository.findAll().stream()
@@ -39,6 +41,7 @@ public class ClassBatchServiceImpl implements ClassBatchService {
     }
 
     @Override
+    @CacheEvict(value = "classes", allEntries = true)
     @Transactional
     public ClassBatchResponseDTO createClass(ClassBatchRequestDTO request) {
         ClassBatch batch = ClassBatch.builder()
@@ -50,6 +53,7 @@ public class ClassBatchServiceImpl implements ClassBatchService {
     }
 
     @Override
+    @CacheEvict(value = "classes", allEntries = true)
     @Transactional
     public ClassBatchResponseDTO updateClass(Long id, ClassBatchRequestDTO request) {
         ClassBatch batch = classBatchRepository.findById(id)
@@ -61,6 +65,7 @@ public class ClassBatchServiceImpl implements ClassBatchService {
     }
 
     @Override
+    @CacheEvict(value = "classes", allEntries = true)
     @Transactional
     public void deleteClass(Long id) {
         classBatchRepository.findById(id)
@@ -79,6 +84,7 @@ public class ClassBatchServiceImpl implements ClassBatchService {
     }
 
     @Override
+    @Cacheable("classFilters")
     @Transactional(readOnly = true)
     public ClassBatchFilterDTO getFilters() {
         return ClassBatchFilterDTO.builder()
@@ -109,9 +115,8 @@ public class ClassBatchServiceImpl implements ClassBatchService {
     public List<CourseResponseDTO> getCoursesByClass(Long classId) {
         classBatchRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: " + classId));
-        List<Course> courses = courseRepository.findByClassBatchId(classId);
-        return courses.stream()
-                .map(c -> courseMapper.toResponseDTO(c, null))
+        return courseRepository.findByClassBatchId(classId).stream()
+                .map(c -> courseMapper.toResponseDTO(c, (int) courseRepository.countStudentsByCourseId(c.getId()), null))
                 .toList();
     }
 

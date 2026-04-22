@@ -26,11 +26,17 @@ const LoginPage = () => {
       const res = await loginUser(form);
       const roles = res.roles ?? [];
       if (roles.includes('ROLE_ADMIN')) {
+        import('../../dashboard/pages/AdminDashboardPage');
         navigate(ROUTES.ADMIN_DASHBOARD, { replace: true });
       } else if (roles.includes('ROLE_FACULTY')) {
+        import('../../dashboard/pages/FacultyDashboardPage');
         navigate(ROUTES.FACULTY_DASHBOARD, { replace: true });
       } else {
-        navigate(ROUTES.STUDENT_DASHBOARD, { replace: true });
+        import('../../dashboard/pages/StudentDashboardPage');
+        const dest = res.profileComplete === false
+          ? ROUTES.STUDENT_COMPLETE_PROFILE
+          : ROUTES.STUDENT_DASHBOARD;
+        navigate(dest, { replace: true });
       }
     } catch (err) {
       setError(err?.response?.data?.message || 'Invalid email or password.');

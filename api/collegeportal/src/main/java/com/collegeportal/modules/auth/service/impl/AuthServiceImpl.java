@@ -51,6 +51,14 @@ public class AuthServiceImpl implements AuthService {
     private final FacultyRepository facultyRepository;
     private final StudentRepository studentRepository;
 
+    private boolean isStudentProfileComplete(User user) {
+        return studentRepository.findByUser(user)
+                .map(s -> s.getPhone() != null && s.getDepartment() != null
+                        && s.getDateOfBirth() != null && s.getYearOfStudy() != null
+                        && s.getCourseStartYear() != null && s.getCourseEndYear() != null)
+                .orElse(false);
+    }
+
     @Override
     @Transactional
     public AuthResponseDTO register(RegisterRequestDTO request) {
@@ -202,13 +210,16 @@ public class AuthServiceImpl implements AuthService {
                 .map(role -> role.getName().name())
                 .collect(Collectors.toSet());
 
+        boolean profileComplete = !roles.contains("ROLE_STUDENT") || isStudentProfileComplete(user);
+
         return AuthResponseDTO.builder()
                 .accessToken(token)
                 .tokenType("Bearer")
-                .username(user.getFullName()) // Using fullName as display name
+                .username(user.getFullName())
                 .email(user.getEmail())
                 .roles(roles)
                 .message("Login successful")
+                .profileComplete(profileComplete)
                 .build();
     }
 }

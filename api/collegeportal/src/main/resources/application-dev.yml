@@ -1,25 +1,32 @@
 spring:
   datasource:
-    url: jdbc:postgresql://ep-polished-butterfly-a4bs2h1w-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    url: jdbc:postgresql://ep-polished-butterfly-a4bs2h1w-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require
     username: neondb_owner
     password: npg_v9Fr4JHfKAoI
     hikari:
-      connection-timeout: 30000
-      keepalive-time: 60000
-      max-lifetime: 300000
-      minimum-idle: 2
-      maximum-pool-size: 10
-      idle-timeout: 120000
-      connection-test-query: SELECT 1
+      connection-timeout: 60000
+      keepalive-time: 30000
+      max-lifetime: 60000
+      minimum-idle: 1
+      maximum-pool-size: 5
+      idle-timeout: 30000
       initialization-fail-timeout: -1
+
+  sql:
+    init:
+      mode: never
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+      ddl-auto: update
+    show-sql: false
+    defer-datasource-initialization: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
+        jdbc.batch_size: 20
+        order_inserts: true
+        order_updates: true
 
 jwt:
   secret: VqChmzuV2ojiCUrmZw71b2gZIfStoqMub/uIhS1SV5M=

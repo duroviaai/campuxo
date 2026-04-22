@@ -3,6 +3,7 @@ package com.collegeportal.modules.admin.controller;
 import com.collegeportal.modules.admin.dto.response.AdminResponseDTO;
 import com.collegeportal.modules.admin.dto.response.AdminStatsDTO;
 import com.collegeportal.modules.admin.service.AdminService;
+import com.collegeportal.shared.enums.RoleType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,8 +25,15 @@ public class AdminController {
     }
 
     @GetMapping("/pending-users")
-    public ResponseEntity<List<AdminResponseDTO>> getPendingUsers() {
-        return ResponseEntity.ok(adminService.getPendingUsers());
+    public ResponseEntity<List<AdminResponseDTO>> getPendingUsers(
+            @RequestParam(required = false) RoleType role) {
+        return ResponseEntity.ok(adminService.getPendingUsers(role));
+    }
+
+    @GetMapping("/approved-users")
+    public ResponseEntity<List<AdminResponseDTO>> getApprovedUsers(
+            @RequestParam(required = false) RoleType role) {
+        return ResponseEntity.ok(adminService.getApprovedUsers(role));
     }
 
     @PutMapping("/approve/{userId}")
@@ -33,8 +41,15 @@ public class AdminController {
         return ResponseEntity.ok(adminService.approveUser(userId));
     }
 
-    @PutMapping("/reject/{userId}")
-    public ResponseEntity<AdminResponseDTO> rejectUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(adminService.rejectUser(userId));
+    @DeleteMapping("/reject/{userId}")
+    public ResponseEntity<Void> rejectUser(@PathVariable Long userId) {
+        adminService.rejectUser(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/revoke/{userId}")
+    public ResponseEntity<Void> revokeUser(@PathVariable Long userId) {
+        adminService.revokeUser(userId);
+        return ResponseEntity.noContent().build();
     }
 }

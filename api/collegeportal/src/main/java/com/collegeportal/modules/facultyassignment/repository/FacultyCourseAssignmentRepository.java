@@ -10,4 +10,6 @@ public interface FacultyCourseAssignmentRepository extends JpaRepository<Faculty
     List<FacultyCourseAssignment> findByFacultyId(Long facultyId);
 
     boolean existsByFacultyIdAndCourseIdAndClassBatchId(Long facultyId, Long courseId, Long classBatchId);
+
+    void deleteByFacultyIdAndCourseId(Long facultyId, Long courseId);
 }

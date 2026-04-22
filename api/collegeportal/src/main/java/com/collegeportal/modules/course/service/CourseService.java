@@ -5,6 +5,7 @@ import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.shared.dto.PagedResponseDTO;
 
 import java.util.List;
+import java.util.Map;
 
 public interface CourseService {
 
@@ -15,6 +16,10 @@ public interface CourseService {
     CourseResponseDTO createCourse(CourseRequestDTO request);
 
     PagedResponseDTO<CourseResponseDTO> getAllCourses(int page, int size);
+
+    PagedResponseDTO<CourseResponseDTO> searchCourses(String programType, String search, int page, int size);
+
+    Map<String, Long> getDeptCourseCounts();
 
     CourseResponseDTO getCourseById(Long id);
 

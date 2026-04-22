@@ -1,33 +1,23 @@
 import { useState } from 'react';
 import { useGetFacultyQuery } from '../state/facultyApi';
 
-const useFaculty = () => {
-  const [page, setPage]          = useState(0);
-  const [search, setSearchState] = useState('');
-  const [dept, setDeptState]     = useState('');
+const useFaculty = ({ search = '', department = '' } = {}) => {
+  const [page, setPage] = useState(0);
 
-  const { data, isLoading: loading, error, refetch } = useGetFacultyQuery({
-    page,
-    size: 10,
-    search:     search || undefined,
-    department: dept   || undefined,
-    sort: 'id',
-  });
+  const params = { page, size: 10, sort: 'id' };
+  if (search)     params.search     = search;
+  if (department) params.department = department;
 
-  const setSearch = (v) => { setPage(0); setSearchState(v); };
-  const setDept   = (v) => { setPage(0); setDeptState(v); };
+  const { data, isLoading: loading, error, refetch } = useGetFacultyQuery(params);
 
   return {
-    faculty:    data?.content ?? data ?? [],
-    totalPages: data?.totalPages ?? 0,
+    faculty:       data?.content ?? data ?? [],
+    totalPages:    data?.totalPages ?? 0,
+    totalElements: data?.totalElements ?? 0,
     loading,
     error,
     page,
-    search,
-    dept,
     setPage,
-    setSearch,
-    setDept,
     fetchFaculty: refetch,
   };
 };

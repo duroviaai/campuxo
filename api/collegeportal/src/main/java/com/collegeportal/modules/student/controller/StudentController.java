@@ -32,20 +32,27 @@ public class StudentController {
     @GetMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<PageResponseDTO<StudentResponseDTO>> getAllStudents(
-            @PageableDefault(size = 10, sort = "id") Pageable pageable,
+            @RequestParam(required = false) String search,
             @RequestParam(required = false) String department,
             @RequestParam(required = false) Long classBatchId,
-            @RequestParam(required = false) String search) {
-        if (department != null || classBatchId != null || search != null) {
-            return ResponseEntity.ok(studentService.getFilteredStudents(department, classBatchId, search, pageable));
-        }
-        return ResponseEntity.ok(studentService.getAllStudents(pageable));
+            @PageableDefault(size = 10, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(studentService.getAllStudents(pageable, search, department, classBatchId));
     }
 
     @GetMapping("/me")
     @PreAuthorize("hasRole('ROLE_STUDENT')")
     public ResponseEntity<StudentResponseDTO> getMyProfile() {
         return ResponseEntity.ok(studentService.getMyProfile());
+    }
+
+    @GetMapping("/me/profile-status")
+    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    public ResponseEntity<java.util.Map<String, Boolean>> getProfileStatus() {
+        StudentResponseDTO profile = studentService.getMyProfile();
+        boolean complete = profile.getPhone() != null && profile.getDepartment() != null
+                && profile.getDateOfBirth() != null && profile.getYearOfStudy() != null
+                && profile.getCourseStartYear() != null && profile.getCourseEndYear() != null;
+        return ResponseEntity.ok(java.util.Map.of("profileComplete", complete));
     }
 
     @PutMapping("/me")

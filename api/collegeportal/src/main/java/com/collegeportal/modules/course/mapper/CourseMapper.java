@@ -4,7 +4,6 @@ import com.collegeportal.modules.course.dto.request.CourseRequestDTO;
 import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.course.entity.Course;
 import com.collegeportal.modules.faculty.entity.Faculty;
-import com.collegeportal.modules.student.entity.Student;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -20,20 +19,8 @@ public class CourseMapper {
                 .build();
     }
 
-    public CourseResponseDTO toResponseDTO(Course course) {
-        return toResponseDTO(course, null);
-    }
-
-    public CourseResponseDTO toResponseDTO(Course course, Student currentStudent) {
+    public CourseResponseDTO toResponseDTO(Course course, int studentCount, Boolean enrolled) {
         Faculty faculty = course.getFaculty();
-        String facultyName = faculty != null
-                ? faculty.getFirstName() + " " + faculty.getLastName()
-                : null;
-
-        Boolean enrolled = currentStudent != null
-                ? course.getStudents().contains(currentStudent)
-                : null;
-
         return CourseResponseDTO.builder()
                 .id(course.getId())
                 .name(course.getName())
@@ -41,8 +28,8 @@ public class CourseMapper {
                 .credits(course.getCredits())
                 .programType(course.getProgramType())
                 .facultyId(faculty != null ? faculty.getId() : null)
-                .facultyName(facultyName)
-                .studentCount(course.getStudents().size())
+                .facultyName(faculty != null ? faculty.getFirstName() + " " + faculty.getLastName() : null)
+                .studentCount(studentCount)
                 .enrolled(enrolled)
                 .build();
     }

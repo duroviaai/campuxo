@@ -4,7 +4,10 @@ import { EMPTY_FACULTY_FORM, DEPARTMENTS } from '../utils/facultyHelpers';
 const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white';
 
 const FacultyForm = ({ initialData, onSubmit }) => {
-  const [form, setForm]             = useState({ ...EMPTY_FACULTY_FORM, ...initialData });
+  const merged = initialData
+    ? { ...initialData, name: initialData.name ?? `${initialData.firstName ?? ''} ${initialData.lastName ?? ''}`.trim() }
+    : {};
+  const [form, setForm]             = useState({ ...EMPTY_FACULTY_FORM, ...merged });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState(null);
 
@@ -49,6 +52,11 @@ const FacultyForm = ({ initialData, onSubmit }) => {
             <option value="">— Select department —</option>
             {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-gray-600">Phone</label>
+          <input name="phone" value={form.phone ?? ''} onChange={handleChange} className={inputCls} placeholder="e.g. 9876543210" />
         </div>
 
       </div>

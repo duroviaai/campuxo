@@ -40,7 +40,12 @@ export const AuthProvider = ({ children }) => {
 
   const loginUser = async (data) => {
     const res = await authService.login(data);
-    const userData = { username: res.username, email: res.email, roles: res.roles };
+    const userData = {
+      username: res.username,
+      email: res.email,
+      roles: res.roles,
+      profileComplete: res.profileComplete ?? true,
+    };
     setToken(res.accessToken);
     setUser(userData);
     setTokenState(res.accessToken);

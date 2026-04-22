@@ -7,6 +7,11 @@
     <!-- Favicon: inline SVG so no extra file is needed -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234f46e5'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='18' font-family='sans-serif' fill='white'>C</text></svg>" />
 
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
     <!-- Primary meta -->
     <title>CollegePortal — Admin &amp; Student Management</title>
     <meta name="description" content="CollegePortal: manage students, faculty, courses and attendance in one place." />
@@ -20,6 +25,7 @@
   </head>
   <body>
     <div id="root"></div>
+    <link rel="modulepreload" href="/src/main.jsx" />
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

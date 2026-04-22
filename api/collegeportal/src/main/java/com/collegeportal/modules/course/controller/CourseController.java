@@ -27,11 +27,22 @@ public class CourseController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_STUDENT')") 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_STUDENT')")
     public ResponseEntity<PagedResponseDTO<CourseResponseDTO>> getAllCourses(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String programType) {
+        if (search != null || programType != null) {
+            return ResponseEntity.ok(courseService.searchCourses(programType, search, page, size));
+        }
         return ResponseEntity.ok(courseService.getAllCourses(page, size));
+    }
+
+    @GetMapping("/dept-counts")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<java.util.Map<String, Long>> getDeptCounts() {
+        return ResponseEntity.ok(courseService.getDeptCourseCounts());
     }
 
     @GetMapping("/{id}")

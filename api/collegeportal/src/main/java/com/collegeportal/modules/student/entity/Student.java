@@ -14,7 +14,11 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "students")
+@Table(name = "students", indexes = {
+        @Index(name = "idx_student_department", columnList = "department"),
+        @Index(name = "idx_student_class_batch", columnList = "class_batch_id"),
+        @Index(name = "idx_student_user", columnList = "user_id")
+})
 public class Student extends BaseEntity {
 
     @Column(nullable = false)
@@ -29,6 +33,10 @@ public class Student extends BaseEntity {
     private LocalDate dateOfBirth;
 
     private Integer yearOfStudy;
+
+    private Integer courseStartYear;
+
+    private Integer courseEndYear;
 
     private String photoUrl;
 

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { getMyProfile, updateMyProfile } from '../services/studentService';
+import { DEPARTMENTS } from '../../faculty/utils/facultyHelpers';
 
 const Field = ({ label, value }) => (
   <div className="flex flex-col gap-0.5">
@@ -28,13 +29,15 @@ const StudentProfilePage = () => {
   }, []);
 
   const toForm = (p) => ({
-    firstName:    p.firstName   || '',
-    lastName:     p.lastName    || '',
-    phone:        p.phone       || '',
-    department:   p.department  || '',
-    dateOfBirth:  p.dateOfBirth || '',
-    yearOfStudy:  p.yearOfStudy || '',
-    photoUrl:     p.photoUrl    || '',
+    firstName:       p.firstName       || '',
+    lastName:        p.lastName        || '',
+    phone:           p.phone           || '',
+    department:      p.department      || '',
+    dateOfBirth:     p.dateOfBirth     || '',
+    yearOfStudy:     p.yearOfStudy     || '',
+    courseStartYear: p.courseStartYear || '',
+    courseEndYear:   p.courseEndYear   || '',
+    photoUrl:        p.photoUrl        || '',
   });
 
   const handleChange = (e) =>
@@ -57,7 +60,9 @@ const StudentProfilePage = () => {
     try {
       const updated = await updateMyProfile({
         ...form,
-        yearOfStudy: form.yearOfStudy ? Number(form.yearOfStudy) : null,
+        yearOfStudy:     form.yearOfStudy     ? Number(form.yearOfStudy)     : null,
+        courseStartYear: form.courseStartYear ? Number(form.courseStartYear) : null,
+        courseEndYear:   form.courseEndYear   ? Number(form.courseEndYear)   : null,
       });
       setProfile(updated);
       setForm(toForm(updated));
@@ -140,17 +145,18 @@ const StudentProfilePage = () => {
           <Field label="Phone"         value={profile?.phone} />
           <Field label="Department"    value={profile?.department} />
           <Field label="Date of Birth" value={profile?.dateOfBirth} />
-          <Field label="Year of Study" value={profile?.yearOfStudy ? `Year ${profile.yearOfStudy}` : null} />
-          <Field label="Class Batch"   value={profile?.classBatchName} />
+          <Field label="Year of Study"     value={profile?.yearOfStudy ? `Year ${profile.yearOfStudy}` : null} />
+          <Field label="Course Start Year" value={profile?.courseStartYear} />
+          <Field label="Course End Year"   value={profile?.courseEndYear} />
+          <Field label="Class Batch"       value={profile?.classBatchName} />
         </div>
       ) : (
         <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { name: 'firstName',  label: 'First Name',  required: true },
-              { name: 'lastName',   label: 'Last Name' },
-              { name: 'phone',      label: 'Phone' },
-              { name: 'department', label: 'Department' },
+              { name: 'firstName', label: 'First Name', required: true },
+              { name: 'lastName',  label: 'Last Name' },
+              { name: 'phone',     label: 'Phone' },
             ].map(({ name, label, required }) => (
               <div key={name} className="flex flex-col gap-1">
                 <label className="text-xs font-semibold text-gray-500">
@@ -167,6 +173,16 @@ const StudentProfilePage = () => {
             ))}
 
             <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500">Department</label>
+              <select name="department" value={form.department} onChange={handleChange} className={inputCls}>
+                <option value="">Select department</option>
+                {DEPARTMENTS.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-gray-500">Date of Birth</label>
               <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} className={inputCls} />
             </div>
@@ -177,6 +193,26 @@ const StudentProfilePage = () => {
                 <option value="">Select year</option>
                 {[1, 2, 3, 4].map((y) => (
                   <option key={y} value={y}>Year {y}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500">Course Start Year</label>
+              <select name="courseStartYear" value={form.courseStartYear} onChange={handleChange} className={inputCls}>
+                <option value="">Select year</option>
+                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500">Course End Year</label>
+              <select name="courseEndYear" value={form.courseEndYear} onChange={handleChange} className={inputCls}>
+                <option value="">Select year</option>
+                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
+                  <option key={y} value={y}>{y}</option>
                 ))}
               </select>
             </div>

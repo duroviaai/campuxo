@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 
-const SidebarItem = ({ to, label, icon, end = false }) => (
+const SidebarItem = ({ to, label, icon, end = false, badge }) => (
   <NavLink
     to={to}
     end={end}
@@ -15,7 +15,12 @@ const SidebarItem = ({ to, label, icon, end = false }) => (
     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={icon} />
     </svg>
-    {label}
+    <span className="flex-1">{label}</span>
+    {badge > 0 && (
+      <span className="ml-auto bg-amber-400 text-gray-900 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+        {badge > 99 ? '99+' : badge}
+      </span>
+    )}
   </NavLink>
 );
 

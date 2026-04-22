@@ -13,12 +13,15 @@ import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.course.entity.Course;
 import com.collegeportal.modules.course.mapper.CourseMapper;
 import com.collegeportal.modules.course.repository.CourseRepository;
+import com.collegeportal.modules.student.dto.response.StudentResponseDTO;
+import com.collegeportal.modules.student.mapper.StudentMapper;
 import com.collegeportal.modules.faculty.dto.request.FacultyRequestDTO;
 import com.collegeportal.modules.faculty.dto.response.FacultyResponseDTO;
 import com.collegeportal.modules.faculty.entity.Faculty;
 import com.collegeportal.modules.faculty.mapper.FacultyMapper;
 import com.collegeportal.modules.faculty.repository.FacultyRepository;
 import com.collegeportal.modules.facultyassignment.dto.response.FacultyCourseAssignmentResponseDTO;
+import com.collegeportal.modules.facultyassignment.entity.FacultyCourseAssignment;
 import com.collegeportal.modules.facultyassignment.repository.FacultyCourseAssignmentRepository;
 import com.collegeportal.modules.faculty.service.FacultyService;
 import com.collegeportal.shared.dto.PageResponseDTO;
@@ -48,6 +51,7 @@ public class FacultyServiceImpl implements FacultyService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final FacultyCourseAssignmentRepository assignmentRepository;
+    private final StudentMapper studentMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -60,9 +64,14 @@ public class FacultyServiceImpl implements FacultyService {
     @Override
     @Transactional(readOnly = true)
     public PageResponseDTO<FacultyResponseDTO> getFilteredFaculty(String department, String search, Pageable pageable) {
+        String d = department != null ? department.trim() : "";
+        String s = search != null ? search.trim() : "";
         return PageResponseDTO.from(
-                facultyRepository.findWithFilters(department, search, pageable)
-                        .map(facultyMapper::toResponseDTO)
+                facultyRepository.findWithFilters(d, s, pageable)
+                        .map(f -> {
+                            int count = courseRepository.findByFacultyId(f.getId()).size();
+                            return facultyMapper.toResponseDTO(f, count);
+                        })
         );
     }
 
@@ -102,6 +111,7 @@ public class FacultyServiceImpl implements FacultyService {
                 .firstName(parts[0])
                 .lastName(parts.length > 1 ? parts[1] : "")
                 .department(request.getDepartment())
+                .phone(request.getPhone())
                 .user(user)
                 .build();
         return facultyMapper.toResponseDTO(facultyRepository.save(faculty));
@@ -115,6 +125,7 @@ public class FacultyServiceImpl implements FacultyService {
         if (request.getFirstName() != null) faculty.setFirstName(request.getFirstName());
         if (request.getLastName() != null) faculty.setLastName(request.getLastName());
         if (request.getDepartment() != null) faculty.setDepartment(request.getDepartment());
+        if (request.getPhone() != null) faculty.setPhone(request.getPhone());
         if (request.getName() != null && !request.getName().isBlank()) {
             String[] parts = request.getName().trim().split(" ", 2);
             faculty.setFirstName(parts[0]);
@@ -132,11 +143,20 @@ public class FacultyServiceImpl implements FacultyService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<CourseResponseDTO> getMyCourses() {
         Faculty faculty = resolveCurrentFaculty();
-        return courseRepository.findByFacultyId(faculty.getId())
-                .stream().map(courseMapper::toResponseDTO).toList();
+        ensureAssignmentsSynced(faculty);
+        // Include courses assigned via faculty field that may have no assignment records yet
+        java.util.Set<Long> assignedCourseIds = assignmentRepository.findByFacultyId(faculty.getId())
+                .stream().map(a -> a.getCourse().getId()).collect(java.util.stream.Collectors.toSet());
+        List<Course> directCourses = courseRepository.findByFacultyId(faculty.getId());
+        directCourses.stream()
+                .filter(c -> !assignedCourseIds.contains(c.getId()))
+                .forEach(c -> assignedCourseIds.add(c.getId()));
+        return courseRepository.findAllById(assignedCourseIds).stream()
+                .map(c -> courseMapper.toResponseDTO(c, (int) courseRepository.countStudentsByCourseId(c.getId()), null))
+                .toList();
     }
 
     @Override
@@ -164,8 +184,13 @@ public class FacultyServiceImpl implements FacultyService {
     public List<CourseResponseDTO> getAssignedCourses(Long facultyId) {
         facultyRepository.findById(facultyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + facultyId));
-        return courseRepository.findByFacultyId(facultyId)
-                .stream().map(courseMapper::toResponseDTO).toList();
+        // Merge: courses via assignment table + courses directly linked via faculty field
+        java.util.Set<Long> ids = new java.util.LinkedHashSet<>();
+        assignmentRepository.findByFacultyId(facultyId).forEach(a -> ids.add(a.getCourse().getId()));
+        courseRepository.findByFacultyId(facultyId).forEach(c -> ids.add(c.getId()));
+        return courseRepository.findAllById(ids).stream()
+                .map(c -> courseMapper.toResponseDTO(c, (int) courseRepository.countStudentsByCourseId(c.getId()), null))
+                .toList();
     }
 
     @Override
@@ -178,6 +203,23 @@ public class FacultyServiceImpl implements FacultyService {
                     .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
             course.setFaculty(faculty);
             courseRepository.save(course);
+
+            // Create FacultyCourseAssignment for each distinct class batch enrolled in this course
+            course.getStudents().stream()
+                    .map(s -> s.getClassBatch())
+                    .filter(b -> b != null)
+                    .distinct()
+                    .forEach(batch -> {
+                        if (!assignmentRepository.existsByFacultyIdAndCourseIdAndClassBatchId(
+                                facultyId, courseId, batch.getId())) {
+                            FacultyCourseAssignment assignment = FacultyCourseAssignment.builder()
+                                    .faculty(faculty)
+                                    .course(course)
+                                    .classBatch(batch)
+                                    .build();
+                            assignmentRepository.save(assignment);
+                        }
+                    });
         });
     }
 
@@ -186,17 +228,24 @@ public class FacultyServiceImpl implements FacultyService {
     public void removeCourse(Long facultyId, Long courseId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
-        if (course.getFaculty() == null || !course.getFaculty().getId().equals(facultyId)) {
+        boolean directlyAssigned = course.getFaculty() != null && course.getFaculty().getId().equals(facultyId);
+        boolean assignmentExists = assignmentRepository.findByFacultyId(facultyId).stream()
+                .anyMatch(a -> a.getCourse().getId().equals(courseId));
+        if (!directlyAssigned && !assignmentExists) {
             throw new BadRequestException("Course is not assigned to this faculty");
         }
-        course.setFaculty(null);
-        courseRepository.save(course);
+        if (directlyAssigned) {
+            course.setFaculty(null);
+            courseRepository.save(course);
+        }
+        assignmentRepository.deleteByFacultyIdAndCourseId(facultyId, courseId);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<FacultyCourseAssignmentResponseDTO> getMyAssignments() {
         Faculty faculty = resolveCurrentFaculty();
+        ensureAssignmentsSynced(faculty);
         return assignmentRepository.findByFacultyId(faculty.getId()).stream()
                 .map(a -> FacultyCourseAssignmentResponseDTO.builder()
                         .id(a.getId())
@@ -207,8 +256,41 @@ public class FacultyServiceImpl implements FacultyService {
                         .className(a.getClassBatch().getName())
                         .classSection(a.getClassBatch().getSection())
                         .classYear(a.getClassBatch().getYear())
-                        .classDisplayName(a.getClassBatch().getName() + " Year " + a.getClassBatch().getYear() + " - Sec " + a.getClassBatch().getSection())
+                        .classDisplayName(a.getClassBatch().getName() + " Yr" + a.getClassBatch().getYear() + " - Sec " + a.getClassBatch().getSection())
                         .build())
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentResponseDTO> getCourseStudents(Long courseId) {
+        Faculty faculty = resolveCurrentFaculty();
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+        boolean isAssigned = (course.getFaculty() != null && course.getFaculty().getId().equals(faculty.getId()))
+                || assignmentRepository.findByFacultyId(faculty.getId()).stream()
+                        .anyMatch(a -> a.getCourse().getId().equals(courseId));
+        if (!isAssigned) throw new BadRequestException("Course is not assigned to you");
+        return course.getStudents().stream().map(studentMapper::toResponseDTO).toList();
+    }
+
+    private void ensureAssignmentsSynced(Faculty faculty) {
+        if (!assignmentRepository.findByFacultyId(faculty.getId()).isEmpty()) return;
+        courseRepository.findByFacultyId(faculty.getId()).forEach(course ->
+            course.getStudents().stream()
+                .map(s -> s.getClassBatch())
+                .filter(b -> b != null)
+                .distinct()
+                .forEach(batch -> {
+                    if (!assignmentRepository.existsByFacultyIdAndCourseIdAndClassBatchId(
+                            faculty.getId(), course.getId(), batch.getId())) {
+                        assignmentRepository.save(FacultyCourseAssignment.builder()
+                                .faculty(faculty)
+                                .course(course)
+                                .classBatch(batch)
+                                .build());
+                    }
+                })
+        );
     }
 }

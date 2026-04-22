@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getFacultyCourses, getFacultyAssignments } from '../services/facultyService';
+import { getFacultyCourses, getFacultyAssignments, getCourseStudents } from '../services/facultyService';
 import ROUTES from '../../../app/routes/routeConstants';
 
 const FacultyCoursesPage = () => {
@@ -8,7 +8,9 @@ const FacultyCoursesPage = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
-  const navigate                      = useNavigate();
+  const [studentsModal, setStudentsModal]     = useState(null);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     Promise.all([getFacultyCourses(), getFacultyAssignments()])
@@ -16,6 +18,17 @@ const FacultyCoursesPage = () => {
       .catch((err) => setError(err.message ?? 'Failed to load courses'))
       .finally(() => setLoading(false));
   }, []);
+
+  const openStudents = async (course) => {
+    setStudentsModal({ courseName: course.name, students: [] });
+    setStudentsLoading(true);
+    try {
+      const students = await getCourseStudents(course.id);
+      setStudentsModal({ courseName: course.name, students: students ?? [] });
+    } finally {
+      setStudentsLoading(false);
+    }
+  };
 
   if (loading) return <p className="text-sm text-gray-500">Loading courses...</p>;
   if (error)   return <p className="text-sm text-red-500">{error}</p>;
@@ -62,10 +75,17 @@ const FacultyCoursesPage = () => {
                     <td className="px-6 py-4 text-gray-500">{course.credits ?? '—'}</td>
                     <td className="px-6 py-4 text-gray-500 text-xs">
                       {courseAssignments.length === 0
-                        ? '—'
+                        ? <span className="text-gray-300">No class assigned</span>
                         : courseAssignments.map((a) => a.classDisplayName).join(', ')}
                     </td>
-                    <td className="px-6 py-4 text-gray-500">{course.studentCount ?? '—'}</td>
+                    <td className="px-6 py-4 text-gray-500">
+                      <button
+                        onClick={() => openStudents(course)}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                      >
+                        {course.studentCount ?? 0} students
+                      </button>
+                    </td>
                     <td className="px-6 py-4">
                       <button
                         onClick={() => navigate(ROUTES.FACULTY_ATTENDANCE)}
@@ -79,6 +99,45 @@ const FacultyCoursesPage = () => {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {studentsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h2 className="font-semibold text-gray-900">{studentsModal.courseName} — Students</h2>
+              <button onClick={() => setStudentsModal(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+            <div className="overflow-y-auto max-h-96">
+              {studentsLoading ? (
+                <p className="text-sm text-gray-500 p-6">Loading...</p>
+              ) : studentsModal.students.length === 0 ? (
+                <p className="text-sm text-gray-400 p-6 text-center">No students enrolled.</p>
+              ) : (
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+                    <tr>
+                      <th className="px-6 py-3 text-left">#</th>
+                      <th className="px-6 py-3 text-left">Name</th>
+                      <th className="px-6 py-3 text-left">Reg No.</th>
+                      <th className="px-6 py-3 text-left">Class</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {studentsModal.students.map((s, i) => (
+                      <tr key={s.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-3 text-gray-400">{i + 1}</td>
+                        <td className="px-6 py-3 text-gray-900">{s.fullName}</td>
+                        <td className="px-6 py-3 text-gray-500 font-mono text-xs">{s.registrationNumber ?? '—'}</td>
+                        <td className="px-6 py-3 text-gray-500">{s.classBatchName ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

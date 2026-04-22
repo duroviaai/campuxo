@@ -16,6 +16,8 @@ const ROUTES = {
   ADMIN_COURSES_CREATE:  '/admin/courses/create',
   ADMIN_COURSES_EDIT:    '/admin/courses/:id/edit',
   ADMIN_ATTENDANCE:  '/admin/attendance',
+  ADMIN_APPROVALS:   '/admin/approvals',
+  ADMIN_APPROVALS:   '/admin/approvals',
 
   // Faculty
   FACULTY_DASHBOARD:  '/faculty/dashboard',
@@ -27,6 +29,7 @@ const ROUTES = {
   STUDENT_COURSES:    '/student/courses',
   STUDENT_ATTENDANCE: '/student/attendance',
   STUDENT_PROFILE:    '/student/profile',
+  STUDENT_COMPLETE_PROFILE: '/student/complete-profile',
 
   // Faculty profile
   FACULTY_PROFILE: '/faculty/profile',

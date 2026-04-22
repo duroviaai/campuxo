@@ -11,7 +11,7 @@ export const deleteStudent  = (id)     => axiosInstance.delete(`${BASE}/${id}`).
 export const getMyProfile     = ()     => axiosInstance.get(`${BASE}/me`).then((r) => r.data);
 export const updateMyProfile  = (data) => axiosInstance.put(`${BASE}/me`, data).then((r) => r.data);
 export const getMyCourses     = ()     => axiosInstance.get(`${BASE}/me/courses`).then((r) => r.data);
-export const getMyAttendance  = ()     => axiosInstance.get('/api/v1/attendance/me').then((r) => r.data.content);
+export const getMyAttendance  = ()     => axiosInstance.get('/api/v1/attendance/me', { params: { page: 0, size: 200 } }).then((r) => r.data.content);
 
 export const getPrograms         = ()            => axiosInstance.get('/api/v1/courses/programs').then((r) => r.data);
 export const getCoursesByProgram = (program)     => axiosInstance.get(`/api/v1/courses/programs/${program}`).then((r) => r.data);

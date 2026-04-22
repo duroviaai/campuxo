@@ -1,0 +1,2 @@
+ALTER TABLE students ADD COLUMN IF NOT EXISTS course_start_year INTEGER;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS course_end_year INTEGER;

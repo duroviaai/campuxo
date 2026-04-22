@@ -6,6 +6,7 @@ import com.collegeportal.modules.faculty.dto.request.FacultyRequestDTO;
 import com.collegeportal.modules.faculty.dto.response.FacultyResponseDTO;
 import com.collegeportal.modules.faculty.service.FacultyService;
 import com.collegeportal.modules.facultyassignment.dto.response.FacultyCourseAssignmentResponseDTO;
+import com.collegeportal.modules.student.dto.response.StudentResponseDTO;
 import com.collegeportal.shared.dto.PageResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,10 +32,7 @@ public class FacultyController {
             @PageableDefault(size = 10, sort = "id") Pageable pageable,
             @RequestParam(required = false) String department,
             @RequestParam(required = false) String search) {
-        if (department != null || search != null) {
-            return ResponseEntity.ok(facultyService.getFilteredFaculty(department, search, pageable));
-        }
-        return ResponseEntity.ok(facultyService.getAllFaculty(pageable));
+        return ResponseEntity.ok(facultyService.getFilteredFaculty(department, search, pageable));
     }
 
     @GetMapping("/{id}")
@@ -73,6 +71,12 @@ public class FacultyController {
     @PreAuthorize("hasRole('ROLE_FACULTY')")
     public ResponseEntity<List<AttendanceResponseDTO>> getMyAttendance() {
         return ResponseEntity.ok(facultyService.getMyAttendance());
+    }
+
+    @GetMapping("/me/courses/{courseId}/students")
+    @PreAuthorize("hasRole('ROLE_FACULTY')")
+    public ResponseEntity<List<StudentResponseDTO>> getCourseStudents(@PathVariable Long courseId) {
+        return ResponseEntity.ok(facultyService.getCourseStudents(courseId));
     }
 
     @GetMapping("/me/assignments")

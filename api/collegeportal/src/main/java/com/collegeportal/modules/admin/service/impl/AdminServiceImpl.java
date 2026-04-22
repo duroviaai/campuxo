@@ -6,10 +6,9 @@ import com.collegeportal.modules.admin.dto.response.AdminStatsDTO;
 import com.collegeportal.modules.admin.service.AdminService;
 import com.collegeportal.modules.auth.entity.User;
 import com.collegeportal.modules.auth.repository.UserRepository;
-import com.collegeportal.modules.course.repository.CourseRepository;
-import com.collegeportal.modules.faculty.repository.FacultyRepository;
-import com.collegeportal.modules.student.repository.StudentRepository;
+import com.collegeportal.shared.enums.RoleType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,16 +20,22 @@ import java.util.stream.Collectors;
 public class AdminServiceImpl implements AdminService {
 
     private final UserRepository userRepository;
-    private final StudentRepository studentRepository;
-    private final FacultyRepository facultyRepository;
-    private final CourseRepository courseRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
-    public List<AdminResponseDTO> getPendingUsers() {
-        return userRepository.findPendingApprovalUsers()
-                .stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+    public List<AdminResponseDTO> getPendingUsers(RoleType role) {
+        List<User> users = role != null
+                ? userRepository.findPendingApprovalUsersByRole(role)
+                : userRepository.findPendingApprovalUsers();
+        return users.stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<AdminResponseDTO> getApprovedUsers(RoleType role) {
+        List<User> users = role != null
+                ? userRepository.findApprovedUsersByRole(role)
+                : userRepository.findApprovedUsers();
+        return users.stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     @Override
@@ -47,29 +52,38 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public AdminResponseDTO rejectUser(Long userId) {
+    public void rejectUser(Long userId) {
+        userRepository.delete(getUser(userId));
+    }
+
+    @Override
+    @Transactional
+    public void revokeUser(Long userId) {
         User user = getUser(userId);
         user.setApproved(false);
         user.setEnabled(false);
         userRepository.save(user);
-        AdminResponseDTO dto = toDTO(user);
-        dto.setMessage("User rejected successfully");
-        return dto;
+    }
+
+    @Override
+    public AdminStatsDTO getStats() {
+        return jdbcTemplate.queryForObject(
+            "SELECT (SELECT COUNT(*) FROM students) AS students," +
+            "       (SELECT COUNT(*) FROM faculty) AS faculty," +
+            "       (SELECT COUNT(*) FROM courses) AS courses," +
+            "       (SELECT COUNT(*) FROM users WHERE approved = false) AS pending",
+            (rs, n) -> AdminStatsDTO.builder()
+                .totalStudents(rs.getLong("students"))
+                .totalFaculty(rs.getLong("faculty"))
+                .totalCourses(rs.getLong("courses"))
+                .pendingApprovals(rs.getLong("pending"))
+                .build()
+        );
     }
 
     private User getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-    }
-
-    @Override
-    public AdminStatsDTO getStats() {
-        return AdminStatsDTO.builder()
-                .totalStudents(studentRepository.count())
-                .totalFaculty(facultyRepository.count())
-                .totalCourses(courseRepository.count())
-                .pendingApprovals(userRepository.countPendingApprovalUsers())
-                .build();
     }
 
     private AdminResponseDTO toDTO(User user) {
@@ -82,6 +96,7 @@ public class AdminServiceImpl implements AdminService {
                 .roles(user.getRoles().stream().map(r -> r.getName().name()).collect(Collectors.toSet()))
                 .approved(user.isApproved())
                 .enabled(user.isEnabled())
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 }

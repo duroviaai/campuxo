@@ -23,6 +23,9 @@ export const removeCourseFromFaculty = (facultyId, courseId) =>
 export const getClassStudents = (classId) =>
   axiosInstance.get(`/api/v1/classes/${classId}/students`).then((r) => r.data);
 
+export const getCourseStudents = (courseId) =>
+  axiosInstance.get(`/api/v1/faculty/me/courses/${courseId}/students`).then((r) => r.data);
+
 export const submitAttendanceBatch = (records) =>
   axiosInstance.post('/api/v1/attendance', records).then((r) => r.data);
 

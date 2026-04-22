@@ -23,5 +23,11 @@ public class StudentRequestDTO {
 
     private Integer yearOfStudy;
 
+    private Integer courseStartYear;
+
+    private Integer courseEndYear;
+
     private String photoUrl;
+
+    private Long classBatchId;
 }

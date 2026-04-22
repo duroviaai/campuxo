@@ -10,6 +10,7 @@ import AdminGuard from '../guards/AdminGuard';
 import FacultyGuard from '../guards/FacultyGuard';
 import StudentGuard from '../guards/StudentGuard';
 import GuestGuard from '../guards/GuestGuard';
+import ProfileCompletionGuard from '../guards/ProfileCompletionGuard';
 import ProtectedRoute from './routes/ProtectedRoute';
 import ROUTES from './routes/routeConstants';
 import useAuth from '../features/auth/hooks/useAuth';
@@ -41,6 +42,8 @@ const AttendancePage       = lazy(() => import('../features/attendance/pages/Att
 const MarkAttendancePage   = lazy(() => import('../features/attendance/pages/MarkAttendancePage'));
 const ClassListPage        = lazy(() => import('../features/admin/pages/ClassListPage'));
 const AdminAttendancePage  = lazy(() => import('../features/admin/pages/AdminAttendancePage'));
+const ApprovalsPage        = lazy(() => import('../features/admin/pages/ApprovalsPage'));
+const ApprovedUsersPage    = lazy(() => import('../features/admin/pages/ApprovedUsersPage'));
 
 const FacultyCoursesPage    = lazy(() => import('../features/faculty/pages/FacultyCoursesPage'));
 const FacultyAttendancePage = lazy(() => import('../features/faculty/pages/FacultyAttendancePage'));
@@ -48,6 +51,7 @@ const FacultyProfilePage    = lazy(() => import('../features/faculty/pages/Facul
 const FacultyStudentAttendancePage = lazy(() => import('../features/faculty/pages/FacultyStudentAttendancePage'));
 
 // ── Student ───────────────────────────────────────────────────────────────────
+const CompleteProfilePage   = lazy(() => import('../features/student/pages/CompleteProfilePage'));
 const StudentCoursesPage    = lazy(() => import('../features/student/pages/StudentCoursesPage'));
 const StudentAttendancePage = lazy(() => import('../features/student/pages/StudentAttendancePage'));
 const StudentProfilePage    = lazy(() => import('../features/student/pages/StudentProfilePage'));
@@ -118,6 +122,8 @@ const App = () => (
                 <Route path={ROUTES.ADMIN_CLASSES}         element={<ClassListPage />} />
                 <Route path={ROUTES.ADMIN_ATTENDANCE}      element={<AdminAttendancePage />} />
                 <Route path={ROUTES.ADMIN_MARK_ATTENDANCE} element={<MarkAttendancePage />} />
+                <Route path={ROUTES.ADMIN_APPROVALS}       element={<ApprovalsPage />} />
+                <Route path={ROUTES.ADMIN_APPROVALS}       element={<ApprovedUsersPage />} />
               </Route>
 
               {/* ── FACULTY ── */}
@@ -131,10 +137,13 @@ const App = () => (
 
               {/* ── STUDENT ── */}
               <Route element={<StudentGuard />}>
-                <Route path={ROUTES.STUDENT_DASHBOARD}  element={<StudentDashboardPage />} />
-                <Route path={ROUTES.STUDENT_COURSES}    element={<StudentCoursesPage />} />
-                <Route path={ROUTES.STUDENT_ATTENDANCE} element={<StudentAttendancePage />} />
-                <Route path={ROUTES.STUDENT_PROFILE}    element={<StudentProfilePage />} />
+                <Route path={ROUTES.STUDENT_COMPLETE_PROFILE} element={<CompleteProfilePage />} />
+                <Route element={<ProfileCompletionGuard />}>
+                  <Route path={ROUTES.STUDENT_DASHBOARD}  element={<StudentDashboardPage />} />
+                  <Route path={ROUTES.STUDENT_COURSES}    element={<StudentCoursesPage />} />
+                  <Route path={ROUTES.STUDENT_ATTENDANCE} element={<StudentAttendancePage />} />
+                  <Route path={ROUTES.STUDENT_PROFILE}    element={<StudentProfilePage />} />
+                </Route>
               </Route>
 
             </Route>

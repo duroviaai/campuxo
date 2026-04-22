@@ -3,6 +3,13 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+      idle-timeout: 300000
+      keepalive-time: 60000
+      connection-init-sql: SELECT 1
 
   jpa:
     hibernate:
@@ -11,6 +18,9 @@ spring:
     properties:
       hibernate:
         format_sql: false
+        jdbc.batch_size: 20
+        order_inserts: true
+        order_updates: true
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

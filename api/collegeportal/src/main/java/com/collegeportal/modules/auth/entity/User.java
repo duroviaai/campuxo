@@ -40,6 +40,12 @@ public class User extends BaseEntity {
     @Builder.Default
     private boolean approved = false; // Admin approval status
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean rejected = false; // Soft-rejected by admin
+
+    private String rejectionReason;
+
     private String resetToken;
     
     private LocalDateTime resetTokenExpiry;

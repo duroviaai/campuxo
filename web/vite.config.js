@@ -12,15 +12,20 @@ export default defineConfig({
 
   build: {
     outDir: 'dist',
-    sourcemap: false,          // flip to true if you need prod source maps
+    sourcemap: false,
+    minify: 'esbuild',
+    target: 'es2020',
     chunkSizeWarningLimit: 600,
+    cssCodeSplit: true,
+    assetsInlineLimit: 4096,
     rollupOptions: {
       output: {
         // Split vendor libs into their own chunks
         manualChunks: (id) => {
           if (['react', 'react-dom', 'react-router-dom'].some((p) => id.includes(`/node_modules/${p}/`))) return 'vendor-react';
           if (['@reduxjs/toolkit', 'react-redux'].some((p) => id.includes(`/node_modules/${p}/`))) return 'vendor-redux';
-          if (['react-hot-toast', 'recharts'].some((p) => id.includes(`/node_modules/${p}/`))) return 'vendor-ui';
+          if (id.includes('/node_modules/react-hot-toast/')) return 'vendor-ui';
+          if (id.includes('/node_modules/recharts/')) return 'vendor-charts';
           if (id.includes('/node_modules/axios/')) return 'vendor-network';
         },
       },

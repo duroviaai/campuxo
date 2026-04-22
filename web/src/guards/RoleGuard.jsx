@@ -1,9 +1,9 @@
 import { Navigate } from 'react-router-dom';
-import { getUser } from '../shared/utils/tokenUtils';
+import { useAuthContext } from '../app/providers/AuthProvider';
 import ROUTES from '../app/routes/routeConstants';
 
 const RoleGuard = ({ role, children }) => {
-  const user = getUser();
+  const { user } = useAuthContext();
   return user?.roles?.includes(role)
     ? children
     : <Navigate to={ROUTES.DASHBOARD} replace />;

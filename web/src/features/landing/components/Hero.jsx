@@ -72,7 +72,7 @@ const Hero = () => {
           <div className="hidden md:block">
             <div className="relative">
               <div className="absolute -inset-4 bg-gradient-to-br from-blue-600/20 to-indigo-600/20 rounded-3xl blur-2xl" />
-              <div className="relative bg-white/[0.04] backdrop-blur-xl border border-white/8 rounded-2xl p-6 shadow-2xl">
+              <div className="relative bg-white/[0.04] border border-white/8 rounded-2xl p-6 shadow-2xl">
                 {/* Titlebar dots */}
                 <div className="flex items-center gap-1.5 mb-5">
                   <div className="w-3 h-3 rounded-full bg-red-500/60" />

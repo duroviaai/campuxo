@@ -13,4 +13,6 @@ public class FacultyResponseDTO {
     private String department;
     private String email;
     private String facultyId;
+    private String phone;
+    private Integer courseCount;
 }

@@ -18,9 +18,7 @@ public interface StudentService {
 
     StudentResponseDTO createStudent(StudentRequestDTO request);
 
-    PageResponseDTO<StudentResponseDTO> getAllStudents(Pageable pageable);
-
-    PageResponseDTO<StudentResponseDTO> getFilteredStudents(String department, Long classBatchId, String search, Pageable pageable);
+    PageResponseDTO<StudentResponseDTO> getAllStudents(Pageable pageable, String search, String department, Long classBatchId);
 
     StudentResponseDTO getMyProfile();
 

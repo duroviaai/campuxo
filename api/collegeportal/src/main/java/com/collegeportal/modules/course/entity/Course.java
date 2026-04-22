@@ -15,7 +15,10 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "courses")
+@Table(name = "courses", indexes = {
+        @Index(name = "idx_course_program_type", columnList = "programType"),
+        @Index(name = "idx_course_faculty", columnList = "faculty_id")
+})
 public class Course extends BaseEntity {
 
     @Column(nullable = false)

@@ -1,13 +1,13 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { getToken, getUser, isTokenExpired } from '../shared/utils/tokenUtils';
+import { useAuthContext } from '../app/providers/AuthProvider';
 import ROUTES from '../app/routes/routeConstants';
 
 const GuestGuard = () => {
-  const token = getToken();
+  const { token, user } = useAuthContext();
 
-  if (!token || isTokenExpired()) return <Outlet />;
+  if (!token) return <Outlet />;
 
-  const roles = getUser()?.roles ?? [];
+  const roles = user?.roles ?? [];
 
   if (roles.includes('ROLE_ADMIN'))   return <Navigate to={ROUTES.ADMIN_DASHBOARD}   replace />;
   if (roles.includes('ROLE_FACULTY')) return <Navigate to={ROUTES.FACULTY_DASHBOARD} replace />;

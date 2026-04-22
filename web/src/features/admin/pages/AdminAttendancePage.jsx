@@ -464,6 +464,7 @@ const OverviewTable = ({ rows, courseName, onSelectStudent }) => {
 const AdminAttendancePage = () => {
   const navigate = useNavigate();
   const [filters, setFilters]           = useState(null);
+  const [allClasses, setAllClasses]     = useState([]);
   const [step, setStep]                 = useState(0); // 0=dept 1=year 2=section 3=subject 4=overview 5=student
 
   const [selDept, setSelDept]           = useState(null);
@@ -484,6 +485,7 @@ const AdminAttendancePage = () => {
   // Load filter options on mount
   useEffect(() => {
     getClassFilters().then(setFilters).catch(() => setError('Failed to load filters'));
+    getClassesByYearAndSection(null, null).then(setAllClasses).catch(() => {});
   }, []);
 
   // When year + section selected, find matching class batch
@@ -548,11 +550,12 @@ const AdminAttendancePage = () => {
     setLoading(true);
     setError(null);
     try {
-      // search by section only — ClassBatch year is academic year (1,2,3), not calendar year
       const batches = await getClassesByYearAndSection(null, section);
-      setClasses(batches);
-      if (batches.length > 0) {
-        const raw = await getCoursesByClass(batches[0].id);
+      // filter by selected department (ClassBatch.name stores the department)
+      const deptBatches = batches.filter((b) => b.name === selDept);
+      setClasses(deptBatches);
+      if (deptBatches.length > 0) {
+        const raw = await getCoursesByClass(deptBatches[0].id);
         setCourses(raw);
       } else {
         setCourses([]);
@@ -566,7 +569,7 @@ const AdminAttendancePage = () => {
   };
 
   const handleSelectCourse = async (course) => {
-    const matchingClass = classes.find((c) => c.section === selSection) ?? classes[0];
+    const matchingClass = classes.find((c) => c.name === selDept && c.section === selSection) ?? classes[0];
     if (!matchingClass) {
       setError('No class batch found for this combination.');
       return;
@@ -662,7 +665,7 @@ const AdminAttendancePage = () => {
           {loading ? <p className="text-sm text-gray-500">Loading...</p> : (
             <SelectCard
               label="Section"
-              options={filters?.sections ?? []}
+              options={[...new Set(allClasses.filter((b) => b.name === selDept).map((b) => b.section))].sort()}
               onSelect={handleSelectSection}
               getLabel={(s) => `Section ${s}`}
               getValue={(s) => s}

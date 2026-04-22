@@ -18,15 +18,17 @@ public interface FacultyRepository extends JpaRepository<Faculty, Long> {
 
     Optional<Faculty> findByUser(User user);
 
-    @Query(value = "SELECT f.* FROM faculty f JOIN users u ON u.id = f.user_id WHERE " +
-           "(:dept IS NULL OR f.department = :dept) AND " +
-           "(:search IS NULL OR u.full_name ILIKE '%' || CAST(:search AS text) || '%' " +
-           "OR u.email ILIKE '%' || CAST(:search AS text) || '%')",
-           countQuery = "SELECT COUNT(*) FROM faculty f JOIN users u ON u.id = f.user_id WHERE " +
-           "(:dept IS NULL OR f.department = :dept) AND " +
-           "(:search IS NULL OR u.full_name ILIKE '%' || CAST(:search AS text) || '%' " +
-           "OR u.email ILIKE '%' || CAST(:search AS text) || '%')",
-           nativeQuery = true)
+    @EntityGraph(attributePaths = "user")
+    @Query(value = "SELECT f FROM Faculty f JOIN f.user u WHERE " +
+           "(COALESCE(:dept, '') = '' OR f.department = :dept) AND " +
+           "(COALESCE(:search, '') = '' OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(u.facultyId) LIKE LOWER(CONCAT('%', :search, '%')))",
+           countQuery = "SELECT COUNT(f) FROM Faculty f JOIN f.user u WHERE " +
+           "(COALESCE(:dept, '') = '' OR f.department = :dept) AND " +
+           "(COALESCE(:search, '') = '' OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(u.facultyId) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<Faculty> findWithFilters(
             @Param("dept")   String dept,
             @Param("search") String search,

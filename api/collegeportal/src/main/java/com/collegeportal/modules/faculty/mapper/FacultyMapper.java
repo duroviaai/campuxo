@@ -14,11 +14,16 @@ public class FacultyMapper {
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
                 .department(dto.getDepartment())
+                .phone(dto.getPhone())
                 .user(user)
                 .build();
     }
 
     public FacultyResponseDTO toResponseDTO(Faculty faculty) {
+        return toResponseDTO(faculty, null);
+    }
+
+    public FacultyResponseDTO toResponseDTO(Faculty faculty, Integer courseCount) {
         String fullName = (faculty.getFirstName() != null ? faculty.getFirstName() : "") +
                 (faculty.getLastName() != null && !faculty.getLastName().isBlank() ? " " + faculty.getLastName() : "");
         return FacultyResponseDTO.builder()
@@ -27,8 +32,10 @@ public class FacultyMapper {
                 .lastName(faculty.getLastName())
                 .fullName(fullName.isBlank() ? null : fullName.trim())
                 .department(faculty.getDepartment())
+                .phone(faculty.getPhone())
                 .email(faculty.getUser() != null ? faculty.getUser().getEmail() : null)
                 .facultyId(faculty.getUser() != null ? faculty.getUser().getFacultyId() : null)
+                .courseCount(courseCount)
                 .build();
     }
 }

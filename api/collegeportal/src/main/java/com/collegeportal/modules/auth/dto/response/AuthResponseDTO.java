@@ -21,4 +21,5 @@ public class AuthResponseDTO {
     private String email;
     private Set<String> roles;
     private String message;
+    private Boolean profileComplete;
 }
