@@ -55,10 +55,14 @@ export const AuthProvider = ({ children }) => {
 
   const registerUser = (data) => authService.register(data);
 
+  const refreshUser = useCallback(() => {
+    setUserState(getUser());
+  }, []);
+
   const isAdmin = () => user?.roles?.includes('ROLE_ADMIN');
 
   return (
-    <AuthContext.Provider value={{ user, token, loginUser, registerUser, logout, isAdmin }}>
+    <AuthContext.Provider value={{ user, token, loginUser, registerUser, logout, isAdmin, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

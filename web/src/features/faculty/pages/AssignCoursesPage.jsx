@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getFacultyById, getFacultyAssignedCourses, assignCoursesToFaculty, removeCourseFromFaculty } from '../services/facultyService';
-import { getCourses } from '../../course/services/courseService';
+import { useGetFacultyByIdQuery, useGetFacultyAssignedCoursesQuery, useAssignCoursesToFacultyMutation, useRemoveCourseFromFacultyMutation } from '../state/facultyApi';
+import { useGetCoursesQuery } from '../../course/state/courseApi';
 import { getFullName } from '../utils/facultyHelpers';
 import Loader from '../../../shared/components/feedback/Loader';
 import ROUTES from '../../../app/routes/routeConstants';
@@ -11,34 +11,17 @@ const AssignCoursesPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [faculty, setFaculty]           = useState(null);
-  const [allCourses, setAllCourses]     = useState([]);
-  const [assigned, setAssigned]         = useState([]);   // array of course objects
-  const [selected, setSelected]         = useState([]);   // ids to assign
-  const [search, setSearch]             = useState('');
-  const [loading, setLoading]           = useState(true);
-  const [saving, setSaving]             = useState(false);
+  const { data: faculty, isLoading: facultyLoading } = useGetFacultyByIdQuery(id);
+  const { data: coursesData, isLoading: coursesLoading } = useGetCoursesQuery({ size: 200 });
+  const { data: assigned = [], isLoading: assignedLoading } = useGetFacultyAssignedCoursesQuery(id);
+  const [assignCoursesToFaculty, { isLoading: saving }] = useAssignCoursesToFacultyMutation();
+  const [removeCourseFromFaculty] = useRemoveCourseFromFacultyMutation();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [fac, courses, assignedCourses] = await Promise.all([
-        getFacultyById(id),
-        getCourses({ size: 200 }),
-        getFacultyAssignedCourses(id),
-      ]);
-      setFaculty(fac);
-      const courseList = courses.content ?? courses;
-      setAllCourses(courseList);
-      setAssigned(Array.isArray(assignedCourses) ? assignedCourses : []);
-    } catch {
-      toast.error('Failed to load data.');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  const [selected, setSelected] = useState([]);
+  const [search, setSearch]     = useState('');
 
-  useEffect(() => { load(); }, [load]);
+  const allCourses = coursesData?.content ?? coursesData ?? [];
+  const loading = facultyLoading || coursesLoading || assignedLoading;
 
   const assignedIds = new Set(assigned.map((c) => c.id));
 
@@ -55,25 +38,20 @@ const AssignCoursesPage = () => {
 
   const handleAssign = async () => {
     if (!selected.length) return;
-    setSaving(true);
     try {
-      await assignCoursesToFaculty(id, selected);
+      await assignCoursesToFaculty({ facultyId: id, courseIds: selected }).unwrap();
       toast.success(`${selected.length} course(s) assigned.`);
       setSelected([]);
-      await load();
     } catch {
       toast.error('Failed to assign courses.');
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleRemove = async (courseId) => {
     if (!window.confirm('Remove this course from faculty?')) return;
     try {
-      await removeCourseFromFaculty(id, courseId);
+      await removeCourseFromFaculty({ facultyId: id, courseId }).unwrap();
       toast.success('Course removed.');
-      await load();
     } catch {
       toast.error('Failed to remove course.');
     }

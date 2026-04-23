@@ -12,9 +12,6 @@ public class ClassBatchRequestDTO {
     @NotBlank
     private String name;
 
-    @NotBlank
-    private String section;
-
     @NotNull
     private Integer year;
 }

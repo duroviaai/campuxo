@@ -8,7 +8,6 @@ import lombok.Getter;
 public class ClassBatchResponseDTO {
     private Long id;
     private String name;
-    private String section;
     private Integer year;
     private String displayName;
 }

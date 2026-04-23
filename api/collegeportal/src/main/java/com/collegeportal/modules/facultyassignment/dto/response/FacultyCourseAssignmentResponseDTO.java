@@ -12,7 +12,6 @@ public class FacultyCourseAssignmentResponseDTO {
     private String courseCode;
     private Long classId;
     private String className;
-    private String classSection;
     private Integer classYear;
     private String classDisplayName;
 }

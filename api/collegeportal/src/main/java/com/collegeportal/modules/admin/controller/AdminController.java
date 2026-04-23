@@ -1,5 +1,7 @@
 package com.collegeportal.modules.admin.controller;
 
+import com.collegeportal.modules.admin.dto.request.BulkUserRequestDTO;
+import com.collegeportal.modules.admin.dto.request.RejectUserRequestDTO;
 import com.collegeportal.modules.admin.dto.response.AdminResponseDTO;
 import com.collegeportal.modules.admin.dto.response.AdminStatsDTO;
 import com.collegeportal.modules.admin.service.AdminService;
@@ -36,20 +38,45 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getApprovedUsers(role));
     }
 
+    @GetMapping("/rejected-users")
+    public ResponseEntity<List<AdminResponseDTO>> getRejectedUsers() {
+        return ResponseEntity.ok(adminService.getRejectedUsers());
+    }
+
     @PutMapping("/approve/{userId}")
     public ResponseEntity<AdminResponseDTO> approveUser(@PathVariable Long userId) {
         return ResponseEntity.ok(adminService.approveUser(userId));
     }
 
     @DeleteMapping("/reject/{userId}")
-    public ResponseEntity<Void> rejectUser(@PathVariable Long userId) {
-        adminService.rejectUser(userId);
+    public ResponseEntity<Void> rejectUser(
+            @PathVariable Long userId,
+            @RequestBody(required = false) RejectUserRequestDTO body) {
+        adminService.rejectUser(userId, body != null ? body.getReason() : null);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/revoke/{userId}")
     public ResponseEntity<Void> revokeUser(@PathVariable Long userId) {
         adminService.revokeUser(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
+        adminService.deleteUser(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/bulk-approve")
+    public ResponseEntity<Void> bulkApprove(@RequestBody BulkUserRequestDTO body) {
+        adminService.bulkApprove(body.getUserIds());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/bulk-reject")
+    public ResponseEntity<Void> bulkReject(@RequestBody BulkUserRequestDTO body) {
+        adminService.bulkReject(body.getUserIds(), body.getReason());
         return ResponseEntity.noContent().build();
     }
 }

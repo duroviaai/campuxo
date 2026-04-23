@@ -1,13 +1,16 @@
 import { useNavigate } from 'react-router-dom';
-import { createStudent } from '../services/studentService';
+import toast from 'react-hot-toast';
+import { useCreateStudentMutation } from '../state/studentApi';
 import StudentForm from '../components/StudentForm';
 import ROUTES from '../../../app/routes/routeConstants';
 
 const CreateStudentPage = () => {
   const navigate = useNavigate();
+  const [createStudent] = useCreateStudentMutation();
 
   const handleSubmit = async (data) => {
-    await createStudent(data);
+    await createStudent(data).unwrap();
+    toast.success('Student created successfully');
     navigate(ROUTES.ADMIN_STUDENTS);
   };
 

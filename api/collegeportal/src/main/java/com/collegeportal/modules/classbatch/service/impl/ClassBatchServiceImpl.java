@@ -46,7 +46,6 @@ public class ClassBatchServiceImpl implements ClassBatchService {
     public ClassBatchResponseDTO createClass(ClassBatchRequestDTO request) {
         ClassBatch batch = ClassBatch.builder()
                 .name(request.getName())
-                .section(request.getSection())
                 .year(request.getYear())
                 .build();
         return toResponseDTO(classBatchRepository.save(batch));
@@ -59,7 +58,6 @@ public class ClassBatchServiceImpl implements ClassBatchService {
         ClassBatch batch = classBatchRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: " + id));
         batch.setName(request.getName());
-        batch.setSection(request.getSection());
         batch.setYear(request.getYear());
         return toResponseDTO(classBatchRepository.save(batch));
     }
@@ -84,29 +82,20 @@ public class ClassBatchServiceImpl implements ClassBatchService {
     }
 
     @Override
-    @Cacheable("classFilters")
     @Transactional(readOnly = true)
     public ClassBatchFilterDTO getFilters() {
         return ClassBatchFilterDTO.builder()
                 .departments(courseRepository.findDistinctProgramTypes())
                 .years(classBatchRepository.findDistinctYears())
-                .sections(classBatchRepository.findDistinctSections())
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ClassBatchResponseDTO> getClassesByYearAndSection(Integer year, String section) {
-        List<ClassBatch> batches;
-        if (year != null && section != null) {
-            batches = classBatchRepository.findByYearAndSection(year, section);
-        } else if (year != null) {
-            batches = classBatchRepository.findByYear(year);
-        } else if (section != null) {
-            batches = classBatchRepository.findBySection(section);
-        } else {
-            batches = classBatchRepository.findAll();
-        }
+        List<ClassBatch> batches = (year != null)
+                ? classBatchRepository.findByYear(year)
+                : classBatchRepository.findAll();
         return batches.stream().map(this::toResponseDTO).toList();
     }
 
@@ -120,13 +109,16 @@ public class ClassBatchServiceImpl implements ClassBatchService {
                 .toList();
     }
 
+    private String getYearSuffix(int year) {
+        return switch (year) { case 1 -> "st"; case 2 -> "nd"; case 3 -> "rd"; default -> "th"; };
+    }
+
     private ClassBatchResponseDTO toResponseDTO(ClassBatch c) {
         return ClassBatchResponseDTO.builder()
                 .id(c.getId())
                 .name(c.getName())
-                .section(c.getSection())
                 .year(c.getYear())
-                .displayName(c.getName() + " Year " + c.getYear() + " - Sec " + c.getSection())
+                .displayName(c.getName() + " - " + c.getYear() + getYearSuffix(c.getYear()) + " Year")
                 .build();
     }
 }

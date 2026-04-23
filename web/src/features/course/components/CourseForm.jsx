@@ -24,6 +24,10 @@ const CourseForm = ({ initialData = EMPTY_COURSE_FORM, onSubmit }) => {
     getAllClasses().then(setClasses).catch(() => {});
   }, []);
 
+  const filteredYears = [...new Set(
+    classes.filter((c) => c.name === form.programType).map((c) => c.year)
+  )].sort();
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((f) => {
@@ -31,6 +35,11 @@ const CourseForm = ({ initialData = EMPTY_COURSE_FORM, onSubmit }) => {
       if (name === 'programType') { updated.classBatchId = ''; }
       return updated;
     });
+  };
+
+  const handleYearSelect = (year) => {
+    const match = classes.find((c) => c.name === form.programType && c.year === Number(year));
+    setForm((f) => ({ ...f, classBatchId: match ? match.id : '', selectedYear: year }));
   };
 
   const handleSubmit = async (e) => {
@@ -67,7 +76,7 @@ return (
 
         {form.programType && (
           <div className="flex flex-col gap-1 sm:col-span-2">
-            <label className="text-xs font-semibold text-gray-600">Class / Batch<span className="text-red-500 ml-0.5">*</span></label>
+            <label className="text-xs font-semibold text-gray-600">Year<span className="text-red-500 ml-0.5">*</span></label>
             {classes.length === 0 ? (
               <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
                 No classes found.
@@ -76,11 +85,16 @@ return (
                 </button>
               </div>
             ) : (
-              <select name="classBatchId" required value={form.classBatchId ?? ''} onChange={handleChange} className={inputCls}>
-                <option value="">— Select class —</option>
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.displayName || `${c.name} Year ${c.year} - Sec ${c.section}`}
+              <select
+                required
+                value={form.selectedYear ?? ''}
+                onChange={(e) => handleYearSelect(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">— Select year —</option>
+                {filteredYears.map((y) => (
+                  <option key={y} value={y}>
+                    {y === 1 ? '1st' : y === 2 ? '2nd' : '3rd'} Year
                   </option>
                 ))}
               </select>

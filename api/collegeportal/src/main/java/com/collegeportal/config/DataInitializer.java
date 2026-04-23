@@ -64,19 +64,19 @@ public class DataInitializer implements ApplicationRunner {
     @Transactional
     public void seedClassBatches() {
         if (classBatchRepository.count() > 0) return;
-        List<ClassBatch> batches = List.of(
-            batch("BCA", "A", 1), batch("BCA", "B", 1),
-            batch("BSc", "A", 1), batch("BSc", "B", 1),
-            batch("BCom", "A", 1), batch("BCom", "B", 1),
-            batch("BA", "A", 1),  batch("BA", "B", 1)
-        );
+        List<ClassBatch> batches = new java.util.ArrayList<>();
+        for (String course : List.of("BCA", "BSC", "BA", "BCOM")) {
+            for (int year = 1; year <= 3; year++) {
+                batches.add(batch(course, year));
+            }
+        }
         classBatchRepository.saveAll(batches);
         System.out.println("[SEED] Created " + batches.size() + " class batches.");
     }
 
-    private ClassBatch batch(String name, String section, int year) {
+    private ClassBatch batch(String name, int year) {
         ClassBatch b = new ClassBatch();
-        b.setName(name); b.setSection(section); b.setYear(year);
+        b.setName(name); b.setYear(year);
         return b;
     }
 }

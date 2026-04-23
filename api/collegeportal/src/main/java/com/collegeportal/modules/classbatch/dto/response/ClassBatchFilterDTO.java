@@ -8,7 +8,6 @@ import java.util.List;
 @Getter
 @Builder
 public class ClassBatchFilterDTO {
-    private List<String> departments;   // distinct programTypes from Course
-    private List<Integer> years;        // distinct years from ClassBatch
-    private List<String> sections;      // distinct sections from ClassBatch
+    private List<String> departments;
+    private List<Integer> years;
 }

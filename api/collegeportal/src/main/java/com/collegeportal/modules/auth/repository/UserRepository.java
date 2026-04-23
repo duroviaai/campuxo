@@ -15,10 +15,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u JOIN FETCH u.roles WHERE u.email = :email")
     Optional<User> findByEmail(@Param("email") String email);
 
-    @Query("SELECT u FROM User u JOIN FETCH u.roles WHERE u.approved = false")
+    @Query("SELECT u FROM User u JOIN FETCH u.roles WHERE u.approved = false AND u.rejected = false")
     List<User> findPendingApprovalUsers();
 
-    @Query("SELECT u FROM User u JOIN FETCH u.roles r WHERE u.approved = false AND r.name = :role")
+    @Query("SELECT u FROM User u JOIN FETCH u.roles r WHERE u.approved = false AND u.rejected = false AND r.name = :role")
     List<User> findPendingApprovalUsersByRole(@Param("role") com.collegeportal.shared.enums.RoleType role);
 
     @Query("SELECT u FROM User u JOIN FETCH u.roles WHERE u.approved = true")
@@ -27,7 +27,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u JOIN FETCH u.roles r WHERE u.approved = true AND r.name = :role")
     List<User> findApprovedUsersByRole(@Param("role") com.collegeportal.shared.enums.RoleType role);
 
-    @Query("SELECT u FROM User u JOIN FETCH u.roles WHERE u.rejected = true")
+    @Query("SELECT u FROM User u JOIN FETCH u.roles WHERE u.rejected = true AND u.approved = false")
     List<User> findRejectedUsers();
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.approved = false")

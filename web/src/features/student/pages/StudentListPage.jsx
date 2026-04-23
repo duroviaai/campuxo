@@ -16,6 +16,7 @@ const StudentListPage = () => {
   const [searchInput, setSearchInput] = useState('');
   const [department, setDepartment]   = useState('');
   const [classBatchId, setClassBatchId] = useState('');
+  const [filterYear, setFilterYear]   = useState('');
 
   const search = useDebounce(searchInput, 300);
 
@@ -25,9 +26,18 @@ const StudentListPage = () => {
   const { data: classes = [] } = useGetAllClassesQuery();
   const [deleteStudent] = useDeleteStudentMutation();
 
-  const handleDepartment  = (val) => { setDepartment(val);   setPage(0); };
-  const handleClassBatch  = (val) => { setClassBatchId(val); setPage(0); };
-  const handleSearchInput = (val) => { setSearchInput(val);  setPage(0); };
+  const filteredYears = [...new Set(
+    classes.filter((c) => c.name === department).map((c) => c.year)
+  )].sort();
+
+  const handleDepartment  = (val) => { setDepartment(val); setFilterYear(''); setClassBatchId(''); setPage(0); };
+  const handleFilterYear  = (val) => {
+    setFilterYear(val);
+    const match = classes.find((c) => c.name === department && c.year === Number(val));
+    setClassBatchId(match ? String(match.id) : '');
+    setPage(0);
+  };
+  const handleSearchInput = (val) => { setSearchInput(val); setPage(0); };
 
   const handleEdit   = (id) => navigate(`${ROUTES.ADMIN_STUDENTS}/${id}/edit`);
   const handleView   = (id) => navigate(`${ROUTES.ADMIN_STUDENTS}/${id}`);
@@ -73,16 +83,18 @@ const StudentListPage = () => {
           <option value="">All Departments</option>
           {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
-        <select
-          value={classBatchId}
-          onChange={(e) => handleClassBatch(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-        >
-          <option value="">All Classes</option>
-          {classes.map((c) => (
-            <option key={c.id} value={c.id}>{c.displayName || `${c.name} Yr${c.year} Sec-${c.section}`}</option>
-          ))}
-        </select>
+        {department && (
+          <select
+            value={filterYear}
+            onChange={(e) => handleFilterYear(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+          >
+            <option value="">All Years</option>
+            {filteredYears.map((y) => (
+              <option key={y} value={y}>{y === 1 ? '1st' : y === 2 ? '2nd' : '3rd'} Year</option>
+            ))}
+          </select>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-5">

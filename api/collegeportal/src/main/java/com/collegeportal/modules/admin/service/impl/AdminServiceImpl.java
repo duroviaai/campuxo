@@ -7,6 +7,10 @@ import com.collegeportal.modules.admin.service.AdminService;
 import com.collegeportal.modules.auth.entity.User;
 import com.collegeportal.modules.auth.repository.UserRepository;
 import com.collegeportal.shared.enums.RoleType;
+import com.collegeportal.modules.faculty.repository.FacultyRepository;
+import com.collegeportal.modules.student.repository.StudentRepository;
+import com.collegeportal.modules.facultyassignment.repository.FacultyCourseAssignmentRepository;
+import com.collegeportal.modules.course.repository.CourseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -21,6 +25,10 @@ public class AdminServiceImpl implements AdminService {
 
     private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final FacultyRepository facultyRepository;
+    private final StudentRepository studentRepository;
+    private final FacultyCourseAssignmentRepository assignmentRepository;
+    private final CourseRepository courseRepository;
 
     @Override
     public List<AdminResponseDTO> getPendingUsers(RoleType role) {
@@ -39,11 +47,18 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    public List<AdminResponseDTO> getRejectedUsers() {
+        return userRepository.findRejectedUsers().stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public AdminResponseDTO approveUser(Long userId) {
         User user = getUser(userId);
         user.setApproved(true);
         user.setEnabled(true);
+        user.setRejected(false);
+        user.setRejectionReason(null);
         userRepository.save(user);
         AdminResponseDTO dto = toDTO(user);
         dto.setMessage("User approved successfully");
@@ -52,8 +67,13 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public void rejectUser(Long userId) {
-        userRepository.delete(getUser(userId));
+    public void rejectUser(Long userId, String reason) {
+        User user = getUser(userId);
+        user.setApproved(false);
+        user.setEnabled(false);
+        user.setRejected(true);
+        user.setRejectionReason(reason);
+        userRepository.save(user);
     }
 
     @Override
@@ -63,6 +83,33 @@ public class AdminServiceImpl implements AdminService {
         user.setApproved(false);
         user.setEnabled(false);
         userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = getUser(userId);
+        // Delete faculty profile and its dependencies first
+        facultyRepository.findByUser(user).ifPresent(faculty -> {
+            assignmentRepository.deleteAll(assignmentRepository.findByFacultyId(faculty.getId()));
+            courseRepository.findByFacultyId(faculty.getId()).forEach(c -> { c.setFaculty(null); courseRepository.save(c); });
+            facultyRepository.delete(faculty);
+        });
+        // Delete student profile
+        studentRepository.findByUser(user).ifPresent(studentRepository::delete);
+        userRepository.delete(user);
+    }
+
+    @Override
+    @Transactional
+    public void bulkApprove(List<Long> userIds) {
+        userIds.forEach(this::approveUser);
+    }
+
+    @Override
+    @Transactional
+    public void bulkReject(List<Long> userIds, String reason) {
+        userIds.forEach(id -> rejectUser(id, reason));
     }
 
     @Override

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getClassFilters, getClassesByYearAndSection, getCoursesByClass } from '../../attendance/services/classService';
+import { getClassFilters, getClassesByYear, getCoursesByClass } from '../../attendance/services/classService';
 import { getClassCourseOverview, getStudentAttendanceSummary } from '../../attendance/services/attendanceService';
 import ROUTES from '../../../app/routes/routeConstants';
 
@@ -35,76 +35,9 @@ const MONTHS = [
   'July','August','September','October','November','December',
 ];
 
-const THIS_YEAR = new Date().getFullYear();
-const YEAR_OPTIONS = Array.from({ length: THIS_YEAR - 2019 }, (_, i) => 2020 + i);
-
-const daysInMonth = (year, month) => new Date(year, month, 0).getDate();
-
-// ─── DOB-style date picker ───────────────────────────────────────────────────
-const DatePicker = ({ onConfirm }) => {
-  const [year,  setYear]  = useState('');
-  const [month, setMonth] = useState('');
-  const [day,   setDay]   = useState('');
-
-  const maxDay = year && month ? daysInMonth(Number(year), Number(month)) : 31;
-  const days   = Array.from({ length: maxDay }, (_, i) => i + 1);
-
-  // reset day if it exceeds new month's max
-  const handleMonthChange = (m) => { setMonth(m); if (day && Number(day) > daysInMonth(Number(year), Number(m))) setDay(''); };
-
-  const label = [year, month ? MONTHS[month - 1] : '', day].filter(Boolean).join(' · ') || 'Nothing selected';
-
-  return (
-    <div className="space-y-5">
-      <p className="text-sm font-medium text-gray-600">Select Date</p>
-
-      {/* 3 dropdowns side by side like DOB */}
-      <div className="flex flex-wrap gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-400 font-medium">Year</label>
-          <select value={year} onChange={(e) => { setYear(e.target.value); setMonth(''); setDay(''); }}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[100px]">
-            <option value="">Year</option>
-            {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-400 font-medium">Month <span className="text-gray-300">(optional)</span></label>
-          <select value={month} onChange={(e) => handleMonthChange(e.target.value)} disabled={!year}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[130px] disabled:opacity-40">
-            <option value="">All months</option>
-            {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-          </select>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-400 font-medium">Day <span className="text-gray-300">(optional)</span></label>
-          <select value={day} onChange={(e) => setDay(e.target.value)} disabled={!month}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[100px] disabled:opacity-40">
-            <option value="">All days</option>
-            {days.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
-        </div>
-      </div>
-
-      {/* Preview */}
-      <p className="text-xs text-indigo-500 font-medium">Selected: {label}</p>
-
-      <button
-        disabled={!year}
-        onClick={() => onConfirm({ year, month, day })}
-        className="px-5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-40 transition-colors"
-      >
-        Continue →
-      </button>
-    </div>
-  );
-};
-
 // ─── Step indicator ──────────────────────────────────────────────────────────
 
-const steps = ['Department', 'Year', 'Section', 'Subject'];
+const steps = ['Department', 'Year', 'Subject'];
 
 const StepBar = ({ current }) => (
   <div className="flex items-center gap-0 mb-6">
@@ -173,11 +106,11 @@ const SelectCard = ({ label, options, onSelect, getLabel, getValue }) => (
 
 // ─── Student detail panel ────────────────────────────────────────────────────
 
-const StudentDetailPanel = ({ student, courseName, initialMonth, initialDay, onBack }) => {
-  const [summary, setSummary]     = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [filterMonth, setFilterMonth] = useState(initialMonth ?? '');
-  const [filterDay, setFilterDay]     = useState(initialDay ?? '');
+const StudentDetailPanel = ({ student, courseName, onBack }) => {
+  const [summary, setSummary]         = useState(null);
+  const [loading, setLoading]         = useState(true);
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterDay, setFilterDay]     = useState('');
 
   useEffect(() => {
     getStudentAttendanceSummary(student.studentId)
@@ -464,19 +397,14 @@ const OverviewTable = ({ rows, courseName, onSelectStudent }) => {
 const AdminAttendancePage = () => {
   const navigate = useNavigate();
   const [filters, setFilters]           = useState(null);
-  const [allClasses, setAllClasses]     = useState([]);
-  const [step, setStep]                 = useState(0); // 0=dept 1=year 2=section 3=subject 4=overview 5=student
+  const [step, setStep]                 = useState(0); // 0=dept 1=year 2=subject 3=overview 4=student
 
   const [selDept, setSelDept]           = useState(null);
-  const [selYear, setSelYear]           = useState(null);   // e.g. '2024'
-  const [selMonth, setSelMonth]         = useState(null);   // e.g. '3' or null
-  const [selDay, setSelDay]             = useState(null);   // e.g. '15' or null
-  const [selSection, setSelSection]     = useState(null);
+  const [selClassYear, setSelClassYear] = useState(null); // 1 | 2 | 3
   const [selCourse, setSelCourse]       = useState(null);
-  const [selClass, setSelClass]         = useState(null); // ClassBatch object
+  const [selClass, setSelClass]         = useState(null);
   const [selStudent, setSelStudent]     = useState(null);
 
-  const [classes, setClasses]           = useState([]);
   const [courses, setCourses]           = useState([]);
   const [overview, setOverview]         = useState([]);
   const [loading, setLoading]           = useState(false);
@@ -485,28 +413,23 @@ const AdminAttendancePage = () => {
   // Load filter options on mount
   useEffect(() => {
     getClassFilters().then(setFilters).catch(() => setError('Failed to load filters'));
-    getClassesByYearAndSection(null, null).then(setAllClasses).catch(() => {});
   }, []);
 
-  // When year + section selected, find matching class batch
-  const loadClasses = useCallback(async (year, section) => {
+  // When year selected, find matching class batch and load courses
+  const loadCoursesForClass = useCallback(async (dept, year) => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await getClassesByYearAndSection(year, section);
-      setClasses(data);
-    } catch {
-      setError('Failed to load classes');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // When class selected, load its courses (used as fallback)
-  const loadCourses = useCallback(async (classId) => {
-    setLoading(true);
-    try {
-      const data = await getCoursesByClass(classId);
-      setCourses(data);
+      const batches = await getClassesByYear(year);
+      const match = batches.find((b) => b.name === dept);
+      if (match) {
+        setSelClass(match);
+        const data = await getCoursesByClass(match.id);
+        setCourses(data);
+      } else {
+        setSelClass(null);
+        setCourses([]);
+      }
     } catch {
       setError('Failed to load courses');
     } finally {
@@ -532,79 +455,47 @@ const AdminAttendancePage = () => {
 
   const handleSelectDept = (dept) => {
     setSelDept(dept);
-    setSelYear(null); setSelSection(null); setSelCourse(null); setSelClass(null);
+    setSelClassYear(null); setSelCourse(null); setSelClass(null);
     setStep(1);
   };
 
-  const handleSelectYear = ({ year, month, day }) => {
-    setSelYear(String(year));
-    setSelMonth(month || null);
-    setSelDay(day || null);
-    setSelSection(null); setSelCourse(null); setSelClass(null);
+  const handleSelectYear = (year) => {
+    setSelClassYear(year);
+    setSelCourse(null); setSelClass(null);
+    loadCoursesForClass(selDept, year);
     setStep(2);
   };
 
-  const handleSelectSection = async (section) => {
-    setSelSection(section);
-    setSelCourse(null); setSelClass(null);
-    setLoading(true);
-    setError(null);
-    try {
-      const batches = await getClassesByYearAndSection(null, section);
-      // filter by selected department (ClassBatch.name stores the department)
-      const deptBatches = batches.filter((b) => b.name === selDept);
-      setClasses(deptBatches);
-      if (deptBatches.length > 0) {
-        const raw = await getCoursesByClass(deptBatches[0].id);
-        setCourses(raw);
-      } else {
-        setCourses([]);
-      }
-    } catch {
-      setError('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-    setStep(3);
-  };
-
   const handleSelectCourse = async (course) => {
-    const matchingClass = classes.find((c) => c.name === selDept && c.section === selSection) ?? classes[0];
-    if (!matchingClass) {
+    if (!selClass) {
       setError('No class batch found for this combination.');
       return;
     }
     setSelCourse(course);
-    setSelClass(matchingClass);
-    await loadOverview(matchingClass.id, course.id);
-    setStep(4);
+    await loadOverview(selClass.id, course.id);
+    setStep(3);
   };
 
   const handleSelectStudent = (student) => {
     setSelStudent(student);
-    setStep(5);
+    setStep(4);
   };
 
   // ── Breadcrumb navigation ──
 
   const breadcrumbItems = [
     'Attendance',
-    ...(selDept    ? [selDept]                    : []),
-    ...(selYear ? [
-      [selYear, selMonth ? MONTHS[selMonth - 1] : '', selDay ? `Day ${selDay}` : ''].filter(Boolean).join(' · ')
-    ] : []),
-    ...(selSection ? [`Section ${selSection}`]     : []),
-    ...(selCourse  ? [selCourse.name]              : []),
-    ...(selStudent ? [selStudent.studentName]      : []),
+    ...(selDept      ? [selDept] : []),
+    ...(selClassYear ? [`${selClassYear === 1 ? '1st' : selClassYear === 2 ? '2nd' : '3rd'} Year`] : []),
+    ...(selCourse    ? [selCourse.name] : []),
+    ...(selStudent   ? [selStudent.studentName] : []),
   ];
 
   const handleBreadcrumbNav = (index) => {
-    // index 0 = root, 1 = dept, 2 = year, 3 = section, 4 = course, 5 = student
-    if (index === 0) { setStep(0); setSelDept(null); setSelYear(null); setSelMonth(null); setSelDay(null); setSelSection(null); setSelCourse(null); setSelStudent(null); }
-    if (index === 1) { setStep(1); setSelYear(null); setSelMonth(null); setSelDay(null); setSelSection(null); setSelCourse(null); setSelStudent(null); }
-    if (index === 2) { setStep(2); setSelSection(null); setSelCourse(null); setSelStudent(null); }
-    if (index === 3) { setStep(3); setSelCourse(null); setSelStudent(null); }
-    if (index === 4) { setStep(4); setSelStudent(null); }
+    if (index === 0) { setStep(0); setSelDept(null); setSelClassYear(null); setSelCourse(null); setSelStudent(null); }
+    if (index === 1) { setStep(1); setSelClassYear(null); setSelCourse(null); setSelStudent(null); }
+    if (index === 2) { setStep(2); setSelCourse(null); setSelStudent(null); }
+    if (index === 3) { setStep(3); setSelStudent(null); }
   };
 
   // ── Render ──
@@ -652,32 +543,25 @@ const AdminAttendancePage = () => {
         </div>
       )}
 
-      {/* Step 1 — Date picker (Year / Month / Day) */}
+      {/* Step 1 — Year */}
       {step === 1 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <DatePicker onConfirm={handleSelectYear} />
+          <SelectCard
+            label="Year"
+            options={[1, 2, 3]}
+            onSelect={handleSelectYear}
+            getLabel={(y) => y === 1 ? '1st Year' : y === 2 ? '2nd Year' : '3rd Year'}
+            getValue={(y) => y}
+          />
         </div>
       )}
 
-      {/* Step 2 — Section */}
+      {/* Step 2 — Subject */}
       {step === 2 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          {loading ? <p className="text-sm text-gray-500">Loading...</p> : (
-            <SelectCard
-              label="Section"
-              options={[...new Set(allClasses.filter((b) => b.name === selDept).map((b) => b.section))].sort()}
-              onSelect={handleSelectSection}
-              getLabel={(s) => `Section ${s}`}
-              getValue={(s) => s}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Step 3 — Subject */}
-      {step === 3 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          {loading ? <p className="text-sm text-gray-500">Loading subjects...</p> : (
+          {loading ? <p className="text-sm text-gray-500">Loading subjects...</p> : courses.length === 0 ? (
+            <p className="text-sm text-gray-400">No subjects found for this class.</p>
+          ) : (
             <SelectCard
               label="Subject"
               options={courses}
@@ -689,8 +573,8 @@ const AdminAttendancePage = () => {
         </div>
       )}
 
-      {/* Step 4 — Overview table */}
-      {step === 4 && (
+      {/* Step 3 — Overview table */}
+      {step === 3 && (
         loading ? <p className="text-sm text-gray-500">Loading attendance data...</p> : (
           <OverviewTable
             rows={overview}
@@ -700,14 +584,12 @@ const AdminAttendancePage = () => {
         )
       )}
 
-      {/* Step 5 — Student detail */}
-      {step === 5 && selStudent && (
+      {/* Step 4 — Student detail */}
+      {step === 4 && selStudent && (
         <StudentDetailPanel
           student={selStudent}
           courseName={selCourse?.name}
-          initialMonth={selMonth}
-          initialDay={selDay}
-          onBack={() => setStep(4)}
+          onBack={() => setStep(3)}
         />
       )}
     </div>

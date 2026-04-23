@@ -254,9 +254,8 @@ public class FacultyServiceImpl implements FacultyService {
                         .courseCode(a.getCourse().getCode())
                         .classId(a.getClassBatch().getId())
                         .className(a.getClassBatch().getName())
-                        .classSection(a.getClassBatch().getSection())
                         .classYear(a.getClassBatch().getYear())
-                        .classDisplayName(a.getClassBatch().getName() + " Yr" + a.getClassBatch().getYear() + " - Sec " + a.getClassBatch().getSection())
+                        .classDisplayName(a.getClassBatch().getName() + " - " + a.getClassBatch().getYear() + "yr")
                         .build())
                 .toList();
     }

@@ -7,6 +7,7 @@ const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm foc
 const StudentForm = ({ initialData, onSubmit }) => {
   const [form, setForm]           = useState({ ...EMPTY_STUDENT_FORM, ...initialData });
   const [classes, setClasses]     = useState([]);
+  const [selectedDept, setSelectedDept] = useState(initialData?.department ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]         = useState(null);
 
@@ -14,8 +15,24 @@ const StudentForm = ({ initialData, onSubmit }) => {
     getAllClasses().then(setClasses).catch(() => {});
   }, []);
 
-  const handleChange = (e) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  const filteredYears = [...new Set(
+    classes.filter((c) => c.name === selectedDept).map((c) => c.year)
+  )].sort();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'department') {
+      setSelectedDept(value);
+      setForm((f) => ({ ...f, department: value, classBatchId: '' }));
+    } else {
+      setForm((f) => ({ ...f, [name]: value }));
+    }
+  };
+
+  const handleYearSelect = (year) => {
+    const match = classes.find((c) => c.name === selectedDept && c.year === Number(year));
+    setForm((f) => ({ ...f, classBatchId: match ? match.id : '', yearOfStudy: year }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,23 +78,23 @@ const StudentForm = ({ initialData, onSubmit }) => {
           </select>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-gray-600">Class / Batch</label>
-          <select name="classBatchId" value={form.classBatchId ?? ''} onChange={handleChange} className={inputCls}>
-            <option value="">— Select class —</option>
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>{c.displayName || `${c.name} Yr${c.year} Sec-${c.section}`}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-gray-600">Year of Study</label>
-          <select name="yearOfStudy" value={form.yearOfStudy ?? ''} onChange={handleChange} className={inputCls}>
-            <option value="">— Select year —</option>
-            {[1, 2, 3, 4].map((y) => <option key={y} value={y}>Year {y}</option>)}
-          </select>
-        </div>
+        {selectedDept && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-gray-600">Year</label>
+            <select
+              value={form.yearOfStudy ?? ''}
+              onChange={(e) => handleYearSelect(e.target.value)}
+              className={inputCls}
+            >
+              <option value="">— Select year —</option>
+              {filteredYears.map((y) => (
+                <option key={y} value={y}>
+                  {y === 1 ? '1st' : y === 2 ? '2nd' : '3rd'} Year
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="flex flex-col gap-1">
           <label className="text-xs font-semibold text-gray-600">Date of Birth</label>

@@ -11,15 +11,12 @@ import lombok.*;
 @Builder
 @Entity
 @Table(name = "class_batches", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"name", "section", "year"})
+        @UniqueConstraint(columnNames = {"name", "year"})
 })
 public class ClassBatch extends BaseEntity {
 
     @Column(nullable = false)
     private String name;
-
-    @Column(nullable = false)
-    private String section;
 
     @Column(nullable = false)
     private Integer year;

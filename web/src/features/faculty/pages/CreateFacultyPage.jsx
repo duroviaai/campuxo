@@ -1,13 +1,16 @@
 import { useNavigate } from 'react-router-dom';
-import { createFaculty } from '../services/facultyService';
+import toast from 'react-hot-toast';
+import { useCreateFacultyMutation } from '../state/facultyApi';
 import FacultyForm from '../components/FacultyForm';
 import ROUTES from '../../../app/routes/routeConstants';
 
 const CreateFacultyPage = () => {
   const navigate = useNavigate();
+  const [createFaculty] = useCreateFacultyMutation();
 
   const handleSubmit = async (data) => {
-    await createFaculty(data);
+    await createFaculty(data).unwrap();
+    toast.success('Faculty created successfully');
     navigate(ROUTES.ADMIN_FACULTY);
   };
 

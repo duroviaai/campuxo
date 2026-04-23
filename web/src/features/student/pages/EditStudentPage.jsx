@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getStudentById, updateStudent } from '../services/studentService';
+import toast from 'react-hot-toast';
+import { useGetStudentByIdQuery, useUpdateStudentMutation } from '../state/studentApi';
 import StudentForm from '../components/StudentForm';
 import Loader from '../../../shared/components/feedback/Loader';
 import ROUTES from '../../../app/routes/routeConstants';
@@ -8,24 +8,17 @@ import ROUTES from '../../../app/routes/routeConstants';
 const EditStudentPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [student, setStudent] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    getStudentById(id)
-      .then(setStudent)
-      .catch(() => setError('Failed to load student.'))
-      .finally(() => setLoading(false));
-  }, [id]);
+  const { data: student, isLoading, error } = useGetStudentByIdQuery(id);
+  const [updateStudent] = useUpdateStudentMutation();
 
   const handleSubmit = async (data) => {
-    await updateStudent(id, data);
+    await updateStudent({ id, ...data }).unwrap();
+    toast.success('Student updated successfully');
     navigate(ROUTES.ADMIN_STUDENTS);
   };
 
-  if (loading) return <Loader />;
-  if (error) return <p className="text-sm text-red-500">{error}</p>;
+  if (isLoading) return <Loader />;
+  if (error)     return <p className="text-sm text-red-500">Failed to load student.</p>;
 
   return (
     <div className="space-y-4 max-w-xl">

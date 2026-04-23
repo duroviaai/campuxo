@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { getAllClasses, createClass, updateClass, deleteClass } from '../../student/services/studentService';
+import { useState } from 'react';
+import { useGetAllClassesQuery, useCreateClassMutation, useUpdateClassMutation, useDeleteClassMutation } from '../../student/state/studentApi';
 
 const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300';
 const DEPARTMENTS = ['BCA', 'BSc', 'BCom', 'BA'];
-const EMPTY = { name: '', section: '', year: '' };
+const EMPTY = { name: '', year: '' };
 
 const ClassModal = ({ initial, onSave, onClose }) => {
   const [form, setForm]             = useState(initial ?? EMPTY);
@@ -17,10 +17,10 @@ const ClassModal = ({ initial, onSave, onClose }) => {
     setSubmitting(true);
     setError(null);
     try {
-      await onSave({ name: form.name, section: form.section, year: Number(form.year) });
+      await onSave({ name: form.name, year: Number(form.year) });
       onClose();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Failed to save class.');
+      setError(err?.response?.data?.message || err?.data?.message || 'Failed to save class.');
     } finally {
       setSubmitting(false);
     }
@@ -46,19 +46,8 @@ const ClassModal = ({ initial, onSave, onClose }) => {
             </label>
             <select name="year" required value={form.year} onChange={handleChange} className={inputCls}>
               <option value="">— Select year —</option>
-              {[1, 2, 3, 4, 5, 6].map((y) => (
-                <option key={y} value={y}>{y === 1 ? '1st' : y === 2 ? '2nd' : y === 3 ? '3rd' : `${y}th`} Year</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-600">
-              Section<span className="text-red-500 ml-0.5">*</span>
-            </label>
-            <select name="section" required value={form.section} onChange={handleChange} className={inputCls}>
-              <option value="">— Select section —</option>
-              {['A', 'B', 'C', 'D'].map((s) => (
-                <option key={s} value={s}>Section {s}</option>
+              {[1, 2, 3].map((y) => (
+                <option key={y} value={y}>{y === 1 ? '1st' : y === 2 ? '2nd' : '3rd'} Year</option>
               ))}
             </select>
           </div>
@@ -78,31 +67,22 @@ const ClassModal = ({ initial, onSave, onClose }) => {
 };
 
 const ClassListPage = () => {
-  const [classes, setClasses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
-  const [modal, setModal]     = useState(null); // null | 'create' | class object
+  const [modal, setModal] = useState(null);
 
-  const load = () => {
-    setLoading(true);
-    getAllClasses()
-      .then(setClasses)
-      .catch(() => setError('Failed to load classes.'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(load, []);
+  const { data: classes = [], isLoading: loading, error } = useGetAllClassesQuery();
+  const [createClass] = useCreateClassMutation();
+  const [updateClass] = useUpdateClassMutation();
+  const [deleteClass] = useDeleteClassMutation();
 
   const handleSave = async (data) => {
-    if (modal === 'create') await createClass(data);
-    else await updateClass(modal.id, data);
-    load();
+    if (modal === 'create') await createClass(data).unwrap();
+    else await updateClass({ id: modal.id, ...data }).unwrap();
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this class? This may affect enrolled students and courses.')) return;
-    try { await deleteClass(id); load(); }
-    catch { setError('Failed to delete class.'); }
+    try { await deleteClass(id).unwrap(); }
+    catch { alert('Failed to delete class.'); }
   };
 
   return (
@@ -120,7 +100,7 @@ const ClassListPage = () => {
         </button>
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-red-500">Failed to load classes.</p>}
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {loading ? (
@@ -129,7 +109,7 @@ const ClassListPage = () => {
           <div className="p-10 text-center space-y-3">
             <p className="text-4xl">🏫</p>
             <p className="text-sm font-semibold text-gray-700">No classes yet</p>
-            <p className="text-xs text-gray-400">Add a class (e.g. BCA · 1st Year · Section A) to get started.<br />Once created, you can assign courses to it under Departments.</p>
+            <p className="text-xs text-gray-400">Add a class (e.g. BCA · 1st Year) to get started.<br />Once created, you can assign courses to it under Departments.</p>
             <button
               onClick={() => setModal('create')}
               className="mt-2 px-5 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
@@ -141,7 +121,7 @@ const ClassListPage = () => {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
               <tr>
-                {['#', 'Department', 'Year', 'Section', 'Display Name', 'Actions'].map((h) => (
+                {['#', 'Department', 'Year', 'Display Name', 'Actions'].map((h) => (
                   <th key={h} className="px-5 py-3 text-left">{h}</th>
                 ))}
               </tr>
@@ -151,8 +131,7 @@ const ClassListPage = () => {
                 <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-3 text-gray-400">{i + 1}</td>
                   <td className="px-5 py-3 font-medium text-gray-900">{c.name}</td>
-                  <td className="px-5 py-3 text-gray-600">Year {c.year}</td>
-                  <td className="px-5 py-3 text-gray-600">Section {c.section}</td>
+                  <td className="px-5 py-3 text-gray-600">{c.year === 1 ? '1st' : c.year === 2 ? '2nd' : '3rd'} Year</td>
                   <td className="px-5 py-3 text-gray-500 text-xs">{c.displayName}</td>
                   <td className="px-5 py-3 flex gap-2">
                     <button

@@ -84,56 +84,73 @@ const StudentProfilePage = () => {
   return (
     <div className="max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">My Profile</h1>
+        <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
         {!editing && (
           <button
             onClick={() => { setEditing(true); setError(null); }}
-            className="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
+            className="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-sm"
           >
-            Edit Profile
+            ✎ Edit Profile
           </button>
         )}
       </div>
 
       {success && (
-        <p className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2.5">
-          Profile updated successfully!
-        </p>
+        <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+          <span>✓</span> Profile updated successfully!
+        </div>
       )}
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">{error}</p>
+        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <span>✕</span> {error}
+        </div>
       )}
 
-      {/* Photo + identity strip */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex items-center gap-5">
-        <div className="relative shrink-0">
-          {avatar ? (
-            <img src={avatar} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-indigo-100" />
-          ) : (
-            <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-600">
-              {initials}
+      {/* Banner + avatar */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="h-24 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600" />
+        <div className="px-6 pb-5">
+          <div className="flex items-end justify-between -mt-10 mb-4">
+            <div className="relative">
+              {avatar ? (
+                <img src={avatar} alt="Profile" className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md" />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-indigo-100 border-4 border-white shadow-md flex items-center justify-center text-2xl font-bold text-indigo-600">
+                  {initials}
+                </div>
+              )}
+              {editing && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current.click()}
+                    className="absolute bottom-0 right-0 w-7 h-7 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs hover:bg-indigo-700 shadow-sm border-2 border-white"
+                    title="Change photo"
+                  >
+                    ✎
+                  </button>
+                  <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+                </>
+              )}
             </div>
-          )}
-          {editing && (
-            <>
-              <button
-                type="button"
-                onClick={() => fileRef.current.click()}
-                className="absolute bottom-0 right-0 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs hover:bg-indigo-700"
-                title="Change photo"
-              >
-                ✎
-              </button>
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-            </>
-          )}
-        </div>
-        <div>
-          <p className="text-base font-semibold text-gray-900">{profile?.fullName}</p>
+            <div className="mb-1">
+              <span className="text-xs bg-indigo-100 text-indigo-700 font-semibold px-3 py-1 rounded-full">
+                {profile?.department || 'Student'}
+              </span>
+            </div>
+          </div>
+          <p className="text-lg font-bold text-gray-900">{profile?.fullName}</p>
           <p className="text-sm text-gray-500">{profile?.email}</p>
-          <p className="text-xs text-indigo-600 font-medium mt-1">
-            Reg No: {profile?.registrationNumber || '—'}
-          </p>
+          <div className="flex items-center gap-3 mt-2">
+            <span className="text-xs text-indigo-600 font-mono bg-indigo-50 px-2 py-0.5 rounded">
+              {profile?.registrationNumber || 'No Reg No'}
+            </span>
+            {profile?.yearOfStudy && (
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                Year {profile.yearOfStudy}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

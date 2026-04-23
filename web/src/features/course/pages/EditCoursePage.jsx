@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getCourseById, updateCourse } from '../services/courseService';
+import { useGetCourseByIdQuery, useUpdateCourseMutation } from '../state/courseApi';
 import CourseForm from '../components/CourseForm';
 import Loader from '../../../shared/components/feedback/Loader';
 import ROUTES from '../../../app/routes/routeConstants';
@@ -9,25 +9,17 @@ import ROUTES from '../../../app/routes/routeConstants';
 const EditCoursePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [course, setCourse]   = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
-
-  useEffect(() => {
-    getCourseById(id)
-      .then(setCourse)
-      .catch(() => setError('Failed to load course.'))
-      .finally(() => setLoading(false));
-  }, [id]);
+  const { data: course, isLoading, error } = useGetCourseByIdQuery(id);
+  const [updateCourse] = useUpdateCourseMutation();
 
   const handleSubmit = async (data) => {
-    await updateCourse(id, data);
+    await updateCourse({ id, ...data }).unwrap();
     toast.success('Course updated successfully');
     navigate(ROUTES.ADMIN_COURSES, { state: { dept: data.programType } });
   };
 
-  if (loading) return <Loader />;
-  if (error)   return <p className="text-sm text-red-500">{error}</p>;
+  if (isLoading) return <Loader />;
+  if (error)     return <p className="text-sm text-red-500">Failed to load course.</p>;
 
   return (
     <div className="space-y-4 max-w-xl">

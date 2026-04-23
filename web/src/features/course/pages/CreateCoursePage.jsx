@@ -1,14 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { createCourse } from '../services/courseService';
+import { useCreateCourseMutation } from '../state/courseApi';
 import CourseForm from '../components/CourseForm';
 import ROUTES from '../../../app/routes/routeConstants';
 
 const CreateCoursePage = () => {
   const navigate = useNavigate();
+  const [createCourse] = useCreateCourseMutation();
 
   const handleSubmit = async (data) => {
-    await createCourse(data);
+    await createCourse(data).unwrap();
     toast.success('Course created successfully');
     navigate(ROUTES.ADMIN_COURSES, { state: { dept: data.programType } });
   };

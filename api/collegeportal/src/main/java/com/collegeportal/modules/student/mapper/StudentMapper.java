@@ -52,7 +52,7 @@ public class StudentMapper {
                 .classBatchName(student.getClassBatch() != null ? student.getClassBatch().getName() : null)
                 .classBatchId(student.getClassBatch() != null ? student.getClassBatch().getId() : null)
                 .classBatchDisplayName(student.getClassBatch() != null
-                        ? student.getClassBatch().getName() + " Yr" + student.getClassBatch().getYear() + " Sec-" + student.getClassBatch().getSection()
+                        ? student.getClassBatch().getName() + " - " + student.getClassBatch().getYear() + "yr"
                         : null)
                 .build();
     }

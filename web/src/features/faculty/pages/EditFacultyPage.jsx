@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getFacultyById, updateFaculty } from '../services/facultyService';
+import toast from 'react-hot-toast';
+import { useGetFacultyByIdQuery, useUpdateFacultyMutation } from '../state/facultyApi';
 import FacultyForm from '../components/FacultyForm';
 import Loader from '../../../shared/components/feedback/Loader';
 import ROUTES from '../../../app/routes/routeConstants';
@@ -8,24 +8,17 @@ import ROUTES from '../../../app/routes/routeConstants';
 const EditFacultyPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [faculty, setFaculty] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
-
-  useEffect(() => {
-    getFacultyById(id)
-      .then(setFaculty)
-      .catch(() => setError('Failed to load faculty member.'))
-      .finally(() => setLoading(false));
-  }, [id]);
+  const { data: faculty, isLoading, error } = useGetFacultyByIdQuery(id);
+  const [updateFaculty] = useUpdateFacultyMutation();
 
   const handleSubmit = async (data) => {
-    await updateFaculty(id, data);
+    await updateFaculty({ id, ...data }).unwrap();
+    toast.success('Faculty updated successfully');
     navigate(ROUTES.ADMIN_FACULTY);
   };
 
-  if (loading) return <Loader />;
-  if (error)   return <p className="text-sm text-red-500">{error}</p>;
+  if (isLoading) return <Loader />;
+  if (error)     return <p className="text-sm text-red-500">Failed to load faculty member.</p>;
 
   return (
     <div className="space-y-4 max-w-xl">

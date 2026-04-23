@@ -1,14 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { updateMyProfile } from '../services/studentService';
+import { updateMyProfile, createStudent } from '../services/studentService';
 import { getUser, setUser } from '../../../shared/utils/tokenUtils';
 import { useAuthContext } from '../../../app/providers/AuthProvider';
+import { useGetProgramsQuery } from '../state/studentApi';
 import ROUTES from '../../../app/routes/routeConstants';
-
-const DEPARTMENTS = [
-  'Computer Science', 'Information Technology', 'Electronics', 'Mechanical',
-  'Civil', 'Electrical', 'Chemical', 'Biotechnology', 'Mathematics', 'Physics',
-];
 
 const inputCls =
   'w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white';
@@ -17,7 +13,8 @@ const STEPS = ['Personal Info', 'Academic Info', 'Review & Submit'];
 
 const CompleteProfilePage = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuthContext();
+  const { user, logout, refreshUser } = useAuthContext();
+  const { data: programs = [] } = useGetProgramsQuery();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -48,16 +45,21 @@ const CompleteProfilePage = () => {
     e.preventDefault();
     setSaving(true);
     setError(null);
+    const payload = {
+      ...form,
+      yearOfStudy: Number(form.yearOfStudy),
+      courseStartYear: Number(form.courseStartYear),
+      courseEndYear: Number(form.courseEndYear),
+    };
     try {
-      await updateMyProfile({
-        ...form,
-        yearOfStudy: Number(form.yearOfStudy),
-        courseStartYear: Number(form.courseStartYear),
-        courseEndYear: Number(form.courseEndYear),
-      });
-      // Mark profile complete in stored user
+      try {
+        await createStudent(payload);
+      } catch {
+        await updateMyProfile(payload);
+      }
       const stored = getUser();
       setUser({ ...stored, profileComplete: true });
+      refreshUser();
       navigate(ROUTES.STUDENT_DASHBOARD, { replace: true });
     } catch (err) {
       setError(err?.response?.data?.message || 'Failed to save profile.');
@@ -192,7 +194,7 @@ const CompleteProfilePage = () => {
                 className={inputCls}
               >
                 <option value="">Select department</option>
-                {DEPARTMENTS.map((d) => (
+                {programs.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>

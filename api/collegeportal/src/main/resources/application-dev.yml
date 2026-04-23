@@ -1,20 +1,20 @@
 spring:
   datasource:
-    url: jdbc:postgresql://ep-polished-butterfly-a4bs2h1w-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require
-    username: neondb_owner
-    password: npg_v9Fr4JHfKAoI
+    url: jdbc:postgresql://localhost:5432/campuxo
+    username: postgres
+    password: Adi@758493
     hikari:
-      connection-timeout: 60000
-      keepalive-time: 30000
-      max-lifetime: 60000
+      connection-timeout: 30000
+      max-lifetime: 300000
       minimum-idle: 1
-      maximum-pool-size: 5
-      idle-timeout: 30000
-      initialization-fail-timeout: -1
+      maximum-pool-size: 10
 
   sql:
     init:
       mode: never
+
+  flyway:
+    enabled: false
 
   jpa:
     hibernate:
