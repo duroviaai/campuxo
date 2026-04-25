@@ -20,6 +20,7 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     boolean existsByUser(User user);
 
+    @EntityGraph(attributePaths = {"user", "classBatch"})
     List<Student> findByClassBatchId(Long classBatchId);
 
     Page<Student> findByDepartment(String department, Pageable pageable);
@@ -28,9 +29,11 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     Page<Student> findByDepartmentAndClassBatchId(String department, Long classBatchId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"user", "classBatch"})
     @Query("SELECT s FROM Student s JOIN Course c ON s MEMBER OF c.students WHERE c.id = :courseId")
     List<Student> findByCourseId(@Param("courseId") Long courseId);
 
+    @EntityGraph(attributePaths = {"user", "classBatch"})
     @Query("SELECT s FROM Student s JOIN Course c ON s MEMBER OF c.students WHERE s.classBatch.id = :classId AND c.id = :courseId")
     List<Student> findByClassBatchIdAndCourseId(@Param("classId") Long classId, @Param("courseId") Long courseId);
 

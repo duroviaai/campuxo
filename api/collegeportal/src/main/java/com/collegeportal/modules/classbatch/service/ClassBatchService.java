@@ -25,4 +25,10 @@ public interface ClassBatchService {
     List<ClassBatchResponseDTO> getClassesByYearAndSection(Integer year, String section);
 
     List<CourseResponseDTO> getCoursesByClass(Long classId);
+
+    void assignCoursesToClass(Long classId, List<Long> courseIds);
+
+    void removeCourseFromClass(Long classId, Long courseId);
+
+    List<String> getAllDepartments();
 }

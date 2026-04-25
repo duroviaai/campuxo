@@ -16,6 +16,8 @@ export const adminApi = apiSlice.injectEndpoints({
     deleteUser:   b.mutation({ query: (userId) => ({ url: `${BASE}/users/${userId}`,   method: 'DELETE' }), invalidatesTags: ['PendingUsers', 'ApprovedUsers', 'RejectedUsers', 'AdminStats'] }),
     bulkApprove:  b.mutation({ query: (userIds) => ({ url: `${BASE}/bulk-approve`, method: 'PUT',    body: { userIds } }), invalidatesTags: ['PendingUsers', 'ApprovedUsers', 'AdminStats'] }),
     bulkReject:   b.mutation({ query: ({ userIds, reason }) => ({ url: `${BASE}/bulk-reject`,  method: 'DELETE', body: { userIds, reason } }), invalidatesTags: ['PendingUsers', 'RejectedUsers', 'AdminStats'] }),
+    assignHod:    b.mutation({ query: (userId) => ({ url: `${BASE}/users/${userId}/assign-hod`, method: 'PUT' }), invalidatesTags: ['Faculty', 'ApprovedUsers'] }),
+    removeHod:    b.mutation({ query: (userId) => ({ url: `${BASE}/users/${userId}/remove-hod`, method: 'PUT' }), invalidatesTags: ['Faculty', 'ApprovedUsers'] }),
   }),
 });
 
@@ -30,4 +32,6 @@ export const {
   useDeleteUserMutation,
   useBulkApproveMutation,
   useBulkRejectMutation,
+  useAssignHodMutation,
+  useRemoveHodMutation,
 } = adminApi;

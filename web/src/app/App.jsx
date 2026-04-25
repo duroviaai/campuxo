@@ -9,6 +9,7 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import AdminGuard from '../guards/AdminGuard';
 import FacultyGuard from '../guards/FacultyGuard';
 import StudentGuard from '../guards/StudentGuard';
+import HodGuard from '../guards/HodGuard';
 import GuestGuard from '../guards/GuestGuard';
 import ProfileCompletionGuard from '../guards/ProfileCompletionGuard';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -35,12 +36,9 @@ const FacultyListPage      = lazy(() => import('../features/faculty/pages/Facult
 const CreateFacultyPage    = lazy(() => import('../features/faculty/pages/CreateFacultyPage'));
 const EditFacultyPage      = lazy(() => import('../features/faculty/pages/EditFacultyPage'));
 const AssignCoursesPage    = lazy(() => import('../features/faculty/pages/AssignCoursesPage'));
-const CourseListPage       = lazy(() => import('../features/course/pages/CourseListPage'));
-const CreateCoursePage     = lazy(() => import('../features/course/pages/CreateCoursePage'));
-const EditCoursePage       = lazy(() => import('../features/course/pages/EditCoursePage'));
+const AdminCoursesPage     = lazy(() => import('../features/admin/courses/CoursesPage'));
 const AttendancePage       = lazy(() => import('../features/attendance/pages/AttendancePage'));
 const MarkAttendancePage   = lazy(() => import('../features/attendance/pages/MarkAttendancePage'));
-const ClassListPage        = lazy(() => import('../features/admin/pages/ClassListPage'));
 const AdminAttendancePage  = lazy(() => import('../features/admin/pages/AdminAttendancePage'));
 const ApprovalsPage        = lazy(() => import('../features/admin/pages/ApprovalsPage'));
 const ApprovedUsersPage    = lazy(() => import('../features/admin/pages/ApprovedUsersPage'));
@@ -56,11 +54,18 @@ const StudentCoursesPage    = lazy(() => import('../features/student/pages/Stude
 const StudentAttendancePage = lazy(() => import('../features/student/pages/StudentAttendancePage'));
 const StudentProfilePage    = lazy(() => import('../features/student/pages/StudentProfilePage'));
 
+// ── HOD ──────────────────────────────────────────────────────────────────────
+const HodDashboardPage = lazy(() => import('../features/hod/pages/HodDashboardPage'));
+const HodFacultyPage   = lazy(() => import('../features/hod/pages/HodFacultyPage'));
+const HodStudentsPage  = lazy(() => import('../features/hod/pages/HodStudentsPage'));
+const HodCoursesPage   = lazy(() => import('../features/hod/pages/HodCoursesPage'));
+
 // ── Redirects ─────────────────────────────────────────────────────────────────
 const RoleRedirect = () => {
   const { user } = useAuth();
   const roles = user?.roles ?? [];
   if (roles.includes('ROLE_ADMIN'))   return <Navigate to={ROUTES.ADMIN_DASHBOARD}   replace />;
+  if (roles.includes('ROLE_HOD'))     return <Navigate to={ROUTES.HOD_DASHBOARD}     replace />;
   if (roles.includes('ROLE_FACULTY')) return <Navigate to={ROUTES.FACULTY_DASHBOARD} replace />;
   return <Navigate to={ROUTES.STUDENT_DASHBOARD} replace />;
 };
@@ -71,6 +76,7 @@ const RootRedirect = () => {
   if (!token) return <Navigate to={ROUTES.LANDING} replace />;
   const roles = user?.roles ?? [];
   if (roles.includes('ROLE_ADMIN'))   return <Navigate to={ROUTES.ADMIN_DASHBOARD}   replace />;
+  if (roles.includes('ROLE_HOD'))     return <Navigate to={ROUTES.HOD_DASHBOARD}     replace />;
   if (roles.includes('ROLE_FACULTY')) return <Navigate to={ROUTES.FACULTY_DASHBOARD} replace />;
   return <Navigate to={ROUTES.STUDENT_DASHBOARD} replace />;
 };
@@ -116,14 +122,19 @@ const App = () => (
                 <Route path={ROUTES.ADMIN_FACULTY_CREATE}  element={<CreateFacultyPage />} />
                 <Route path={ROUTES.ADMIN_FACULTY_EDIT}    element={<EditFacultyPage />} />
                 <Route path={ROUTES.ADMIN_FACULTY_ASSIGN_COURSES} element={<AssignCoursesPage />} />
-                <Route path={ROUTES.ADMIN_COURSES}         element={<CourseListPage />} />
-                <Route path={ROUTES.ADMIN_COURSES_CREATE}  element={<CreateCoursePage />} />
-                <Route path={ROUTES.ADMIN_COURSES_EDIT}    element={<EditCoursePage />} />
-                <Route path={ROUTES.ADMIN_CLASSES}         element={<ClassListPage />} />
+                <Route path={ROUTES.ADMIN_COURSES}         element={<AdminCoursesPage />} />
                 <Route path={ROUTES.ADMIN_ATTENDANCE}      element={<AdminAttendancePage />} />
                 <Route path={ROUTES.ADMIN_MARK_ATTENDANCE} element={<MarkAttendancePage />} />
                 <Route path={ROUTES.ADMIN_APPROVALS}       element={<ApprovalsPage />} />
                 <Route path={ROUTES.ADMIN_APPROVALS}       element={<ApprovedUsersPage />} />
+              </Route>
+
+              {/* ── HOD ── */}
+              <Route element={<HodGuard />}>
+                <Route path={ROUTES.HOD_DASHBOARD} element={<HodDashboardPage />} />
+                <Route path={ROUTES.HOD_FACULTY}   element={<HodFacultyPage />} />
+                <Route path={ROUTES.HOD_STUDENTS}  element={<HodStudentsPage />} />
+                <Route path={ROUTES.HOD_COURSES}   element={<HodCoursesPage />} />
               </Route>
 
               {/* ── FACULTY ── */}

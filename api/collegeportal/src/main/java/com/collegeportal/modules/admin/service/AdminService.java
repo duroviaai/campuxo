@@ -17,4 +17,6 @@ public interface AdminService {
     void bulkApprove(List<Long> userIds);
     void bulkReject(List<Long> userIds, String reason);
     AdminStatsDTO getStats();
+    void assignHodRole(Long userId);
+    void removeHodRole(Long userId);
 }

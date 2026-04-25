@@ -27,7 +27,7 @@ public class CourseController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_STUDENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_STUDENT', 'ROLE_FACULTY')")
     public ResponseEntity<PagedResponseDTO<CourseResponseDTO>> getAllCourses(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -43,6 +43,14 @@ public class CourseController {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<java.util.Map<String, Long>> getDeptCounts() {
         return ResponseEntity.ok(courseService.getDeptCourseCounts());
+    }
+
+    @GetMapping("/count")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Long> countByDeptAndScheme(
+            @RequestParam String department,
+            @RequestParam Long parentBatchId) {
+        return ResponseEntity.ok(courseService.countByDeptAndScheme(department, parentBatchId));
     }
 
     @GetMapping("/{id}")
@@ -79,7 +87,12 @@ public class CourseController {
 
     @GetMapping("/programs/{programType}")
     @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_FACULTY')")
-    public ResponseEntity<List<CourseResponseDTO>> getCoursesByProgram(@PathVariable String programType) {
+    public ResponseEntity<List<CourseResponseDTO>> getCoursesByProgram(
+            @PathVariable String programType,
+            @RequestParam(required = false) String scheme) {
+        if (scheme != null && !scheme.isBlank()) {
+            return ResponseEntity.ok(courseService.getCoursesByProgramAndScheme(programType, scheme));
+        }
         return ResponseEntity.ok(courseService.getCoursesByProgram(programType));
     }
 

@@ -25,4 +25,6 @@ public interface StudentService {
     StudentResponseDTO updateMyProfile(StudentRequestDTO request);
 
     List<CourseResponseDTO> getMyCourses();
+
+    List<CourseResponseDTO> getMyClassCourses();
 }

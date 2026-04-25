@@ -1,11 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  getPrograms,
-  getCoursesByProgram,
   getMyCourses,
   enrollCourse,
   unenrollCourse,
 } from '../services/studentService';
+import axiosInstance from '../../../api/axiosInstance';
 
 const CourseCard = ({ course, onEnroll, onUnenroll, loading }) => (
   <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-all">
@@ -68,7 +67,6 @@ const CourseCard = ({ course, onEnroll, onUnenroll, loading }) => (
 
 const StudentCoursesPage = () => {
   const [tab, setTab]           = useState('enrolled');
-  const [programs, setPrograms] = useState([]);
   const [courses, setCourses]   = useState([]);
   const [enrolled, setEnrolled] = useState([]);
   const [search, setSearch]     = useState('');
@@ -77,24 +75,21 @@ const StudentCoursesPage = () => {
   const [error, setError]       = useState(null);
 
   useEffect(() => {
-    getPrograms().then(setPrograms).catch(() => {});
     refreshEnrolled();
+    loadClassCourses();
   }, []);
 
   const refreshEnrolled = () => {
     getMyCourses().then(setEnrolled).catch(() => {});
   };
 
-  useEffect(() => {
-    if (tab === 'enrolled') return;
+  const loadClassCourses = () => {
     setLoadingCourses(true);
-    setError(null);
-    setSearch('');
-    getCoursesByProgram(tab)
-      .then(setCourses)
+    axiosInstance.get('/api/v1/students/me/class/courses')
+      .then((res) => setCourses(res.data))
       .catch(() => setError('Failed to load courses.'))
       .finally(() => setLoadingCourses(false));
-  }, [tab]);
+  };
 
   const handleEnroll = useCallback(async (courseId) => {
     setActionLoading(courseId);
@@ -124,7 +119,10 @@ const StudentCoursesPage = () => {
     }
   }, []);
 
-  const tabs = [{ key: 'enrolled', label: 'My Courses' }, ...programs.map((p) => ({ key: p, label: p }))];
+  const tabs = [
+    { key: 'enrolled', label: 'My Courses' },
+    { key: 'all', label: 'My Class Courses' },
+  ];
 
   const displayList = tab === 'enrolled' ? enrolled : courses;
   const filtered = search
@@ -191,7 +189,7 @@ const StudentCoursesPage = () => {
           <div className="text-center py-16 text-gray-400">
             <p className="text-5xl mb-4">📚</p>
             <p className="text-sm font-medium">You haven't enrolled in any courses yet.</p>
-            <p className="text-xs mt-1">Browse programs above to get started.</p>
+            <p className="text-xs mt-1">Browse "My Class Courses" to get started.</p>
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-sm text-gray-500 text-center py-8">No courses match your search.</p>
@@ -210,8 +208,8 @@ const StudentCoursesPage = () => {
         )
       )}
 
-      {/* Program tab */}
-      {tab !== 'enrolled' && (
+      {/* All class courses tab */}
+      {tab === 'all' && (
         loadingCourses ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1,2,3,4,5,6].map(i => <div key={i} className="bg-white rounded-xl h-40 animate-pulse border border-gray-100" />)}
@@ -219,7 +217,7 @@ const StudentCoursesPage = () => {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <p className="text-5xl mb-4">🔍</p>
-            <p className="text-sm font-medium">{search ? 'No courses match your search.' : `No courses available for ${tab}.`}</p>
+            <p className="text-sm font-medium">{search ? 'No courses match your search.' : 'No courses available for your class yet.'}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

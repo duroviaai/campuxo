@@ -11,8 +11,18 @@ const StudentRow = memo(({ student, onEdit, onDelete, onView, zebra }) => (
         ? <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-semibold">{student.department}</span>
         : '—'}
     </td>
-    <td className="px-4 py-3 text-gray-600 text-xs">{student.classBatchDisplayName || student.classBatchName || '—'}</td>
-    <td className="px-4 py-3 text-gray-600 text-xs">{student.yearOfStudy ? `Year ${student.yearOfStudy}` : '—'}</td>
+    <td className="px-4 py-3 text-gray-600 text-xs">
+      {student.classBatchDisplayName || student.classBatchName
+        ? <span className="flex items-center gap-1.5">
+            {student.classBatchDisplayName || student.classBatchName}
+            {student.scheme && (
+              <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                student.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+              }`}>{student.scheme}</span>
+            )}
+          </span>
+        : '—'}
+    </td>
     <td className="px-4 py-3 flex gap-2">
       {onView && <button onClick={() => onView(student.id)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors">View</button>}
       <button onClick={() => onEdit(student.id)} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">Edit</button>

@@ -3,34 +3,44 @@ package com.collegeportal.modules.course.mapper;
 import com.collegeportal.modules.course.dto.request.CourseRequestDTO;
 import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.course.entity.Course;
-import com.collegeportal.modules.faculty.entity.Faculty;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CourseMapper {
 
-    public Course toEntity(CourseRequestDTO dto, Faculty faculty) {
+    public Course toEntity(CourseRequestDTO dto) {
         return Course.builder()
                 .name(dto.getName())
                 .code(dto.getCode())
                 .credits(dto.getCredits())
                 .programType(dto.getProgramType())
-                .faculty(faculty)
+                .scheme(dto.getScheme())
+                .specialization(dto.getSpecialization())
                 .build();
     }
 
+    /** Backward-compat overload used by callers that still pass a Faculty arg. */
+    public Course toEntity(CourseRequestDTO dto, Object ignoredFaculty) {
+        return toEntity(dto);
+    }
+
     public CourseResponseDTO toResponseDTO(Course course, int studentCount, Boolean enrolled) {
-        Faculty faculty = course.getFaculty();
+        return toResponseDTO(course, studentCount, enrolled, null, null);
+    }
+
+    public CourseResponseDTO toResponseDTO(Course course, int studentCount, Boolean enrolled,
+                                           Long facultyId, String facultyName) {
         return CourseResponseDTO.builder()
                 .id(course.getId())
                 .name(course.getName())
                 .code(course.getCode())
                 .credits(course.getCredits())
                 .programType(course.getProgramType())
-                .facultyId(faculty != null ? faculty.getId() : null)
-                .facultyName(faculty != null ? faculty.getFirstName() + " " + faculty.getLastName() : null)
+                .facultyId(facultyId)
+                .facultyName(facultyName)
                 .studentCount(studentCount)
                 .enrolled(enrolled)
+                .specialization(course.getSpecialization())
                 .build();
     }
 }

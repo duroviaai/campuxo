@@ -19,6 +19,7 @@ public class StudentMapper {
                 .courseStartYear(dto.getCourseStartYear())
                 .courseEndYear(dto.getCourseEndYear())
                 .photoUrl(dto.getPhotoUrl())
+                .scheme(dto.getScheme())
                 .build();
     }
 
@@ -31,6 +32,7 @@ public class StudentMapper {
         student.setYearOfStudy(dto.getYearOfStudy());
         student.setCourseStartYear(dto.getCourseStartYear());
         student.setCourseEndYear(dto.getCourseEndYear());
+        student.setScheme(dto.getScheme());
         if (dto.getPhotoUrl() != null) student.setPhotoUrl(dto.getPhotoUrl());
     }
 
@@ -49,10 +51,11 @@ public class StudentMapper {
                 .courseStartYear(student.getCourseStartYear())
                 .courseEndYear(student.getCourseEndYear())
                 .photoUrl(student.getPhotoUrl())
+                .scheme(student.getScheme())
                 .classBatchName(student.getClassBatch() != null ? student.getClassBatch().getName() : null)
                 .classBatchId(student.getClassBatch() != null ? student.getClassBatch().getId() : null)
                 .classBatchDisplayName(student.getClassBatch() != null
-                        ? student.getClassBatch().getName() + " - " + student.getClassBatch().getYear() + "yr"
+                        ? student.getClassBatch().getName() + " " + student.getClassBatch().getStartYear() + "-" + student.getClassBatch().getEndYear() + " (" + student.getClassBatch().getScheme() + ")"
                         : null)
                 .build();
     }

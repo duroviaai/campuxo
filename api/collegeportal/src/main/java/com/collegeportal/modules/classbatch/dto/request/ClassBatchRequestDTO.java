@@ -10,8 +10,22 @@ import lombok.Setter;
 public class ClassBatchRequestDTO {
 
     @NotBlank
-    private String name;
+    private String name; // department
 
     @NotNull
-    private Integer year;
+    private Integer startYear;
+
+    @NotNull
+    private Integer endYear;
+
+    @NotBlank
+    private String scheme; // NEP or SEP
+
+    private Integer yearOfStudy; // 1, 2, 3
+
+    private String specialization;
+
+    private Long parentBatchId;
+
+    private Integer semester;
 }

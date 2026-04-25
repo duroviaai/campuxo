@@ -56,6 +56,7 @@ public class StudentServiceImpl implements StudentService {
             ClassBatch batch = classBatchRepository.findById(request.getClassBatchId())
                     .orElseThrow(() -> new ResourceNotFoundException("ClassBatch not found with id: " + request.getClassBatchId()));
             student.setClassBatch(batch);
+            student.setScheme(batch.getScheme()); // always sync scheme from batch
         } else {
             student.setClassBatch(null);
         }
@@ -122,5 +123,20 @@ public class StudentServiceImpl implements StudentService {
                         .stream().map(c -> courseMapper.toResponseDTO(c,
                                 (int) courseRepository.countStudentsByCourseId(c.getId()), true)).toList())
                 .orElse(List.of());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseResponseDTO> getMyClassCourses() {
+        User currentUser = securityUtils.getCurrentUser();
+        Student student = studentRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
+        if (student.getClassBatch() == null) return List.of();
+        return courseRepository.findByClassBatchId(student.getClassBatch().getId())
+                .stream().map(c -> {
+                    boolean enrolled = courseRepository.countEnrollment(c.getId(), student.getId()) > 0;
+                    return courseMapper.toResponseDTO(c,
+                            (int) courseRepository.countStudentsByCourseId(c.getId()), enrolled);
+                }).toList();
     }
 }

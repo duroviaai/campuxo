@@ -1,0 +1,1 @@
+ALTER TABLE class_batches ADD COLUMN IF NOT EXISTS semester INTEGER;

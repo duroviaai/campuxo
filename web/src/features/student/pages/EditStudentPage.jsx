@@ -12,9 +12,13 @@ const EditStudentPage = () => {
   const [updateStudent] = useUpdateStudentMutation();
 
   const handleSubmit = async (data) => {
-    await updateStudent({ id, ...data }).unwrap();
-    toast.success('Student updated successfully');
-    navigate(ROUTES.ADMIN_STUDENTS);
+    try {
+      await updateStudent({ id, ...data }).unwrap();
+      toast.success('Student updated successfully');
+      navigate(ROUTES.ADMIN_STUDENTS);
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to update student.');
+    }
   };
 
   if (isLoading) return <Loader />;

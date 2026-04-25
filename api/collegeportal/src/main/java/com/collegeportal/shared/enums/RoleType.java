@@ -5,7 +5,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 public enum RoleType {
     ROLE_ADMIN,
     ROLE_FACULTY,
-    ROLE_STUDENT;
+    ROLE_STUDENT,
+    ROLE_HOD;
 
     @JsonCreator
     public static RoleType from(String value) {

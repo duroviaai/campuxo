@@ -166,6 +166,7 @@ const StudentProfilePage = () => {
           <Field label="Course Start Year" value={profile?.courseStartYear} />
           <Field label="Course End Year"   value={profile?.courseEndYear} />
           <Field label="Class Batch"       value={profile?.classBatchName} />
+          <Field label="Scheme"             value={profile?.scheme} />
         </div>
       ) : (
         <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">

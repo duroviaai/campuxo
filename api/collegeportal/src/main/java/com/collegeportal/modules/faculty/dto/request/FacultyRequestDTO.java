@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 public class FacultyRequestDTO {
 
-    // Used for create (admin creates faculty directly)
+    /** Full name — used on create when firstName/lastName are not split yet. */
     private String name;
 
     @Email
@@ -16,11 +16,13 @@ public class FacultyRequestDTO {
 
     private String facultyId;
 
-    // Used for update
     private String firstName;
-
     private String lastName;
 
     private String department;
     private String phone;
+    private String designation;
+
+    /** "active" | "inactive" — defaults to active on create. */
+    private String status;
 }

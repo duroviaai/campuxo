@@ -60,6 +60,7 @@ const StudentDetailsPage = () => {
           <Field label="Department"   value={student.department} />
           <Field label="Year of Study" value={student.yearOfStudy ? `Year ${student.yearOfStudy}` : null} />
           <Field label="Class / Batch" value={student.classBatchDisplayName || student.classBatchName} />
+          <Field label="Scheme" value={student.scheme} />
           <Field label="Date of Birth" value={student.dateOfBirth} />
         </div>
       )}

@@ -7,4 +7,8 @@ export const EMPTY_COURSE_FORM = {
   programType: '',
   facultyId: '',
   classBatchId: '',
+  specialization: '',
 };
+
+// Departments that support specializations
+export const DEPTS_WITH_SPECIALIZATION = ['BCA', 'BSc'];

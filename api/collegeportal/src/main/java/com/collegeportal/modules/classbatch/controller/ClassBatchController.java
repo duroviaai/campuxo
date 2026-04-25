@@ -22,6 +22,12 @@ public class ClassBatchController {
 
     private final ClassBatchService classBatchService;
 
+    @GetMapping("/departments")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<List<String>> getAllDepartments() {
+        return ResponseEntity.ok(classBatchService.getAllDepartments());
+    }
+
     @GetMapping
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FACULTY')")
     public ResponseEntity<List<ClassBatchResponseDTO>> getAllClasses() {
@@ -72,5 +78,21 @@ public class ClassBatchController {
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FACULTY')")
     public ResponseEntity<List<CourseResponseDTO>> getCoursesByClass(@PathVariable Long classId) {
         return ResponseEntity.ok(classBatchService.getCoursesByClass(classId));
+    }
+
+    @PostMapping("/{classId}/courses")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Void> assignCoursesToClass(@PathVariable Long classId,
+                                                     @RequestBody java.util.Map<String, java.util.List<Long>> body) {
+        classBatchService.assignCoursesToClass(classId, body.get("courseIds"));
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{classId}/courses/{courseId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Void> removeCourseFromClass(@PathVariable Long classId,
+                                                      @PathVariable Long courseId) {
+        classBatchService.removeCourseFromClass(classId, courseId);
+        return ResponseEntity.noContent().build();
     }
 }

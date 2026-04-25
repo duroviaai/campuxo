@@ -29,5 +29,7 @@ public class StudentRequestDTO {
 
     private String photoUrl;
 
+    private String scheme; // NEP or SEP
+
     private Long classBatchId;
 }

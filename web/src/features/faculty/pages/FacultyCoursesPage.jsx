@@ -76,7 +76,10 @@ const FacultyCoursesPage = () => {
                     <td className="px-6 py-4 text-gray-500 text-xs">
                       {courseAssignments.length === 0
                         ? <span className="text-gray-300">No class assigned</span>
-                        : courseAssignments.map((a) => a.classDisplayName).join(', ')}
+                        : courseAssignments
+                            .map((a) => a.classDisplayName)
+                            .filter(Boolean)
+                            .join(', ') || <span className="text-gray-400">Assigned (no class yet)</span>}
                     </td>
                     <td className="px-6 py-4 text-gray-500">
                       <button

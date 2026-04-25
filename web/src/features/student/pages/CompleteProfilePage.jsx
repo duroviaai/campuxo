@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { updateMyProfile, createStudent } from '../services/studentService';
 import { getUser, setUser } from '../../../shared/utils/tokenUtils';
 import { useAuthContext } from '../../../app/providers/AuthProvider';
-import { useGetProgramsQuery } from '../state/studentApi';
+import { useGetProgramsQuery, useGetAllClassesQuery, useGetSpecializationsQuery } from '../state/studentApi';
 import ROUTES from '../../../app/routes/routeConstants';
 
 const inputCls =
@@ -15,9 +15,11 @@ const CompleteProfilePage = () => {
   const navigate = useNavigate();
   const { user, logout, refreshUser } = useAuthContext();
   const { data: programs = [] } = useGetProgramsQuery();
+  const { data: allClasses = [] } = useGetAllClassesQuery();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedSpec, setSelectedSpec] = useState('');
 
   const [form, setForm] = useState({
     firstName: '',
@@ -25,13 +27,38 @@ const CompleteProfilePage = () => {
     phone: '',
     dateOfBirth: '',
     department: '',
+    classBatchId: '',
     yearOfStudy: '',
+    scheme: '',
     courseStartYear: '',
     courseEndYear: '',
   });
 
-  const handleChange = (e) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  const { data: specializations = [] } = useGetSpecializationsQuery(
+    form.department ? { department: form.department } : undefined,
+    { skip: !form.department }
+  );
+  const hasSpecializations = specializations.length > 0;
+
+  const deptBatches = allClasses.filter((c) => {
+    if (c.name !== form.department) return false;
+    if (hasSpecializations && selectedSpec) return c.specialization === selectedSpec;
+    return true;
+  });
+  const selectedBatch = form.classBatchId ? allClasses.find((c) => c.id === Number(form.classBatchId)) : null;
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'department') {
+      setForm((f) => ({ ...f, department: value, classBatchId: '', scheme: '' }));
+      setSelectedSpec('');
+    } else if (name === 'classBatchId') {
+      const batch = allClasses.find((c) => c.id === Number(value));
+      setForm((f) => ({ ...f, classBatchId: value, scheme: batch ? batch.scheme : '' }));
+    } else {
+      setForm((f) => ({ ...f, [name]: value }));
+    }
+  };
 
   const next = (e) => {
     e.preventDefault();
@@ -47,9 +74,12 @@ const CompleteProfilePage = () => {
     setError(null);
     const payload = {
       ...form,
-      yearOfStudy: Number(form.yearOfStudy),
+      classBatchId: form.classBatchId ? Number(form.classBatchId) : null,
+      yearOfStudy: form.yearOfStudy ? Number(form.yearOfStudy) : null,
       courseStartYear: Number(form.courseStartYear),
       courseEndYear: Number(form.courseEndYear),
+      scheme: form.scheme || null,
+      specialization: selectedSpec || null,
     };
     try {
       try {
@@ -186,34 +216,74 @@ const CompleteProfilePage = () => {
               <label className="text-xs font-semibold text-gray-500">
                 Department <span className="text-red-500">*</span>
               </label>
-              <select
-                name="department"
-                value={form.department}
-                onChange={handleChange}
-                required
-                className={inputCls}
-              >
+              <select name="department" value={form.department} onChange={handleChange} required className={inputCls}>
                 <option value="">Select department</option>
-                {programs.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
+                {programs.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
+            {form.department && hasSpecializations && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500">
+                  Specialization <span className="text-red-500">*</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {specializations.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => { setSelectedSpec(s.name); setForm((f) => ({ ...f, classBatchId: '', scheme: '' })); }}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                        selectedSpec === s.name
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          : 'border-gray-200 text-gray-600 hover:border-indigo-300'
+                      }`}
+                    >
+                      {s.name}
+                      <span className={`ml-1.5 text-[10px] font-bold px-1 py-0.5 rounded-full ${
+                        s.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-700'
+                      }`}>{s.scheme}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {form.department && (!hasSpecializations || selectedSpec) && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500">
+                  Batch <span className="text-red-500">*</span>
+                </label>
+                {deptBatches.length === 0 ? (
+                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    No batches available for {form.department}{selectedSpec ? ` (${selectedSpec})` : ''}. Contact admin.
+                  </p>
+                ) : (
+                  <select name="classBatchId" value={form.classBatchId} onChange={handleChange} required className={inputCls}>
+                    <option value="">Select batch</option>
+                    {deptBatches.map((b) => (
+                      <option key={b.id} value={b.id}>{b.startYear} – {b.endYear} ({b.scheme})</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+            {selectedBatch && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500">Scheme</label>
+                <div className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                    selectedBatch.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+                  }`}>{selectedBatch.scheme}</span>
+                  <span className="text-xs text-gray-400">Auto-set from batch</span>
+                </div>
+              </div>
+            )}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-gray-500">
                 Year of Study <span className="text-red-500">*</span>
               </label>
-              <select
-                name="yearOfStudy"
-                value={form.yearOfStudy}
-                onChange={handleChange}
-                required
-                className={inputCls}
-              >
+              <select name="yearOfStudy" value={form.yearOfStudy} onChange={handleChange} required className={inputCls}>
                 <option value="">Select year</option>
-                {[1, 2, 3, 4].map((y) => (
-                  <option key={y} value={y}>Year {y}</option>
-                ))}
+                {[1, 2, 3, 4].map((y) => <option key={y} value={y}>Year {y}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1">
@@ -278,6 +348,9 @@ const CompleteProfilePage = () => {
                 ['Phone',             form.phone],
                 ['Date of Birth',     form.dateOfBirth],
                 ['Department',        form.department],
+                ['Specialization',     selectedSpec || '—'],
+                ['Batch',             selectedBatch ? `${selectedBatch.startYear}–${selectedBatch.endYear}` : '—'],
+                ['Scheme',            form.scheme],
                 ['Year of Study',     form.yearOfStudy ? `Year ${form.yearOfStudy}` : ''],
                 ['Course Start Year', form.courseStartYear],
                 ['Course End Year',   form.courseEndYear],

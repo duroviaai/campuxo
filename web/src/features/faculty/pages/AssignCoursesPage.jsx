@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useGetFacultyByIdQuery, useGetFacultyAssignedCoursesQuery, useAssignCoursesToFacultyMutation, useRemoveCourseFromFacultyMutation } from '../state/facultyApi';
+import { useGetFacultyByIdQuery, useGetFacultyAssignedCoursesQuery, useAssignCoursesToFacultyMutation, useRemoveCourseFromFacultyMutation, useAssignClassesToCourseMutation } from '../state/facultyApi';
 import { useGetCoursesQuery } from '../../course/state/courseApi';
+import { useGetAllClassesQuery } from '../../student/state/studentApi';
 import { getFullName } from '../utils/facultyHelpers';
 import Loader from '../../../shared/components/feedback/Loader';
 import ROUTES from '../../../app/routes/routeConstants';
@@ -14,11 +15,15 @@ const AssignCoursesPage = () => {
   const { data: faculty, isLoading: facultyLoading } = useGetFacultyByIdQuery(id);
   const { data: coursesData, isLoading: coursesLoading } = useGetCoursesQuery({ size: 200 });
   const { data: assigned = [], isLoading: assignedLoading } = useGetFacultyAssignedCoursesQuery(id);
+  const { data: allClasses = [] } = useGetAllClassesQuery();
   const [assignCoursesToFaculty, { isLoading: saving }] = useAssignCoursesToFacultyMutation();
   const [removeCourseFromFaculty] = useRemoveCourseFromFacultyMutation();
+  const [assignClassesToCourse] = useAssignClassesToCourseMutation();
 
-  const [selected, setSelected] = useState([]);
-  const [search, setSearch]     = useState('');
+  const [selected, setSelected]         = useState([]);
+  const [search, setSearch]             = useState('');
+  const [classModal, setClassModal]     = useState(null); // { courseId, courseName }
+  const [selectedClasses, setSelectedClasses] = useState([]);
 
   const allCourses = coursesData?.content ?? coursesData ?? [];
   const loading = facultyLoading || coursesLoading || assignedLoading;
@@ -54,6 +59,22 @@ const AssignCoursesPage = () => {
       toast.success('Course removed.');
     } catch {
       toast.error('Failed to remove course.');
+    }
+  };
+
+  const openClassModal = (course) => {
+    setClassModal({ courseId: course.id, courseName: course.name });
+    setSelectedClasses([]);
+  };
+
+  const handleAssignClasses = async () => {
+    if (!selectedClasses.length) return;
+    try {
+      await assignClassesToCourse({ facultyId: id, courseId: classModal.courseId, classIds: selectedClasses }).unwrap();
+      toast.success(`${selectedClasses.length} class(es) assigned.`);
+      setClassModal(null);
+    } catch {
+      toast.error('Failed to assign classes.');
     }
   };
 
@@ -170,18 +191,66 @@ const AssignCoursesPage = () => {
                     <p className="text-sm font-medium text-gray-900 truncate">{course.name}</p>
                     <p className="text-xs text-gray-400 font-mono">{course.code}{course.credits ? ` · ${course.credits} credits` : ''}</p>
                   </div>
-                  <button
-                    onClick={() => handleRemove(course.id)}
-                    className="ml-3 shrink-0 px-2.5 py-1 text-xs font-semibold rounded-lg text-red-500 border border-red-100 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    Remove
-                  </button>
+                  <div className="flex items-center gap-2 ml-3 shrink-0">
+                    <button
+                      onClick={() => openClassModal(course)}
+                      className="px-2.5 py-1 text-xs font-semibold rounded-lg text-indigo-600 border border-indigo-100 hover:bg-indigo-50 transition-colors"
+                    >
+                      + Classes
+                    </button>
+                    <button
+                      onClick={() => handleRemove(course.id)}
+                      className="px-2.5 py-1 text-xs font-semibold rounded-lg text-red-500 border border-red-100 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </div>
       </div>
+
+      {classModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-gray-900">Assign Classes</h2>
+              <button onClick={() => setClassModal(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+            <p className="text-xs text-gray-500">Course: <span className="font-semibold text-gray-700">{classModal.courseName}</span></p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {allClasses.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">No classes available. Create classes first.</p>
+              ) : (
+                allClasses.map((cls) => (
+                  <label key={cls.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all ${
+                    selectedClasses.includes(cls.id) ? 'border-indigo-300 bg-indigo-50' : 'border-gray-100 hover:border-indigo-200'
+                  }`}>
+                    <input
+                      type="checkbox"
+                      checked={selectedClasses.includes(cls.id)}
+                      onChange={() => setSelectedClasses((prev) =>
+                        prev.includes(cls.id) ? prev.filter((x) => x !== cls.id) : [...prev, cls.id]
+                      )}
+                      className="accent-indigo-600 w-4 h-4 shrink-0"
+                    />
+                    <span className="text-sm text-gray-800">{cls.displayName}</span>
+                  </label>
+                ))
+              )}
+            </div>
+            <button
+              onClick={handleAssignClasses}
+              disabled={!selectedClasses.length}
+              className="w-full py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40"
+            >
+              Assign {selectedClasses.length > 0 ? `${selectedClasses.length} Class(es)` : 'Classes'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

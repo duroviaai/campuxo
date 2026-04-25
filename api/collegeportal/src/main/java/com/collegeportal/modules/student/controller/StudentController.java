@@ -67,6 +67,12 @@ public class StudentController {
         return ResponseEntity.ok(studentService.getMyCourses());
     }
 
+    @GetMapping("/me/class/courses")
+    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    public ResponseEntity<List<CourseResponseDTO>> getMyClassCourses() {
+        return ResponseEntity.ok(studentService.getMyClassCourses());
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<StudentResponseDTO> getStudentById(@PathVariable Long id) {

@@ -162,6 +162,10 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
 
         List<Student> students = studentRepository.findByClassBatchIdAndCourseId(classId, courseId);
+        // Fallback: if no students found via course enrollment, return all students in the class
+        if (students.isEmpty()) {
+            students = studentRepository.findByClassBatchId(classId);
+        }
         if (students.isEmpty()) return List.of();
 
         List<Long> studentIds = students.stream().map(Student::getId).toList();

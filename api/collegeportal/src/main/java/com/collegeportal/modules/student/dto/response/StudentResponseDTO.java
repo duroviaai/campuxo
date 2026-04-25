@@ -22,6 +22,7 @@ public class StudentResponseDTO {
     private Integer courseStartYear;
     private Integer courseEndYear;
     private String photoUrl;
+    private String scheme;
     private String classBatchName;
     private Long classBatchId;
     private String classBatchDisplayName;

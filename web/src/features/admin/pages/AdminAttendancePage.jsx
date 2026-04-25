@@ -402,7 +402,7 @@ const AdminAttendancePage = () => {
   const [selDept, setSelDept]           = useState(null);
   const [selClassYear, setSelClassYear] = useState(null); // 1 | 2 | 3
   const [selCourse, setSelCourse]       = useState(null);
-  const [selClass, setSelClass]         = useState(null);
+  const [selClass, setSelClass]         = useState(null); // classId for the selected course
   const [selStudent, setSelStudent]     = useState(null);
 
   const [courses, setCourses]           = useState([]);
@@ -415,21 +415,27 @@ const AdminAttendancePage = () => {
     getClassFilters().then(setFilters).catch(() => setError('Failed to load filters'));
   }, []);
 
-  // When year selected, find matching class batch and load courses
+  // When year selected, find all matching class batches and aggregate courses
   const loadCoursesForClass = useCallback(async (dept, year) => {
     setLoading(true);
     setError(null);
     try {
       const batches = await getClassesByYear(year);
-      const match = batches.find((b) => b.name === dept);
-      if (match) {
-        setSelClass(match);
-        const data = await getCoursesByClass(match.id);
-        setCourses(data);
-      } else {
+      const matches = batches.filter((b) => b.name === dept);
+      if (matches.length === 0) {
         setSelClass(null);
         setCourses([]);
+        return;
       }
+      // Fetch courses from all matching batches (NEP + SEP), tag each with classId
+      const allCourses = (await Promise.all(
+        matches.map((b) => getCoursesByClass(b.id).then((cs) => cs.map((c) => ({ ...c, classId: b.id, scheme: b.scheme }))))
+      )).flat();
+      // Deduplicate by course id, keeping first occurrence
+      const seen = new Set();
+      const unique = allCourses.filter((c) => { if (seen.has(c.id)) return false; seen.add(c.id); return true; });
+      setSelClass(matches[0]); // fallback, overridden per-course on select
+      setCourses(unique);
     } catch {
       setError('Failed to load courses');
     } finally {
@@ -467,12 +473,13 @@ const AdminAttendancePage = () => {
   };
 
   const handleSelectCourse = async (course) => {
-    if (!selClass) {
+    const classId = course.classId ?? selClass?.id;
+    if (!classId) {
       setError('No class batch found for this combination.');
       return;
     }
     setSelCourse(course);
-    await loadOverview(selClass.id, course.id);
+    await loadOverview(classId, course.id);
     setStep(3);
   };
 
@@ -562,13 +569,25 @@ const AdminAttendancePage = () => {
           {loading ? <p className="text-sm text-gray-500">Loading subjects...</p> : courses.length === 0 ? (
             <p className="text-sm text-gray-400">No subjects found for this class.</p>
           ) : (
-            <SelectCard
-              label="Subject"
-              options={courses}
-              onSelect={handleSelectCourse}
-              getLabel={(c) => `${c.name} (${c.code})`}
-              getValue={(c) => c.id}
-            />
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-gray-600">Select Subject</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {courses.map((c) => (
+                  <button
+                    key={`${c.id}-${c.classId}`}
+                    onClick={() => handleSelectCourse(c)}
+                    className="p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 text-sm font-semibold text-gray-700 transition-all text-left"
+                  >
+                    <span>{c.name} ({c.code})</span>
+                    {c.scheme && (
+                      <span className={`ml-1.5 text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                        c.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-700'
+                      }`}>{c.scheme}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}

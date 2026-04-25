@@ -40,6 +40,9 @@ public class Student extends BaseEntity {
 
     private String photoUrl;
 
+    @Column(length = 10)
+    private String scheme; // NEP or SEP
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_batch_id")
     private ClassBatch classBatch;

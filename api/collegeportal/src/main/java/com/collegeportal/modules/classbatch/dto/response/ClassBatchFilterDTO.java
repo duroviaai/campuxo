@@ -9,5 +9,4 @@ import java.util.List;
 @Builder
 public class ClassBatchFilterDTO {
     private List<String> departments;
-    private List<Integer> years;
 }

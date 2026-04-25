@@ -39,5 +39,7 @@ public interface FacultyService {
 
     void removeCourse(Long facultyId, Long courseId);
 
+    void assignClassesToCourse(Long facultyId, Long courseId, List<Long> classStructureIds);
+
     List<StudentResponseDTO> getCourseStudents(Long courseId);
 }

@@ -14,6 +14,13 @@ const ICONS = {
   approvals:  'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
 };
 
+const HOD_ITEMS = [
+  { to: ROUTES.HOD_DASHBOARD, label: 'Dashboard', icon: ICONS.dashboard, end: true },
+  { to: ROUTES.HOD_FACULTY,   label: 'Faculty',   icon: ICONS.faculty },
+  { to: ROUTES.HOD_STUDENTS,  label: 'Students',  icon: ICONS.students },
+  { to: ROUTES.HOD_COURSES,   label: 'Courses',   icon: ICONS.courses },
+];
+
 const FACULTY_ITEMS = [
   { to: ROUTES.FACULTY_DASHBOARD,  label: 'Dashboard',  icon: ICONS.dashboard, end: true },
   { to: ROUTES.FACULTY_COURSES,    label: 'My Courses', icon: ICONS.courses },
@@ -32,6 +39,7 @@ const Sidebar = () => {
   const { user } = useAuth();
   const roles = user?.roles ?? [];
   const isAdmin = roles.includes(ROLES.ADMIN);
+  const isHod    = roles.includes('ROLE_HOD');
 
   const { data: stats } = useGetStatsQuery(undefined, { skip: !isAdmin });
   const pendingCount = stats?.pendingApprovals ?? 0;
@@ -40,19 +48,23 @@ const Sidebar = () => {
     { to: ROUTES.ADMIN_DASHBOARD,  label: 'Dashboard',  icon: ICONS.dashboard,  end: true },
     { to: ROUTES.ADMIN_STUDENTS,   label: 'Students',   icon: ICONS.students },
     { to: ROUTES.ADMIN_FACULTY,    label: 'Faculty',    icon: ICONS.faculty },
-    { to: ROUTES.ADMIN_COURSES,    label: 'Departments', icon: ICONS.courses },
+    { to: ROUTES.ADMIN_COURSES,    label: 'Courses',    icon: ICONS.courses },
     { to: ROUTES.ADMIN_ATTENDANCE, label: 'Attendance', icon: ICONS.attendance },
     { to: ROUTES.ADMIN_APPROVALS,  label: 'Approvals',  icon: ICONS.approvals, badge: pendingCount },
   ];
 
   const items = isAdmin
     ? ADMIN_ITEMS
+    : isHod
+    ? HOD_ITEMS
     : roles.includes(ROLES.FACULTY)
     ? FACULTY_ITEMS
     : STUDENT_ITEMS;
 
   const subtitle = isAdmin
     ? 'Admin Panel'
+    : isHod
+    ? 'HOD Panel'
     : roles.includes(ROLES.FACULTY)
     ? 'Faculty Panel'
     : 'Student Panel';

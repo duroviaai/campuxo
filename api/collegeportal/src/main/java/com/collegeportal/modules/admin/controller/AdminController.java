@@ -79,4 +79,16 @@ public class AdminController {
         adminService.bulkReject(body.getUserIds(), body.getReason());
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/users/{userId}/assign-hod")
+    public ResponseEntity<Void> assignHod(@PathVariable Long userId) {
+        adminService.assignHodRole(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/users/{userId}/remove-hod")
+    public ResponseEntity<Void> removeHod(@PathVariable Long userId) {
+        adminService.removeHodRole(userId);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -8,6 +8,12 @@ import lombok.Getter;
 public class ClassBatchResponseDTO {
     private Long id;
     private String name;
-    private Integer year;
+    private Integer startYear;
+    private Integer endYear;
+    private String scheme;
     private String displayName;
+    private Integer yearOfStudy;
+    private String specialization;
+    private Long parentBatchId;
+    private Integer semester;
 }

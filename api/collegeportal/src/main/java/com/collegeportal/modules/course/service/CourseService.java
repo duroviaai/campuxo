@@ -21,11 +21,15 @@ public interface CourseService {
 
     Map<String, Long> getDeptCourseCounts();
 
+    long countByDeptAndScheme(String dept, Long parentBatchId);
+
     CourseResponseDTO getCourseById(Long id);
 
     List<com.collegeportal.modules.student.dto.response.StudentResponseDTO> getCourseStudents(Long id);
 
     List<CourseResponseDTO> getCoursesByProgram(String programType);
+
+    List<CourseResponseDTO> getCoursesByProgramAndScheme(String programType, String scheme);
 
     List<String> getDistinctPrograms();
 

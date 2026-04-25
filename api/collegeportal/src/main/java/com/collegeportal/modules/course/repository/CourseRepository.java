@@ -19,14 +19,15 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     List<Course> findByStudentsId(Long studentId);
 
-    List<Course> findByFacultyId(Long facultyId);
-
     List<Course> findByProgramType(String programType);
+
+    @Query("SELECT c FROM Course c WHERE c.programType = :programType AND (c.scheme IS NULL OR c.scheme = :scheme)")
+    List<Course> findByProgramTypeAndScheme(@Param("programType") String programType, @Param("scheme") String scheme);
 
     @Query("SELECT DISTINCT c.programType FROM Course c WHERE c.programType IS NOT NULL ORDER BY c.programType")
     List<String> findDistinctProgramTypes();
 
-    @Query("SELECT c FROM Course c LEFT JOIN c.faculty f WHERE " +
+    @Query("SELECT c FROM Course c WHERE " +
            "(COALESCE(:programType, '') = '' OR c.programType = :programType) AND " +
            "(COALESCE(:search, '') = '' OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(c.code) LIKE LOWER(CONCAT('%', :search, '%')))")
@@ -48,6 +49,32 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query(value = "DELETE FROM course_students WHERE student_id = :studentId", nativeQuery = true)
     void removeStudentFromAllCourses(@Param("studentId") Long studentId);
 
-    @Query("SELECT DISTINCT c FROM Course c JOIN c.students s WHERE s.classBatch.id = :classBatchId")
+    @Modifying
+    @Query(value = "DELETE FROM course_students WHERE course_id = :courseId", nativeQuery = true)
+    void removeCourseStudents(@Param("courseId") Long courseId);
+
+    @Modifying
+    @Query(value = "DELETE FROM class_batch_courses WHERE course_id = :courseId", nativeQuery = true)
+    void removeCourseClassBatches(@Param("courseId") Long courseId);
+
+    @Query("SELECT DISTINCT c FROM Course c JOIN c.classBatches cb WHERE cb.id = :classBatchId")
     List<Course> findByClassBatchId(@org.springframework.data.repository.query.Param("classBatchId") Long classBatchId);
+
+    @Query("SELECT COUNT(DISTINCT c) FROM Course c JOIN c.classBatches cb WHERE cb.name = :dept AND cb.parentBatchId = :parentBatchId")
+    long countByDeptAndScheme(@Param("dept") String dept, @Param("parentBatchId") Long parentBatchId);
+
+    @Query("SELECT c FROM Course c LEFT JOIN FETCH c.classBatches WHERE c.id = :id")
+    java.util.Optional<Course> findByIdWithClassBatches(@Param("id") Long id);
+
+    boolean existsByCodeAndDepartmentId(String code, Long departmentId);
+
+    java.util.Optional<Course> findByCodeAndDepartmentId(String code, Long departmentId);
+
+    @Query("SELECT c FROM Course c WHERE c.department.id = :deptId ORDER BY c.name")
+    java.util.List<Course> findByDepartmentId(@Param("deptId") Long deptId);
+
+    /** Count courses assigned to a faculty via the assignment table. */
+    @Query("SELECT COUNT(DISTINCT a.course.id) FROM com.collegeportal.modules.facultyassignment.entity.FacultyCourseAssignment a WHERE a.faculty.id = :facultyId")
+    long countAssignedCoursesByFacultyId(@Param("facultyId") Long facultyId);
+
 }

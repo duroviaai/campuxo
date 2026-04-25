@@ -63,20 +63,29 @@ public class DataInitializer implements ApplicationRunner {
 
     @Transactional
     public void seedClassBatches() {
+        // Delete old-style batches that have no startYear (seeded before the scheme feature)
+        classBatchRepository.findAll().stream()
+                .filter(b -> b.getStartYear() == null)
+                .forEach(b -> classBatchRepository.delete(b));
+
         if (classBatchRepository.count() > 0) return;
         List<ClassBatch> batches = new java.util.ArrayList<>();
+        int baseYear = 2022;
         for (String course : List.of("BCA", "BSC", "BA", "BCOM")) {
-            for (int year = 1; year <= 3; year++) {
-                batches.add(batch(course, year));
+            for (int i = 0; i < 3; i++) {
+                batches.add(batch(course, baseYear + i));
             }
         }
         classBatchRepository.saveAll(batches);
         System.out.println("[SEED] Created " + batches.size() + " class batches.");
     }
 
-    private ClassBatch batch(String name, int year) {
+    private ClassBatch batch(String name, int startYear) {
         ClassBatch b = new ClassBatch();
-        b.setName(name); b.setYear(year);
+        b.setName(name);
+        b.setStartYear(startYear);
+        b.setEndYear(startYear + 3);
+        b.setScheme("NEP");
         return b;
     }
 }

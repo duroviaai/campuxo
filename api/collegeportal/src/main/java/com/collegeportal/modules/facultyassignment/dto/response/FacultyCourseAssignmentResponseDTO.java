@@ -10,8 +10,6 @@ public class FacultyCourseAssignmentResponseDTO {
     private Long courseId;
     private String courseName;
     private String courseCode;
-    private Long classId;
-    private String className;
-    private Integer classYear;
-    private String classDisplayName;
+    private Long classStructureId;
+    private String classDisplayName; // e.g. "BCA 2023-2026 Sem 3"
 }

@@ -9,8 +9,8 @@ import com.collegeportal.modules.course.entity.Course;
 import com.collegeportal.modules.course.mapper.CourseMapper;
 import com.collegeportal.modules.course.repository.CourseRepository;
 import com.collegeportal.modules.course.service.CourseService;
-import com.collegeportal.modules.faculty.entity.Faculty;
-import com.collegeportal.modules.faculty.repository.FacultyRepository;
+import com.collegeportal.modules.attendance.repository.AttendanceRepository;
+import com.collegeportal.modules.facultyassignment.repository.FacultyCourseAssignmentRepository;
 import com.collegeportal.modules.student.dto.response.StudentResponseDTO;
 import com.collegeportal.modules.student.entity.Student;
 import com.collegeportal.modules.student.mapper.StudentMapper;
@@ -36,10 +36,11 @@ public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
     private final StudentRepository studentRepository;
-    private final FacultyRepository facultyRepository;
     private final CourseMapper courseMapper;
     private final StudentMapper studentMapper;
     private final SecurityUtils securityUtils;
+    private final AttendanceRepository attendanceRepository;
+    private final FacultyCourseAssignmentRepository assignmentRepository;
 
     @Override
     @Caching(evict = {
@@ -50,13 +51,11 @@ public class CourseServiceImpl implements CourseService {
     public CourseResponseDTO updateCourse(Long id, CourseRequestDTO request) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
-        Faculty faculty = facultyRepository.findById(request.getFacultyId())
-                .orElseThrow(() -> new ResourceNotFoundException("Faculty not found"));
         course.setName(request.getName());
         course.setCode(request.getCode());
         course.setCredits(request.getCredits());
         course.setProgramType(request.getProgramType());
-        course.setFaculty(faculty);
+        course.setSpecialization(request.getSpecialization());
         courseRepository.save(course);
         return courseMapper.toResponseDTO(course, (int) courseRepository.countStudentsByCourseId(id), null);
     }
@@ -68,9 +67,13 @@ public class CourseServiceImpl implements CourseService {
     })
     @Transactional
     public void deleteCourse(Long id) {
-        Course course = courseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
-        courseRepository.delete(course);
+        if (!courseRepository.existsById(id))
+            throw new ResourceNotFoundException("Course not found");
+        attendanceRepository.deleteByCourseId(id);
+        assignmentRepository.deleteByCourseId(id);
+        courseRepository.removeCourseStudents(id);
+        courseRepository.removeCourseClassBatches(id);
+        courseRepository.deleteById(id);
     }
 
     @Override
@@ -83,9 +86,7 @@ public class CourseServiceImpl implements CourseService {
         if (courseRepository.existsByCode(request.getCode())) {
             throw new BadRequestException("Course with code '" + request.getCode() + "' already exists");
         }
-        Faculty faculty = facultyRepository.findById(request.getFacultyId())
-                .orElseThrow(() -> new ResourceNotFoundException("Faculty not found"));
-        Course course = courseMapper.toEntity(request, faculty);
+        Course course = courseMapper.toEntity(request);
         courseRepository.save(course);
         return courseMapper.toResponseDTO(course, 0, null);
     }
@@ -146,7 +147,10 @@ public class CourseServiceImpl implements CourseService {
     @Transactional(readOnly = true)
     public Map<String, Long> getDeptCourseCounts() {
         return courseRepository.findDistinctProgramTypes().stream()
-                .collect(Collectors.toMap(p -> p, courseRepository::countByProgramType));
+                .collect(Collectors.toMap(p -> p, courseRepository::countByProgramType))
+                .entrySet().stream()
+                .filter(e -> e.getValue() > 0)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     @Override
@@ -158,6 +162,23 @@ public class CourseServiceImpl implements CourseService {
             Boolean enrolled = student != null ? courseRepository.countEnrollment(c.getId(), student.getId()) > 0 : null;
             return courseMapper.toResponseDTO(c, count, enrolled);
         }).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseResponseDTO> getCoursesByProgramAndScheme(String programType, String scheme) {
+        Student student = getCurrentStudentOrNull();
+        return courseRepository.findByProgramTypeAndScheme(programType, scheme).stream().map(c -> {
+            int count = (int) courseRepository.countStudentsByCourseId(c.getId());
+            Boolean enrolled = student != null ? courseRepository.countEnrollment(c.getId(), student.getId()) > 0 : null;
+            return courseMapper.toResponseDTO(c, count, enrolled);
+        }).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countByDeptAndScheme(String dept, Long parentBatchId) {
+        return courseRepository.countByDeptAndScheme(dept, parentBatchId);
     }
 
     @Override

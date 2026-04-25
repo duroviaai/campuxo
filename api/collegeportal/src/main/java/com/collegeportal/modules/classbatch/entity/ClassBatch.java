@@ -10,14 +10,27 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "class_batches", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"name", "year"})
-})
+@Table(name = "class_batches")
 public class ClassBatch extends BaseEntity {
 
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    private Integer startYear;
+
+    private Integer endYear;
+
+    private String scheme;
+
+    private Integer yearOfStudy; // 1, 2, 3
+
+    private String specialization;
+
+    private Long parentBatchId;
+
+    private Integer semester;
+
+    // Legacy column — kept to satisfy NOT NULL DB constraint until column is manually dropped
+    @Column(name = "year", nullable = false)
     private Integer year;
 }

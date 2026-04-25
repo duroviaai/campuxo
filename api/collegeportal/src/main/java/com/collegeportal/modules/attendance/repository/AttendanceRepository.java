@@ -41,4 +41,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     @Query("SELECT a FROM Attendance a JOIN FETCH a.student JOIN FETCH a.course WHERE a.course IN :courses")
     List<Attendance> findByCourseIn(@Param("courses") List<Course> courses);
+
+    void deleteByCourseId(Long courseId);
 }

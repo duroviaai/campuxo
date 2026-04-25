@@ -7,6 +7,7 @@ const baseQuery = fetchBaseQuery({
   prepareHeaders: (headers) => {
     const token = localStorage.getItem('token');
     if (token) headers.set('Authorization', `Bearer ${token}`);
+    headers.set('Content-Type', 'application/json');
     return headers;
   },
 });
@@ -23,6 +24,6 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Student', 'Faculty', 'Course', 'Class', 'AdminStats', 'PendingUsers', 'ApprovedUsers', 'RejectedUsers'],
+  tagTypes: ['Student', 'Faculty', 'Course', 'Class', 'Department', 'Specialization', 'Batch', 'ClassStructure', 'AdminCourse', 'AdminStats', 'PendingUsers', 'ApprovedUsers', 'RejectedUsers'],
   endpoints: () => ({}),
 });
