@@ -10,12 +10,12 @@ import com.collegeportal.modules.auth.entity.User;
 import com.collegeportal.modules.auth.repository.RoleRepository;
 import com.collegeportal.modules.auth.repository.UserRepository;
 import com.collegeportal.modules.classstructure.entity.ClassStructure;
-import com.collegeportal.modules.classstructure.repository.ClassStructureRepository;
+import com.collegeportal.modules.classstructure.entity.ClassStructureCourse;
+import com.collegeportal.modules.classstructure.repository.ClassStructureCourseRepository;
 import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.course.entity.Course;
 import com.collegeportal.modules.course.mapper.CourseMapper;
 import com.collegeportal.modules.course.repository.CourseRepository;
-import com.collegeportal.modules.department.entity.Department;
 import com.collegeportal.modules.department.repository.DepartmentRepository;
 import com.collegeportal.modules.faculty.dto.request.FacultyRequestDTO;
 import com.collegeportal.modules.faculty.dto.response.FacultyResponseDTO;
@@ -39,7 +39,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -56,7 +55,7 @@ public class FacultyServiceImpl implements FacultyService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final FacultyCourseAssignmentRepository assignmentRepository;
-    private final ClassStructureRepository classStructureRepository;
+    private final ClassStructureCourseRepository cscRepository;
     private final StudentMapper studentMapper;
     private final DepartmentRepository departmentRepository;
 
@@ -190,10 +189,14 @@ public class FacultyServiceImpl implements FacultyService {
     @Override
     @Transactional(readOnly = true)
     public List<CourseResponseDTO> getAssignedCourses(Long facultyId) {
-        getFaculty(facultyId);
+        Faculty faculty = facultyRepository.findByIdWithDept(facultyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + facultyId));
         List<Long> courseIds = assignmentRepository.findDistinctCourseIdsByFacultyId(facultyId);
         if (courseIds.isEmpty()) return List.of();
+        // Only return courses still present in this faculty's department class structures
+        Long deptId = faculty.getDepartmentEntity() != null ? faculty.getDepartmentEntity().getId() : null;
         return courseRepository.findAllById(courseIds).stream()
+                .filter(c -> deptId == null || cscRepository.existsByCourseIdAndDepartmentId(c.getId(), deptId))
                 .map(c -> courseMapper.toResponseDTO(c, 0, null))
                 .toList();
     }
@@ -234,12 +237,12 @@ public class FacultyServiceImpl implements FacultyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found: " + courseId));
         classStructureIds.forEach(csId -> {
             if (!assignmentRepository.existsByFacultyIdAndCourseIdAndClassStructureId(facultyId, courseId, csId)) {
-                ClassStructure cs = classStructureRepository.findById(csId)
+                var csc = cscRepository.findByClassStructureIdAndCourseId(csId, courseId)
                         .orElseThrow(() -> new ResourceNotFoundException("ClassStructure not found: " + csId));
                 assignmentRepository.save(FacultyCourseAssignment.builder()
                         .faculty(faculty)
                         .course(course)
-                        .classStructure(cs)
+                        .classStructure(csc.getClassStructure())
                         .build());
             }
         });

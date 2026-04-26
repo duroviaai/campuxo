@@ -1,5 +1,6 @@
 package com.collegeportal.modules.auth.controller;
 
+import com.collegeportal.modules.auth.dto.request.CompleteProfileRequestDTO;
 import com.collegeportal.modules.auth.dto.request.GoogleRegisterRequestDTO;
 import com.collegeportal.modules.auth.dto.request.LoginRequestDTO;
 import com.collegeportal.modules.auth.dto.request.RegisterRequestDTO;
@@ -13,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -53,5 +56,12 @@ public class AuthController {
     public ResponseEntity<AuthResponseDTO> googleRegister(@Valid @RequestBody GoogleRegisterRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(authService.googleRegister(request.getAccessToken(), request.toRegisterRequest()));
+    }
+
+    @PutMapping("/complete-profile")
+    public ResponseEntity<AuthResponseDTO> completeProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody CompleteProfileRequestDTO request) {
+        return ResponseEntity.ok(authService.completeProfile(userDetails.getUsername(), request));
     }
 }

@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -51,9 +52,12 @@ public class IAServiceImpl implements IAService {
             List<InternalAssessment> sRecords = byStudent.getOrDefault(s.getId(), List.of());
             Map<Integer, BigDecimal> marks    = new LinkedHashMap<>();
             Map<Integer, BigDecimal> maxMarks = new LinkedHashMap<>();
+            Map<Integer, LocalDate>  dates    = new LinkedHashMap<>();
             sRecords.forEach(ia -> {
                 marks.put(ia.getIaNumber(), ia.getMarksObtained());
                 maxMarks.put(ia.getIaNumber(), ia.getMaxMarks());
+                if (ia.getSubmittedDate() != null) dates.put(ia.getIaNumber(), ia.getSubmittedDate());
+                else if (ia.getIaDate() != null) dates.put(ia.getIaNumber(), ia.getIaDate());
             });
             return StudentIAResponseDTO.builder()
                     .studentId(s.getId())
@@ -61,6 +65,7 @@ public class IAServiceImpl implements IAService {
                     .registrationNumber(s.getUser() != null ? s.getUser().getRegistrationNumber() : null)
                     .marks(marks)
                     .maxMarks(maxMarks)
+                    .dates(dates)
                     .build();
         }).toList();
     }
@@ -91,6 +96,8 @@ public class IAServiceImpl implements IAService {
 
             ia.setMarksObtained(m.getMarksObtained());
             ia.setMaxMarks(req.getMaxMarks());
+            if (req.getIaDate() != null) ia.setIaDate(req.getIaDate());
+            if (m.getSubmittedDate() != null) ia.setSubmittedDate(m.getSubmittedDate());
             return ia;
         }).toList();
 

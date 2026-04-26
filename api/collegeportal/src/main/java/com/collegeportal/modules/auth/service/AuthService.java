@@ -1,5 +1,6 @@
 package com.collegeportal.modules.auth.service;
 
+import com.collegeportal.modules.auth.dto.request.CompleteProfileRequestDTO;
 import com.collegeportal.modules.auth.dto.request.LoginRequestDTO;
 import com.collegeportal.modules.auth.dto.request.RegisterRequestDTO;
 import com.collegeportal.modules.auth.dto.request.ForgotPasswordRequestDTO;
@@ -20,4 +21,6 @@ public interface AuthService {
     AuthResponseDTO googleAuth(GoogleAuthRequestDTO request);
 
     AuthResponseDTO googleRegister(String accessToken, RegisterRequestDTO request);
+
+    AuthResponseDTO completeProfile(String email, CompleteProfileRequestDTO request);
 }

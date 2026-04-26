@@ -33,4 +33,12 @@ public interface FacultyCourseAssignmentRepository extends JpaRepository<Faculty
     /** All distinct course IDs assigned to a faculty member. */
     @Query("SELECT DISTINCT a.course.id FROM FacultyCourseAssignment a WHERE a.faculty.id = :facultyId")
     List<Long> findDistinctCourseIdsByFacultyId(@Param("facultyId") Long facultyId);
+
+    /** All distinct course IDs assigned to ANY faculty (except the given one). */
+    @Query("SELECT DISTINCT a.course.id FROM FacultyCourseAssignment a WHERE a.faculty.id <> :excludeFacultyId")
+    List<Long> findCourseIdsAssignedToOtherFaculty(@Param("excludeFacultyId") Long excludeFacultyId);
+
+    /** Returns [courseId, facultyFullName, facultyId] tuples for the given course IDs. */
+    @Query("SELECT a.course.id, CONCAT(a.faculty.firstName, ' ', a.faculty.lastName), a.faculty.id FROM FacultyCourseAssignment a WHERE a.course.id IN :courseIds")
+    List<Object[]> findFacultyNamesByCourseIds(@Param("courseIds") List<Long> courseIds);
 }

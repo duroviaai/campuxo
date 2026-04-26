@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }) => {
 
   const googleLoginUser = async (idToken) => {
     const res = await authService.googleAuth(idToken);
+    if (res.newUser) return res;
     const userData = {
       username: res.username,
       email: res.email,
@@ -79,6 +80,21 @@ export const AuthProvider = ({ children }) => {
 
   const googleRegisterUser = (accessToken, data) => authService.googleRegister(accessToken, data);
 
+  const completeProfileUser = async (data) => {
+    const res = await authService.completeProfile(data);
+    const userData = {
+      username: res.username,
+      email: res.email,
+      roles: res.roles,
+      profileComplete: res.profileComplete ?? true,
+    };
+    setToken(res.accessToken);
+    setUser(userData);
+    setTokenState(res.accessToken);
+    setUserState(userData);
+    return res;
+  };
+
   const registerUser = (data) => authService.register(data);
 
   const refreshUser = useCallback(() => {
@@ -88,7 +104,7 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = () => user?.roles?.includes('ROLE_ADMIN');
 
   return (
-    <AuthContext.Provider value={{ user, token, loginUser, googleLoginUser, googlePrefill, googleRegisterUser, registerUser, logout, isAdmin, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loginUser, googleLoginUser, googlePrefill, googleRegisterUser, completeProfileUser, registerUser, logout, isAdmin, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

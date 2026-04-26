@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   getOverviewByClassStructure,
   markAttendanceBatch,
@@ -12,6 +13,20 @@ import {
   useGetOrCreateClassStructureMutation,
 } from '../courses/coursesAdminApi';
 import toast from 'react-hot-toast';
+import ROUTES from '../../../app/routes/routeConstants';
+
+// ─── Shared faculty link ─────────────────────────────────────────────────────
+const FacultyLink = ({ facultyId, facultyName }) => {
+  const navigate = useNavigate();
+  if (!facultyName) return null;
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); navigate(ROUTES.ADMIN_FACULTY_ASSIGN_COURSES.replace(':id', facultyId)); }}
+      className="text-xs text-indigo-500 hover:text-indigo-700 hover:underline mt-1 truncate block text-left">
+      {facultyName}
+    </button>
+  );
+};
 
 // ─── level constants ──────────────────────────────────────────────────────────
 const L = { BATCH: 0, DEPT: 1, SEMESTER: 2, COURSE: 3, TABS: 4 };
@@ -158,7 +173,7 @@ const SemesterStep = ({ batch, dept, spec, onSelect }) => {
 
 // ─── Step 3: Course list ──────────────────────────────────────────────────────
 const CourseStep = ({ classStructure, onSelect }) => {
-  const { data: courses = [], isLoading } = useGetAdminCoursesQuery(classStructure.id);
+  const { data: courses = [], isLoading } = useGetAdminCoursesQuery({ classStructureId: classStructure.id });
   if (isLoading) return <p className="text-sm text-gray-400">Loading courses…</p>;
   if (!courses.length) return <p className="text-sm text-gray-400">No courses assigned to this semester.</p>;
   return (
@@ -170,6 +185,7 @@ const CourseStep = ({ classStructure, onSelect }) => {
             className="p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 text-left transition-all">
             <p className="text-sm font-bold text-gray-800">{c.name}</p>
             <p className="text-xs text-gray-400 font-mono mt-0.5">{c.code}{c.credits ? ` · ${c.credits} cr` : ''}</p>
+            {c.facultyName && <FacultyLink facultyId={c.facultyId} facultyName={c.facultyName} />}
           </button>
         ))}
       </div>
@@ -568,6 +584,9 @@ const AttendanceTabs = ({ course, classStructure }) => {
       <div>
         <p className="text-sm font-bold text-gray-800">{course.name}</p>
         <p className="text-xs text-gray-400 font-mono">{course.code} · Semester {classStructure.semester}</p>
+        {course.facultyName && (
+          <FacultyLink facultyId={course.facultyId} facultyName={course.facultyName} />
+        )}
       </div>
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
         {TABS.map(({ key, label }) => (

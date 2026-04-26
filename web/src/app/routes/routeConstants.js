@@ -11,6 +11,7 @@ const ROUTES = {
   ADMIN_FACULTY_EDIT:    '/admin/faculty/:id/edit',
   ADMIN_FACULTY_ASSIGN_COURSES: '/admin/faculty/:id/assign-courses',
   ADMIN_COURSES:        '/admin/courses',
+  ADMIN_OVERVIEW:    '/admin/overview',
   ADMIN_ATTENDANCE:  '/admin/attendance',
   ADMIN_IA:          '/admin/ia',
   ADMIN_APPROVALS:   '/admin/approvals',

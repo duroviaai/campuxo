@@ -107,7 +107,7 @@ const CreateTab = ({ classStructure, departmentId }) => {
 const AssignTab = ({ classStructure, departmentId }) => {
   const [search, setSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const { data: assigned = [] } = useGetAdminCoursesQuery(classStructure.id);
+  const { data: assigned = [] } = useGetAdminCoursesQuery({ classStructureId: classStructure.id });
   const { data: allDeptCourses = [], isLoading } = useGetDeptCoursesQuery(
     { departmentId, classStructureId: classStructure.id },
     { skip: !departmentId }
@@ -237,7 +237,7 @@ const CourseList = ({ classStructure }) => {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('name');
 
-  const { data: courses = [], isLoading } = useGetAdminCoursesQuery(classStructure.id);
+  const { data: courses = [], isLoading } = useGetAdminCoursesQuery({ classStructureId: classStructure.id });
   const [unassign, { isLoading: unassigning }] = useUnassignCourseMutation();
 
   const filtered = useMemo(() => {

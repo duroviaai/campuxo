@@ -20,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.collegeportal.exception.custom.BadRequestException;
 import com.collegeportal.exception.custom.ResourceNotFoundException;
+import com.collegeportal.modules.auth.dto.request.CompleteProfileRequestDTO;
 import com.collegeportal.modules.auth.dto.request.ForgotPasswordRequestDTO;
 import com.collegeportal.modules.auth.dto.request.GoogleAuthRequestDTO;
 import com.collegeportal.modules.auth.dto.request.LoginRequestDTO;
@@ -31,6 +32,8 @@ import com.collegeportal.modules.auth.entity.User;
 import com.collegeportal.modules.auth.repository.RoleRepository;
 import com.collegeportal.modules.auth.repository.UserRepository;
 import com.collegeportal.modules.auth.service.AuthService;
+import com.collegeportal.modules.department.entity.Department;
+import com.collegeportal.modules.department.repository.DepartmentRepository;
 import com.collegeportal.modules.faculty.entity.Faculty;
 import com.collegeportal.modules.faculty.repository.FacultyRepository;
 import com.collegeportal.modules.student.entity.Student;
@@ -53,6 +56,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final FacultyRepository facultyRepository;
     private final StudentRepository studentRepository;
+    private final DepartmentRepository departmentRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
     private boolean isStudentProfileComplete(User user) {
@@ -95,11 +99,14 @@ public class AuthServiceImpl implements AuthService {
         // Create role-specific profile
         if (request.getRole() == RoleType.ROLE_FACULTY) {
             String[] parts = request.getFullName().trim().split(" ", 2);
+            Department deptEntity = request.getDepartment() != null
+                    ? departmentRepository.findByName(request.getDepartment()).orElse(null) : null;
             facultyRepository.save(Faculty.builder()
                     .firstName(parts[0])
                     .lastName(parts.length > 1 ? parts[1] : "")
                     .phone(request.getPhone())
                     .department(request.getDepartment())
+                    .departmentEntity(deptEntity)
                     .designation(request.getDesignation())
                     .qualification(request.getQualification())
                     .experience(request.getExperience())
@@ -259,22 +266,88 @@ public class AuthServiceImpl implements AuthService {
         String name  = (String) payload.get("name");
         if (email == null) throw new BadRequestException("Google token missing email");
 
-        // Find or create user
-        User user = userRepository.findByEmail(email).orElseGet(() -> {
-            Role studentRole = roleRepository.findByName(RoleType.ROLE_STUDENT)
-                    .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
-            User newUser = User.builder()
-                    .fullName(name != null ? name : email)
+        // Check if user exists
+        boolean isNew = userRepository.findByEmail(email).isEmpty();
+        if (isNew) {
+            return AuthResponseDTO.builder()
+                    .newUser(true)
                     .email(email)
-                    .password(passwordEncoder.encode(UUID.randomUUID().toString()))
-                    .enabled(true)
-                    .approved(true)
-                    .roles(Set.of(studentRole))
+                    .username(name)
                     .build();
-            return userRepository.save(newUser);
-        });
+        }
 
+        User user = userRepository.findByEmail(email).get();
         if (!user.isEnabled()) throw new BadRequestException("Your account is pending admin approval");
+
+        String token = jwtTokenProvider.generateTokenForEmail(email);
+        AuthResponseDTO response = buildAuthResponse(user, token);
+        response.setNewUser(false);
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public AuthResponseDTO completeProfile(String email, CompleteProfileRequestDTO req) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Set<String> roles = user.getRoles().stream()
+                .map(r -> r.getName().name()).collect(Collectors.toSet());
+
+        if (roles.contains("ROLE_STUDENT")) {
+            if (req.getPhone() == null || req.getPhone().isBlank())
+                throw new BadRequestException("Phone number is required");
+            if (req.getDepartment() == null || req.getDepartment().isBlank())
+                throw new BadRequestException("Department is required");
+            if (req.getDateOfBirth() == null)
+                throw new BadRequestException("Date of birth is required");
+            if (req.getYearOfStudy() == null)
+                throw new BadRequestException("Year of study is required");
+            if (req.getCourseStartYear() == null || req.getCourseEndYear() == null)
+                throw new BadRequestException("Course start and end year are required");
+            Student student = studentRepository.findByUser(user)
+                    .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
+            student.setPhone(req.getPhone());
+            student.setDepartment(req.getDepartment());
+            student.setDateOfBirth(req.getDateOfBirth());
+            student.setYearOfStudy(req.getYearOfStudy());
+            student.setCourseStartYear(req.getCourseStartYear());
+            student.setCourseEndYear(req.getCourseEndYear());
+            if (req.getRegistrationNumber() != null && !req.getRegistrationNumber().isBlank()) {
+                user.setRegistrationNumber(req.getRegistrationNumber());
+                userRepository.save(user);
+            }
+            studentRepository.save(student);
+        } else if (roles.contains("ROLE_FACULTY")) {
+            if (req.getPhone() == null || req.getPhone().isBlank())
+                throw new BadRequestException("Phone number is required");
+            if (req.getDepartment() == null || req.getDepartment().isBlank())
+                throw new BadRequestException("Department is required");
+            if (req.getDesignation() == null || req.getDesignation().isBlank())
+                throw new BadRequestException("Designation is required");
+            if (req.getQualification() == null || req.getQualification().isBlank())
+                throw new BadRequestException("Qualification is required");
+            if (req.getJoiningDate() == null)
+                throw new BadRequestException("Joining date is required");
+            Faculty faculty = facultyRepository.findByUser(user)
+                    .orElseThrow(() -> new ResourceNotFoundException("Faculty profile not found"));
+            faculty.setPhone(req.getPhone());
+            faculty.setDepartment(req.getDepartment());
+            if (req.getDepartment() != null) {
+                departmentRepository.findByName(req.getDepartment()).ifPresent(faculty::setDepartmentEntity);
+            }
+            faculty.setDesignation(req.getDesignation());
+            faculty.setQualification(req.getQualification());
+            faculty.setExperience(req.getExperience());
+            faculty.setJoiningDate(req.getJoiningDate());
+            if (req.getFacultyId() != null && !req.getFacultyId().isBlank()) {
+                user.setFacultyId(req.getFacultyId());
+                userRepository.save(user);
+            }
+            facultyRepository.save(faculty);
+        } else {
+            throw new BadRequestException("Profile completion not applicable for this role");
+        }
 
         String token = jwtTokenProvider.generateTokenForEmail(email);
         return buildAuthResponse(user, token);

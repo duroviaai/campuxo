@@ -42,14 +42,36 @@ public class CourseAdminController {
     private final AttendanceRepository attendanceRepository;
     private final FacultyCourseAssignmentRepository assignmentRepository;
 
-    /** List courses assigned to a class structure (semester). */
+    /** List courses assigned to a class structure (semester), excluding those already assigned to other faculty. */
     @GetMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Transactional(readOnly = true)
-    public ResponseEntity<List<CourseResponseDTO>> getByCsId(@RequestParam Long classStructureId) {
+    public ResponseEntity<List<CourseResponseDTO>> getByCsId(
+            @RequestParam Long classStructureId,
+            @RequestParam(required = false) Long excludeFacultyId) {
+        List<Long> takenByOthers = excludeFacultyId != null
+                ? assignmentRepository.findCourseIdsAssignedToOtherFaculty(excludeFacultyId)
+                : List.of();
+        List<Course> courses = cscRepository.findByClassStructureId(classStructureId).stream()
+                .map(ClassStructureCourse::getCourse)
+                .filter(c -> !takenByOthers.contains(c.getId()))
+                .toList();
+        if (courses.isEmpty()) return ResponseEntity.ok(List.of());
+        // Build courseId -> [facultyId, facultyName] map in one query
+        List<Long> courseIds = courses.stream().map(Course::getId).toList();
+        Map<Long, Object[]> facultyMap = assignmentRepository.findFacultyNamesByCourseIds(courseIds)
+                .stream().collect(java.util.stream.Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> row,
+                        (a, b) -> a));
         return ResponseEntity.ok(
-            cscRepository.findByClassStructureId(classStructureId).stream()
-                .map(csc -> courseMapper.toResponseDTO(csc.getCourse(), 0, null))
+            courses.stream()
+                .map(c -> {
+                    Object[] row = facultyMap.get(c.getId());
+                    return courseMapper.toResponseDTO(c, 0, null,
+                            row != null ? (Long) row[2] : null,
+                            row != null ? (String) row[1] : null);
+                })
                 .toList()
         );
     }
@@ -104,6 +126,14 @@ public class CourseAdminController {
     public ResponseEntity<Void> unassign(@RequestParam Long classStructureId, @RequestParam Long courseId) {
         cscRepository.findByClassStructureIdAndCourseId(classStructureId, courseId)
                 .ifPresent(cscRepository::delete);
+        // If the course is no longer in ANY class structure of this department, remove faculty assignments too
+        ClassStructure cs = classStructureRepository.findById(classStructureId).orElse(null);
+        if (cs != null) {
+            Long deptId = cs.getDepartment().getId();
+            if (!cscRepository.existsByCourseIdAndDepartmentId(courseId, deptId)) {
+                assignmentRepository.deleteByCourseId(courseId);
+            }
+        }
         return ResponseEntity.noContent().build();
     }
 

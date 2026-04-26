@@ -12,11 +12,10 @@ import java.time.LocalDate;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 @Entity
-@Table(name = "internal_assessments",
-       uniqueConstraints = @UniqueConstraint(
-           name = "uk_ia",
-           columnNames = {"student_id", "course_id", "class_structure_id", "ia_number"}))
-public class InternalAssessment extends BaseEntity {
+@Table(name = "assignments",
+       uniqueConstraints = @UniqueConstraint(name = "uk_assignment",
+               columnNames = {"student_id", "course_id", "class_structure_id"}))
+public class Assignment extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "student_id", nullable = false)
@@ -30,19 +29,17 @@ public class InternalAssessment extends BaseEntity {
     @JoinColumn(name = "class_structure_id", nullable = false)
     private ClassStructure classStructure;
 
-    @Column(name = "ia_number", nullable = false)
-    private Integer iaNumber;
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean submitted = false;
 
-    @Column(name = "marks_obtained", nullable = false, precision = 5, scale = 2)
+    @Column(name = "marks_obtained", precision = 5, scale = 2)
     private BigDecimal marksObtained;
 
     @Column(name = "max_marks", nullable = false, precision = 5, scale = 2)
     @Builder.Default
-    private BigDecimal maxMarks = BigDecimal.valueOf(50);
+    private BigDecimal maxMarks = BigDecimal.TEN;
 
-    @Column(name = "ia_date")
-    private LocalDate iaDate;
-
-    @Column(name = "submitted_date")
-    private LocalDate submittedDate;
+    @Column(name = "assignment_date")
+    private LocalDate assignmentDate;
 }

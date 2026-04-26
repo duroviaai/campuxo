@@ -58,8 +58,9 @@ export const coursesAdminApi = apiSlice.injectEndpoints({
 
     // ── Admin Courses ─────────────────────────────────────────────────────────
     getAdminCourses: b.query({
-      query: (classStructureId) => `/api/v1/admin/courses?classStructureId=${classStructureId}`,
-      providesTags: (_, __, id) => [{ type: 'AdminCourse', id }],
+      query: ({ classStructureId, excludeFacultyId }) =>
+        `/api/v1/admin/courses?classStructureId=${classStructureId}${excludeFacultyId ? `&excludeFacultyId=${excludeFacultyId}` : ''}`,
+      providesTags: (_, __, { classStructureId }) => [{ type: 'AdminCourse', id: classStructureId }],
     }),
     getDeptCourses: b.query({
       query: ({ departmentId, departmentName, classStructureId }) => {
@@ -88,6 +89,7 @@ export const coursesAdminApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (_, __, { classStructureId }) => [
         { type: 'AdminCourse', id: classStructureId },
+        'Faculty',
       ],
     }),
     unassignCourse: b.mutation({
@@ -97,6 +99,7 @@ export const coursesAdminApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (_, __, { classStructureId }) => [
         { type: 'AdminCourse', id: classStructureId },
+        'Faculty',
       ],
     }),
     deleteAdminCourse: b.mutation({
@@ -115,6 +118,13 @@ export const coursesAdminApi = apiSlice.injectEndpoints({
         if (classStructureId) p.set('classStructureId', classStructureId);
         return `/api/v1/admin/courses/check-code?${p.toString()}`;
       },
+    }),
+
+    // ── Overview: courses with assigned faculty ───────────────────────────────
+    getCoursesWithFaculty: b.query({
+      query: (classStructureId) =>
+        `/api/v1/admin/courses/overview?classStructureId=${classStructureId}`,
+      providesTags: (_, __, id) => [{ type: 'AdminCourse', id }, 'Faculty'],
     }),
   }),
 });
@@ -138,4 +148,5 @@ export const {
   useUnassignCourseMutation,
   useDeleteAdminCourseMutation,
   useCheckCourseCodeQuery,
+  useGetCoursesWithFacultyQuery,
 } = coursesAdminApi;

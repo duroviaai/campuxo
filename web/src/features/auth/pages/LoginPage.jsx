@@ -5,8 +5,6 @@ import useAuth from '../hooks/useAuth';
 import ROUTES from '../../../app/routes/routeConstants';
 
 import { FaGoogle, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaExclamationCircle, FaExclamationTriangle } from 'react-icons/fa';
-import useAuth from '../hooks/useAuth';
-import ROUTES from '../../../app/routes/routeConstants';
 
 const Field = ({ label, children }) => (
   <div className="space-y-1.5">
@@ -37,7 +35,8 @@ const LoginPage = () => {
     const roles = res.roles ?? [];
     if (roles.includes('ROLE_ADMIN')) navigate(ROUTES.ADMIN_DASHBOARD, { replace: true });
     else if (roles.includes('ROLE_FACULTY')) navigate(ROUTES.FACULTY_DASHBOARD, { replace: true });
-    else navigate(res.profileComplete === false ? ROUTES.STUDENT_COMPLETE_PROFILE : ROUTES.STUDENT_DASHBOARD, { replace: true });
+    else if (res.profileComplete === false) navigate(ROUTES.REGISTER, { replace: true });
+    else navigate(ROUTES.STUDENT_DASHBOARD, { replace: true });
   };
 
   const handleSubmit = async (e) => {
@@ -52,7 +51,15 @@ const LoginPage = () => {
   const googleLogin = useGoogleLogin({
     onSuccess: async (t) => {
       setError(null); setLoading(true);
-      try { redirectByRole(await googleLoginUser(t.access_token)); }
+      try {
+        const res = await googleLoginUser(t.access_token);
+        if (res.newUser) {
+          // Brand new Google user — go to registration with prefill
+          navigate(ROUTES.REGISTER, { state: { googleAccessToken: t.access_token, prefill: { fullName: res.username, email: res.email } } });
+          return;
+        }
+        redirectByRole(res);
+      }
       catch (err) { setError(err?.response?.data?.message || 'Google sign-in failed.'); }
       finally { setLoading(false); }
     },

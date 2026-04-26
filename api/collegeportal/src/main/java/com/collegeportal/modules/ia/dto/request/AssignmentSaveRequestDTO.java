@@ -8,19 +8,17 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Data
-public class IASaveRequestDTO {
-
+public class AssignmentSaveRequestDTO {
     @NotNull private Long classStructureId;
     @NotNull private Long courseId;
-    @Min(1) @Max(3) private int iaNumber;
     @NotNull @DecimalMin("1") private BigDecimal maxMarks;
-    private LocalDate iaDate;
-    @NotEmpty private List<StudentMarkDTO> marks;
+    private LocalDate assignmentDate;
+    @NotEmpty private List<StudentAssignmentDTO> records;
 
     @Data
-    public static class StudentMarkDTO {
-        @NotNull private Long studentId;
-        @NotNull @DecimalMin("0") private BigDecimal marksObtained;
-        private LocalDate submittedDate;
+    public static class StudentAssignmentDTO {
+        @NotNull private Long    studentId;
+        @NotNull private Boolean submitted;
+        private BigDecimal marksObtained;
     }
 }

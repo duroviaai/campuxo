@@ -17,6 +17,12 @@ public interface ClassStructureCourseRepository extends JpaRepository<ClassStruc
 
     boolean existsByClassStructureIdAndCourseId(Long classStructureId, Long courseId);
 
+    @Query("SELECT COUNT(csc) > 0 FROM ClassStructureCourse csc WHERE csc.course.id = :courseId AND csc.classStructure.department.id = :deptId")
+    boolean existsByCourseIdAndDepartmentId(@Param("courseId") Long courseId, @Param("deptId") Long deptId);
+
+    @Query("SELECT DISTINCT csc.course.id FROM ClassStructureCourse csc WHERE csc.classStructure.department.id = :deptId")
+    List<Long> findCourseIdsByDepartmentId(@Param("deptId") Long deptId);
+
     @Query("SELECT COUNT(DISTINCT csc.classStructure.id) FROM ClassStructureCourse csc WHERE csc.course.id = :courseId")
     long countUsagesByCourseId(@Param("courseId") Long courseId);
 

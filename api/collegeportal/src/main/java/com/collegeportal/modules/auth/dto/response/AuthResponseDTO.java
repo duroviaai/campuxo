@@ -22,4 +22,5 @@ public class AuthResponseDTO {
     private Set<String> roles;
     private String message;
     private Boolean profileComplete;
+    private Boolean newUser;
 }

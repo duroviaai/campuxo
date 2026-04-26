@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   useGetBatchesQuery,
@@ -8,7 +9,8 @@ import {
   useGetAdminCoursesQuery,
   useGetOrCreateClassStructureMutation,
 } from '../courses/coursesAdminApi';
-import { useGetIAMarksQuery, useSaveIAMarksMutation } from './iaApi';
+import { useGetIAMarksQuery, useSaveIAMarksMutation, useGetAssignmentsQuery, useSaveAssignmentsMutation, useGetSeminarsQuery, useSaveSeminarsMutation } from './iaApi';
+import ROUTES from '../../../app/routes/routeConstants';
 
 const L = { BATCH: 0, DEPT: 1, SEMESTER: 2, COURSE: 3, IA: 4 };
 
@@ -52,6 +54,19 @@ const Crumb = ({ items, onNav }) => (
     ))}
   </div>
 );
+
+// ─── Shared faculty link ─────────────────────────────────────────────────────
+const FacultyLink = ({ facultyId, facultyName }) => {
+  const navigate = useNavigate();
+  if (!facultyName) return null;
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); navigate(ROUTES.ADMIN_FACULTY_ASSIGN_COURSES.replace(':id', facultyId)); }}
+      className="text-xs text-indigo-500 hover:text-indigo-700 hover:underline mt-1 truncate block text-left">
+      {facultyName}
+    </button>
+  );
+};
 
 // ─── Step 0: Batch ────────────────────────────────────────────────────────────
 const BatchStep = ({ onSelect }) => {
@@ -170,7 +185,7 @@ const SemesterStep = ({ batch, dept, spec, onSelect }) => {
 
 // ─── Step 3: Course ───────────────────────────────────────────────────────────
 const CourseStep = ({ classStructure, onSelect }) => {
-  const { data: courses = [], isLoading } = useGetAdminCoursesQuery(classStructure.id);
+  const { data: courses = [], isLoading } = useGetAdminCoursesQuery({ classStructureId: classStructure.id });
   if (isLoading) return <p className="text-sm text-gray-400">Loading courses…</p>;
   if (!courses.length) return <p className="text-sm text-gray-400">No courses assigned to this semester.</p>;
   return (
@@ -182,6 +197,7 @@ const CourseStep = ({ classStructure, onSelect }) => {
             className="p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 text-left transition-all">
             <p className="text-sm font-bold text-gray-800">{c.name}</p>
             <p className="text-xs text-gray-400 font-mono mt-0.5">{c.code}{c.credits ? ` · ${c.credits} cr` : ''}</p>
+            {c.facultyName && <FacultyLink facultyId={c.facultyId} facultyName={c.facultyName} />}
           </button>
         ))}
       </div>
@@ -193,6 +209,7 @@ const CourseStep = ({ classStructure, onSelect }) => {
 const IAPanel = ({ course, classStructure }) => {
   const [activeIA, setActiveIA] = useState(1);
   const [maxMarks, setMaxMarks] = useState('20');
+  const [iaDate, setIaDate] = useState('');
   const [localMarks, setLocalMarks] = useState({});
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState('reg');
@@ -221,14 +238,18 @@ const IAPanel = ({ course, classStructure }) => {
   useEffect(() => {
     const init = {};
     let detectedMax = '20';
+    let detectedDate = '';
     rows.forEach((r) => {
       const m  = r.marks?.[activeIA];
       const mx = r.maxMarks?.[activeIA];
-      init[r.studentId] = m !== undefined ? String(m) : '';
+      const dt = r.dates?.[activeIA];
+      init[r.studentId] = { marks: m !== undefined ? String(m) : '', date: dt ?? '' };
       if (mx !== undefined) detectedMax = String(mx);
+      if (dt && !detectedDate) detectedDate = dt;
     });
     setLocalMarks(init);
     setMaxMarks(detectedMax);
+    setIaDate(detectedDate);
   }, [rows, activeIA]);
 
   const handleSave = async () => {
@@ -241,7 +262,8 @@ const IAPanel = ({ course, classStructure }) => {
       .filter((r) => activeIA !== 3 || eligibleIds.has(r.studentId))
       .map((r) => ({
         studentId: r.studentId,
-        marksObtained: parseFloat(localMarks[r.studentId] ?? 0) || 0,
+        marksObtained: parseFloat(localMarks[r.studentId]?.marks ?? 0) || 0,
+        submittedDate: localMarks[r.studentId]?.date || null,
       }));
 
     try {
@@ -250,6 +272,7 @@ const IAPanel = ({ course, classStructure }) => {
         courseId: course.id,
         iaNumber: activeIA,
         maxMarks: max,
+        iaDate: iaDate || null,
         marks: marksToSave,
       }).unwrap();
       toast.success(`IA ${activeIA} marks saved!`);
@@ -277,11 +300,6 @@ const IAPanel = ({ course, classStructure }) => {
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-sm font-bold text-gray-800">{course.name}</p>
-        <p className="text-xs text-gray-400 font-mono">{course.code} · Semester {classStructure.semester}</p>
-      </div>
-
       {/* IA tab switcher */}
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
         {[1, 2, 3].map((n) => (
@@ -333,6 +351,9 @@ const IAPanel = ({ course, classStructure }) => {
             <input type="number" min="1" value={maxMarks}
               onChange={(e) => setMaxMarks(e.target.value)}
               className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <label className="text-xs font-medium text-gray-500">IA {activeIA} Date</label>
+            <input type="date" value={iaDate} onChange={(e) => setIaDate(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             <span className="text-xs text-gray-400">{filledCount}/{rows.length} filled</span>
             {activeIA === 3 && ia3EligibleCount > 0 && (
               <span className="text-xs font-semibold text-amber-600">
@@ -354,6 +375,7 @@ const IAPanel = ({ course, classStructure }) => {
                   <th className="px-4 py-3 text-left">IA3 /20→/10</th>
                   <th className="px-4 py-3 text-left">Final /20</th>
                   <th className="px-4 py-3 text-left">Enter IA {activeIA}</th>
+                  <th className="px-4 py-3 text-left">Submitted Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -420,14 +442,23 @@ const IAPanel = ({ course, classStructure }) => {
                         {activeIA !== 3 || eligible ? (
                           <input
                             type="number" min="0" max={maxMarks}
-                            value={localMarks[r.studentId] ?? ''}
-                            onChange={(e) => setLocalMarks((p) => ({ ...p, [r.studentId]: e.target.value }))}
+                            value={localMarks[r.studentId]?.marks ?? ''}
+                            onChange={(e) => setLocalMarks((p) => ({ ...p, [r.studentId]: { ...p[r.studentId], marks: e.target.value } }))}
                             placeholder="0"
                             className="w-20 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                         ) : (
                           <span className="text-gray-300 text-xs">N/A</span>
                         )}
+                      </td>
+                      {/* Submitted Date */}
+                      <td className="px-4 py-3">
+                        {activeIA !== 3 || eligible ? (
+                          <input type="date"
+                            value={localMarks[r.studentId]?.date ?? ''}
+                            onChange={(e) => setLocalMarks((p) => ({ ...p, [r.studentId]: { ...p[r.studentId], date: e.target.value } }))}
+                            className="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        ) : <span className="text-gray-300 text-xs">N/A</span>}
                       </td>
                     </tr>
                   );
@@ -455,6 +486,272 @@ const IAPanel = ({ course, classStructure }) => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// ─── Assignment Panel ─────────────────────────────────────────────────────────
+const AssignmentPanel = ({ course, classStructure }) => {
+  const [maxMarks, setMaxMarks] = useState('10');
+  const [date, setDate] = useState('');
+  const [local, setLocal] = useState({});
+  const [search, setSearch] = useState('');
+  const { data: rows = [], isLoading, isFetching } = useGetAssignmentsQuery({ classStructureId: classStructure.id, courseId: course.id });
+  const [save, { isLoading: saving }] = useSaveAssignmentsMutation();
+
+  useEffect(() => {
+    const init = {}; let detectedMax = '10'; let detectedDate = '';
+    rows.forEach((r) => {
+      init[r.studentId] = { submitted: r.submitted ?? false, marks: r.marksObtained != null ? String(r.marksObtained) : '' };
+      if (r.maxMarks != null) detectedMax = String(r.maxMarks);
+      if (r.assignmentDate && !detectedDate) detectedDate = r.assignmentDate;
+    });
+    setLocal(init); setMaxMarks(detectedMax); setDate(detectedDate);
+  }, [rows]);
+
+  const toggle = (id) => setLocal((p) => ({ ...p, [id]: { ...p[id], submitted: !p[id]?.submitted } }));
+  const setMarks = (id, val) => setLocal((p) => ({ ...p, [id]: { ...p[id], marks: val } }));
+
+  const handleSave = async () => {
+    const max = parseFloat(maxMarks);
+    if (!max || max <= 0) { toast.error('Max marks must be > 0'); return; }
+    try {
+      await save({ classStructureId: classStructure.id, courseId: course.id, maxMarks: max,
+        assignmentDate: date || null,
+        records: rows.map((r) => ({ studentId: r.studentId, submitted: local[r.studentId]?.submitted ?? false,
+          marksObtained: local[r.studentId]?.marks ? parseFloat(local[r.studentId].marks) : null })) }).unwrap();
+      toast.success('Assignment records saved!');
+    } catch { toast.error('Failed to save.'); }
+  };
+
+  const displayed = rows.filter((r) => { const q = search.toLowerCase(); return !q || r.studentName?.toLowerCase().includes(q) || r.registrationNumber?.toLowerCase().includes(q); });
+  const submittedCount = rows.filter((r) => local[r.studentId]?.submitted).length;
+
+  if (isLoading) return <p className="text-sm text-gray-400">Loading students…</p>;
+  if (!rows.length) return <p className="text-sm text-gray-400">No students found for this class.</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-4 flex-wrap">
+        <div>
+          <label className="text-xs font-medium text-gray-500 block mb-1">Max Marks</label>
+          <input type="number" min="1" value={maxMarks} onChange={(e) => setMaxMarks(e.target.value)}
+            className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-500 block mb-1">Assignment Date</label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <p className="text-xs text-gray-500 mt-4">Submitted: <span className="text-green-600 font-semibold">{submittedCount}</span> / {rows.length}</p>
+        <input type="text" placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-52 mt-4" />
+      </div>
+      <div className="rounded-xl border border-gray-200 overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+            <tr>
+              <th className="px-4 py-3 text-left">#</th>
+              <th className="px-4 py-3 text-left">Student</th>
+              <th className="px-4 py-3 text-left">Reg No</th>
+              <th className="px-4 py-3 text-center">Submitted</th>
+              <th className="px-4 py-3 text-left">Marks / {maxMarks}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {displayed.map((r, i) => {
+              const isSubmitted = local[r.studentId]?.submitted ?? false;
+              return (
+                <tr key={r.studentId} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-gray-400">{i + 1}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900">{r.studentName}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs font-mono">{r.registrationNumber || '—'}</td>
+                  <td className="px-4 py-3 text-center">
+                    <button onClick={() => toggle(r.studentId)}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                        isSubmitted ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-50 text-red-500 hover:bg-red-100'
+                      }`}>
+                      {isSubmitted ? '✓ Submitted' : '✗ Not Submitted'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <input type="number" min="0" max={maxMarks} value={local[r.studentId]?.marks ?? ''}
+                      onChange={(e) => setMarks(r.studentId, e.target.value)} placeholder="0"
+                      disabled={!isSubmitted}
+                      className="w-20 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 disabled:bg-gray-50" />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <button onClick={handleSave} disabled={saving || isFetching}
+        className="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+        {saving ? 'Saving…' : 'Save Assignment Records'}
+      </button>
+    </div>
+  );
+};
+
+// ─── Seminar Panel ────────────────────────────────────────────────────────────
+const SeminarPanel = ({ course, classStructure }) => {
+  const [maxMarks, setMaxMarks] = useState('10');
+  const [date, setDate] = useState('');
+  const [local, setLocal] = useState({});
+  const [search, setSearch] = useState('');
+  const { data: rows = [], isLoading, isFetching } = useGetSeminarsQuery({ classStructureId: classStructure.id, courseId: course.id });
+  const [save, { isLoading: saving }] = useSaveSeminarsMutation();
+
+  useEffect(() => {
+    const init = {}; let detectedMax = '10'; let detectedDate = '';
+    rows.forEach((r) => {
+      init[r.studentId] = { done: r.done ?? false, scriptSubmitted: r.scriptSubmitted ?? false,
+        marks: r.marksObtained != null ? String(r.marksObtained) : '',
+        submittedDate: r.submittedDate ?? '' };
+      if (r.maxMarks != null) detectedMax = String(r.maxMarks);
+      if (r.seminarDate && !detectedDate) detectedDate = r.seminarDate;
+    });
+    setLocal(init); setMaxMarks(detectedMax); setDate(detectedDate);
+  }, [rows]);
+
+  const toggleField = (id, field) => setLocal((p) => ({ ...p, [id]: { ...p[id], [field]: !p[id]?.[field] } }));
+  const setMarks = (id, val) => setLocal((p) => ({ ...p, [id]: { ...p[id], marks: val } }));
+
+  const handleSave = async () => {
+    const max = parseFloat(maxMarks);
+    if (!max || max <= 0) { toast.error('Max marks must be > 0'); return; }
+    try {
+      await save({ classStructureId: classStructure.id, courseId: course.id, maxMarks: max,
+        seminarDate: date || null,
+        records: rows.map((r) => ({ studentId: r.studentId, done: local[r.studentId]?.done ?? false,
+          scriptSubmitted: local[r.studentId]?.scriptSubmitted ?? false,
+          marksObtained: local[r.studentId]?.marks ? parseFloat(local[r.studentId].marks) : null,
+          submittedDate: local[r.studentId]?.submittedDate || null })) }).unwrap();
+      toast.success('Seminar records saved!');
+    } catch { toast.error('Failed to save.'); }
+  };
+
+  const displayed = rows.filter((r) => { const q = search.toLowerCase(); return !q || r.studentName?.toLowerCase().includes(q) || r.registrationNumber?.toLowerCase().includes(q); });
+  const doneCount   = rows.filter((r) => local[r.studentId]?.done).length;
+  const scriptCount = rows.filter((r) => local[r.studentId]?.scriptSubmitted).length;
+
+  if (isLoading) return <p className="text-sm text-gray-400">Loading students…</p>;
+  if (!rows.length) return <p className="text-sm text-gray-400">No students found for this class.</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-4 flex-wrap">
+        <div>
+          <label className="text-xs font-medium text-gray-500 block mb-1">Max Marks</label>
+          <input type="number" min="1" value={maxMarks} onChange={(e) => setMaxMarks(e.target.value)}
+            className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-500 block mb-1">Seminar Date</label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div className="text-xs text-gray-500 mt-4 flex gap-4">
+          <span>Done: <span className="text-indigo-600 font-semibold">{doneCount}</span>/{rows.length}</span>
+          <span>Script: <span className="text-indigo-600 font-semibold">{scriptCount}</span>/{rows.length}</span>
+        </div>
+        <input type="text" placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-52 mt-4" />
+      </div>
+      <div className="rounded-xl border border-gray-200 overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+            <tr>
+              <th className="px-4 py-3 text-left">#</th>
+              <th className="px-4 py-3 text-left">Student</th>
+              <th className="px-4 py-3 text-left">Reg No</th>
+              <th className="px-4 py-3 text-center">Seminar Done</th>
+              <th className="px-4 py-3 text-center">Script Submitted</th>
+              <th className="px-4 py-3 text-left">Marks / {maxMarks}</th>
+              <th className="px-4 py-3 text-left">Submitted Date</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {displayed.map((r, i) => {
+              const isDone    = local[r.studentId]?.done ?? false;
+              const hasScript = local[r.studentId]?.scriptSubmitted ?? false;
+              return (
+                <tr key={r.studentId} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-gray-400">{i + 1}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900">{r.studentName}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs font-mono">{r.registrationNumber || '—'}</td>
+                  <td className="px-4 py-3 text-center">
+                    <button onClick={() => toggleField(r.studentId, 'done')}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                        isDone ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}>
+                      {isDone ? '✓ Done' : 'Pending'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button onClick={() => toggleField(r.studentId, 'scriptSubmitted')}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                        hasScript ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}>
+                      {hasScript ? '✓ Submitted' : 'Not Submitted'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <input type="number" min="0" max={maxMarks} value={local[r.studentId]?.marks ?? ''}
+                      onChange={(e) => setMarks(r.studentId, e.target.value)} placeholder="0"
+                      disabled={!isDone}
+                      className="w-20 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 disabled:bg-gray-50" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <input type="date"
+                      value={local[r.studentId]?.submittedDate ?? ''}
+                      onChange={(e) => setLocal((p) => ({ ...p, [r.studentId]: { ...p[r.studentId], submittedDate: e.target.value } }))}
+                      disabled={!isDone}
+                      className="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 disabled:bg-gray-50" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <input type="date"
+                      value={local[r.studentId]?.submittedDate ?? ''}
+                      onChange={(e) => setLocal((p) => ({ ...p, [r.studentId]: { ...p[r.studentId], submittedDate: e.target.value } }))}
+                      disabled={!isDone}
+                      className="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40 disabled:bg-gray-50" />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <button onClick={handleSave} disabled={saving || isFetching}
+        className="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+        {saving ? 'Saving…' : 'Save Seminar Records'}
+      </button>
+    </div>
+  );
+};
+
+// ─── Course Panel (IA + Assignment + Seminar tabs) ────────────────────────────
+const CoursePanel = ({ course, classStructure }) => {
+  const [tab, setTab] = useState('ia');
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-sm font-bold text-gray-800">{course.name}</p>
+        <p className="text-xs text-gray-400 font-mono">{course.code} · Semester {classStructure.semester}</p>
+        {course.facultyName && <FacultyLink facultyId={course.facultyId} facultyName={course.facultyName} />}
+      </div>
+      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+        {[['ia', 'IA Marks'], ['assignment', 'Assignment'], ['seminar', 'Seminar']].map(([key, label]) => (
+          <button key={key} onClick={() => setTab(key)}
+            className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
+              tab === key ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>{label}</button>
+        ))}
+      </div>
+      {tab === 'ia'         && <IAPanel        course={course} classStructure={classStructure} />}
+      {tab === 'assignment' && <AssignmentPanel course={course} classStructure={classStructure} />}
+      {tab === 'seminar'    && <SeminarPanel    course={course} classStructure={classStructure} />}
     </div>
   );
 };
@@ -489,23 +786,11 @@ const AdminIAPage = () => {
       <h1 className="text-2xl font-bold text-gray-900">Internal Assessment</h1>
       <Crumb items={crumbs} onNav={(i) => goTo(i)} />
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        {level === L.BATCH && (
-          <BatchStep onSelect={(b) => { setBatch(b); setLevel(L.DEPT); }} />
-        )}
-        {level === L.DEPT && batch && (
-          <DeptStep batch={batch} onSelect={(d, s) => { setDept(d); setSpec(s); setLevel(L.SEMESTER); }} />
-        )}
-        {level === L.SEMESTER && batch && dept && (
-          <SemesterStep batch={batch} dept={dept} spec={spec}
-            onSelect={(cs) => { setClassStructure(cs); setLevel(L.COURSE); }} />
-        )}
-        {level === L.COURSE && classStructure && (
-          <CourseStep classStructure={classStructure}
-            onSelect={(c) => { setCourse(c); setLevel(L.IA); }} />
-        )}
-        {level === L.IA && course && classStructure && (
-          <IAPanel course={course} classStructure={classStructure} />
-        )}
+        {level === L.BATCH && <BatchStep onSelect={(b) => { setBatch(b); setLevel(L.DEPT); }} />}
+        {level === L.DEPT && batch && <DeptStep batch={batch} onSelect={(d, s) => { setDept(d); setSpec(s); setLevel(L.SEMESTER); }} />}
+        {level === L.SEMESTER && batch && dept && <SemesterStep batch={batch} dept={dept} spec={spec} onSelect={(cs) => { setClassStructure(cs); setLevel(L.COURSE); }} />}
+        {level === L.COURSE && classStructure && <CourseStep classStructure={classStructure} onSelect={(c) => { setCourse(c); setLevel(L.IA); }} />}
+        {level === L.IA && course && classStructure && <CoursePanel course={course} classStructure={classStructure} />}
       </div>
     </div>
   );

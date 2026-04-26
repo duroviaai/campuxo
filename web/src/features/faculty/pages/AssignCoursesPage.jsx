@@ -10,6 +10,7 @@ import {
 import {
   useGetBatchesQuery,
   useGetAdminCoursesQuery,
+  useGetClassStructureQuery,
 } from '../../admin/courses/coursesAdminApi';
 import { getFullName } from '../utils/facultyHelpers';
 import Loader from '../../../shared/components/feedback/Loader';
@@ -22,10 +23,10 @@ const YEAR_GROUPS = [
 ];
 
 // ── Semester courses scoped to a class structure ──────────────────────────────
-const SemesterCourses = ({ classStructureId, assignedIds, saving, onAssign, onBack }) => {
+const SemesterCourses = ({ classStructureId, facultyId, assignedIds, saving, onAssign, onBack }) => {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState([]);
-  const { data: semCourses = [], isLoading } = useGetAdminCoursesQuery(classStructureId);
+  const { data: semCourses = [], isLoading } = useGetAdminCoursesQuery({ classStructureId, excludeFacultyId: facultyId });
 
   const available = semCourses.filter(
     (c) => !assignedIds.has(c.id) &&
@@ -175,52 +176,34 @@ const ClassStructurePicker = ({ deptId, deptName, assignedIds, saving, onAssign 
 };
 
 // ── Resolve classStructureId then load courses ────────────────────────────────
-// When user picks a semester we need the actual class_structure id for that
-// batch+dept+year+sem combination. We fetch it lazily via the existing endpoint.
-const SemesterCoursesResolver = ({ selCs, deptId, deptName, assignedIds, saving, onAssign, onBack }) => {
-  const [csId, setCsId] = useState(null);
-  const [error, setError] = useState(false);
-
-  // Fetch the class structure id once on mount
-  useState(() => {
-    if (csId || !selCs) return;
-    const params = new URLSearchParams({ batchId: selCs.batchId });
-    if (deptId) params.set('deptId', deptId);
-    fetch(`/api/v1/class-structure?${params}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-    })
-      .then((r) => r.json())
-      .then((list) => {
-        const arr = Array.isArray(list) ? list : [];
-        const match = arr.find(
-          (cs) => cs.yearOfStudy === selCs.yearOfStudy && cs.semester === selCs.semester &&
-            (!deptId || cs.departmentId === deptId)
-        );
-        if (match) setCsId(match.id);
-        else setError(true);
-      })
-      .catch(() => setError(true));
-  }, []);
-
-  if (error) return (
-    <div className="space-y-3">
-      <button onClick={onBack} className="text-xs text-indigo-600 hover:underline">← Back</button>
-      <p className="text-xs text-gray-400 text-center py-4">
-        No courses configured for this semester yet.
-      </p>
-    </div>
+const SemesterCoursesResolver = ({ selCs, deptId, facultyId, assignedIds, saving, onAssign, onBack }) => {
+  const { data: list = [], isLoading, isError } = useGetClassStructureQuery(
+    { batchId: selCs.batchId, deptId: deptId ?? undefined },
+    { skip: !selCs.batchId }
   );
 
-  if (!csId) return (
+  const match = list.find(
+    (cs) => cs.yearOfStudy === selCs.yearOfStudy && cs.semester === selCs.semester
+  );
+
+  if (isLoading) return (
     <div className="space-y-2">
       <button onClick={onBack} className="text-xs text-indigo-600 hover:underline">← Back</button>
       {[1, 2, 3].map((i) => <div key={i} className="h-10 rounded-lg bg-gray-100 animate-pulse" />)}
     </div>
   );
 
+  if (isError || !match) return (
+    <div className="space-y-3">
+      <button onClick={onBack} className="text-xs text-indigo-600 hover:underline">← Back</button>
+      <p className="text-xs text-gray-400 text-center py-4">No courses configured for this semester yet.</p>
+    </div>
+  );
+
   return (
     <SemesterCourses
-      classStructureId={csId}
+      classStructureId={match.id}
+      facultyId={facultyId}
       assignedIds={assignedIds}
       saving={saving}
       onAssign={onAssign}
@@ -230,7 +213,7 @@ const SemesterCoursesResolver = ({ selCs, deptId, deptName, assignedIds, saving,
 };
 
 // ── Smarter picker that resolves class structure id ───────────────────────────
-const AvailablePanel = ({ deptId, deptName, assignedIds, saving, onAssign }) => {
+const AvailablePanel = ({ deptId, deptName, facultyId, assignedIds, saving, onAssign }) => {
   const [selBatch, setSelBatch] = useState(null);
   const [selSem, setSelSem]     = useState(null);   // { semester, yearOfStudy, batchId }
 
@@ -250,7 +233,7 @@ const AvailablePanel = ({ deptId, deptName, assignedIds, saving, onAssign }) => 
         <SemesterCoursesResolver
           selCs={selSem}
           deptId={deptId}
-          deptName={deptName}
+          facultyId={facultyId}
           assignedIds={assignedIds}
           saving={saving}
           onAssign={onAssign}
@@ -307,7 +290,7 @@ const AvailablePanel = ({ deptId, deptName, assignedIds, saving, onAssign }) => 
 };
 
 // ── Assigned Courses Panel ────────────────────────────────────────────────────
-const AssignedPanel = ({ assigned, onRemove }) => (
+const AssignedPanel = ({ assigned, onUnassign }) => (
   <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
     <h2 className="text-sm font-bold text-gray-700">
       Assigned Courses
@@ -326,9 +309,9 @@ const AssignedPanel = ({ assigned, onRemove }) => (
               <p className="text-sm font-medium text-gray-900 truncate">{c.name}</p>
               <p className="text-xs text-gray-400 font-mono">{c.code}{c.credits ? ` · ${c.credits} cr` : ''}</p>
             </div>
-            <button onClick={() => onRemove(c.id)}
-              className="ml-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-xs font-semibold rounded border border-red-100 text-red-500 hover:bg-red-50">
-              Remove
+            <button onClick={() => onUnassign(c.id)}
+              className="ml-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-xs font-semibold rounded border border-amber-200 text-amber-600 hover:bg-amber-50">
+              Unassign
             </button>
           </div>
         ))
@@ -357,10 +340,11 @@ const AssignCoursesPage = () => {
     } catch { toast.error('Failed to assign courses.'); }
   };
 
-  const handleRemove = async (courseId) => {
-    if (!window.confirm('Remove this course from faculty?')) return;
-    try { await removeCourseFromFaculty({ facultyId: id, courseId }).unwrap(); toast.success('Course removed.'); }
-    catch (err) { toast.error(err?.data?.message || 'Failed to remove course.'); }
+  const handleUnassign = async (courseId) => {
+    try {
+      await removeCourseFromFaculty({ facultyId: id, courseId }).unwrap();
+      toast.success('Course unassigned.');
+    } catch (err) { toast.error(err?.data?.message || 'Failed to unassign course.'); }
   };
 
   if (facultyLoading || assignedLoading) return <Loader />;
@@ -399,11 +383,12 @@ const AssignCoursesPage = () => {
         <AvailablePanel
           deptId={faculty?.departmentId}
           deptName={faculty?.department}
+          facultyId={id}
           assignedIds={assignedIds}
           saving={saving}
           onAssign={handleAssign}
         />
-        <AssignedPanel assigned={assigned} onRemove={handleRemove} />
+        <AssignedPanel assigned={assigned} onUnassign={handleUnassign} />
       </div>
     </div>
   );

@@ -33,6 +33,7 @@ const StudentListPage      = lazy(() => import('../features/student/pages/Studen
 const FacultyListPage      = lazy(() => import('../features/faculty/pages/FacultyListPage'));
 const AssignCoursesPage    = lazy(() => import('../features/faculty/pages/AssignCoursesPage'));
 const AdminCoursesPage     = lazy(() => import('../features/admin/courses/CoursesPage'));
+const AdminOverviewPage    = lazy(() => import('../features/admin/courses/OverviewPage'));
 const AttendancePage       = lazy(() => import('../features/attendance/pages/AttendancePage'));
 const MarkAttendancePage   = lazy(() => import('../features/attendance/pages/MarkAttendancePage'));
 const AdminAttendancePage  = lazy(() => import('../features/admin/pages/AdminAttendancePage'));
@@ -46,7 +47,6 @@ const FacultyProfilePage    = lazy(() => import('../features/faculty/pages/Facul
 const FacultyStudentAttendancePage = lazy(() => import('../features/faculty/pages/FacultyStudentAttendancePage'));
 
 // ── Student ───────────────────────────────────────────────────────────────────
-const CompleteProfilePage   = lazy(() => import('../features/student/pages/CompleteProfilePage'));
 const StudentCoursesPage    = lazy(() => import('../features/student/pages/StudentCoursesPage'));
 const StudentAttendancePage = lazy(() => import('../features/student/pages/StudentAttendancePage'));
 const StudentProfilePage    = lazy(() => import('../features/student/pages/StudentProfilePage'));
@@ -61,6 +61,7 @@ const HodCoursesPage   = lazy(() => import('../features/hod/pages/HodCoursesPage
 const RoleRedirect = () => {
   const { user } = useAuth();
   const roles = user?.roles ?? [];
+  if (user?.profileComplete === false) return <Navigate to={ROUTES.REGISTER} replace />;
   if (roles.includes('ROLE_ADMIN'))   return <Navigate to={ROUTES.ADMIN_DASHBOARD}   replace />;
   if (roles.includes('ROLE_HOD'))     return <Navigate to={ROUTES.HOD_DASHBOARD}     replace />;
   if (roles.includes('ROLE_FACULTY')) return <Navigate to={ROUTES.FACULTY_DASHBOARD} replace />;
@@ -71,6 +72,7 @@ const RootRedirect = () => {
   const token = getToken();
   const user  = getUser();
   if (!token) return <Navigate to={ROUTES.LANDING} replace />;
+  if (user?.profileComplete === false) return <Navigate to={ROUTES.REGISTER} replace />;
   const roles = user?.roles ?? [];
   if (roles.includes('ROLE_ADMIN'))   return <Navigate to={ROUTES.ADMIN_DASHBOARD}   replace />;
   if (roles.includes('ROLE_HOD'))     return <Navigate to={ROUTES.HOD_DASHBOARD}     replace />;
@@ -98,9 +100,9 @@ const App = () => (
             </Route>
             <Route element={<GuestGuard />}>
               <Route element={<PublicLayout />}>
-                <Route path={ROUTES.LOGIN}    element={<LoginPage />} />
-                <Route path={ROUTES.REGISTER} element={<MultiStepRegisterPage />} />
+                <Route path={ROUTES.LOGIN} element={<LoginPage />} />
               </Route>
+              <Route path={ROUTES.REGISTER} element={<MultiStepRegisterPage />} />
             </Route>
 
             {/* All authenticated routes share DashboardLayout */}
@@ -116,6 +118,7 @@ const App = () => (
                 <Route path={ROUTES.ADMIN_FACULTY}         element={<FacultyListPage />} />
                 <Route path={ROUTES.ADMIN_FACULTY_ASSIGN_COURSES} element={<AssignCoursesPage />} />
                 <Route path={ROUTES.ADMIN_COURSES}         element={<AdminCoursesPage />} />
+                <Route path={ROUTES.ADMIN_OVERVIEW}        element={<AdminOverviewPage />} />
                 <Route path={ROUTES.ADMIN_ATTENDANCE}      element={<AdminAttendancePage />} />
                 <Route path={ROUTES.ADMIN_MARK_ATTENDANCE} element={<MarkAttendancePage />} />
                 <Route path={ROUTES.ADMIN_IA}              element={<AdminIAPage />} />
@@ -141,7 +144,6 @@ const App = () => (
 
               {/* ── STUDENT ── */}
               <Route element={<StudentGuard />}>
-                <Route path={ROUTES.STUDENT_COMPLETE_PROFILE} element={<CompleteProfilePage />} />
                 <Route element={<ProfileCompletionGuard />}>
                   <Route path={ROUTES.STUDENT_DASHBOARD}  element={<StudentDashboardPage />} />
                   <Route path={ROUTES.STUDENT_COURSES}    element={<StudentCoursesPage />} />

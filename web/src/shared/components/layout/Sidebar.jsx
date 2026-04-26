@@ -5,6 +5,7 @@ import SidebarItem from './SidebarItem';
 import { useGetStatsQuery } from '../../../features/admin/state/adminApi';
 
 const ICONS = {
+  overview:   'M4 6h16M4 10h16M4 14h16M4 18h16',
   dashboard:  'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6',
   students:   'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197',
   faculty:    'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0',
@@ -50,6 +51,7 @@ const Sidebar = () => {
     { to: ROUTES.ADMIN_STUDENTS,   label: 'Students',   icon: ICONS.students },
     { to: ROUTES.ADMIN_FACULTY,    label: 'Faculty',    icon: ICONS.faculty },
     { to: ROUTES.ADMIN_COURSES,    label: 'Courses',    icon: ICONS.courses },
+    { to: ROUTES.ADMIN_OVERVIEW,   label: 'Overview',   icon: ICONS.overview },
     { to: ROUTES.ADMIN_ATTENDANCE, label: 'Attendance', icon: ICONS.attendance },
     { to: ROUTES.ADMIN_IA,         label: 'IA Marks',   icon: ICONS.ia },
     { to: ROUTES.ADMIN_APPROVALS,  label: 'Approvals',  icon: ICONS.approvals, badge: pendingCount },

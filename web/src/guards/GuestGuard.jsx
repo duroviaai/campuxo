@@ -7,11 +7,14 @@ const GuestGuard = () => {
 
   if (!token) return <Outlet />;
 
+  // Authenticated users with incomplete profile must complete it at /register
+  if (user?.profileComplete === false) return <Outlet />;
+
   const roles = user?.roles ?? [];
 
   if (roles.includes('ROLE_ADMIN'))   return <Navigate to={ROUTES.ADMIN_DASHBOARD}   replace />;
   if (roles.includes('ROLE_FACULTY')) return <Navigate to={ROUTES.FACULTY_DASHBOARD} replace />;
-  return <Navigate to={user?.profileComplete === false ? ROUTES.STUDENT_COMPLETE_PROFILE : ROUTES.STUDENT_DASHBOARD} replace />;
+  return <Navigate to={ROUTES.STUDENT_DASHBOARD} replace />;
 };
 
 export default GuestGuard;
