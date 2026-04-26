@@ -26,4 +26,6 @@ public class StudentResponseDTO {
     private String classBatchName;
     private Long classBatchId;
     private String classBatchDisplayName;
+    private Integer classBatchStartYear;
+    private Integer classBatchEndYear;
 }

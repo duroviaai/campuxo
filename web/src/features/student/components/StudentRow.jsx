@@ -12,15 +12,18 @@ const StudentRow = memo(({ student, onEdit, onDelete, onView, zebra }) => (
         : '—'}
     </td>
     <td className="px-4 py-3 text-gray-600 text-xs">
-      {student.classBatchDisplayName || student.classBatchName
-        ? <span className="flex items-center gap-1.5">
-            {student.classBatchDisplayName || student.classBatchName}
-            {student.scheme && (
-              <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                student.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
-              }`}>{student.scheme}</span>
-            )}
-          </span>
+      {student.yearOfStudy ? `Year ${student.yearOfStudy}` : '—'}
+    </td>
+    <td className="px-4 py-3 text-gray-600 text-xs font-mono">
+      {student.classBatchStartYear && student.classBatchEndYear
+        ? `${student.classBatchStartYear}–${student.classBatchEndYear}`
+        : '—'}
+    </td>
+    <td className="px-4 py-3 text-xs">
+      {student.scheme
+        ? <span className={`px-2 py-0.5 rounded-full font-bold ${
+            student.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+          }`}>{student.scheme}</span>
         : '—'}
     </td>
     <td className="px-4 py-3 flex gap-2">

@@ -20,7 +20,6 @@ public class DepartmentController {
     private final DepartmentRepository departmentRepository;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FACULTY', 'ROLE_STUDENT')")
     public ResponseEntity<List<Map<String, Object>>> getAll() {
         return ResponseEntity.ok(
             departmentRepository.findAll().stream()

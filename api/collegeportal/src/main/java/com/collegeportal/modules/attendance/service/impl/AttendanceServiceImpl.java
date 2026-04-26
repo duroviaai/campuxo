@@ -16,6 +16,8 @@ import com.collegeportal.modules.attendance.service.AttendanceService;
 import com.collegeportal.modules.auth.entity.User;
 import com.collegeportal.modules.classbatch.entity.ClassBatch;
 import com.collegeportal.modules.classbatch.repository.ClassBatchRepository;
+import com.collegeportal.modules.classstructure.entity.ClassStructure;
+import com.collegeportal.modules.classstructure.repository.ClassStructureRepository;
 import com.collegeportal.modules.course.repository.CourseRepository;
 import com.collegeportal.modules.student.entity.Student;
 import com.collegeportal.modules.student.repository.StudentRepository;
@@ -38,6 +40,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final StudentRepository studentRepository;
     private final CourseRepository courseRepository;
     private final ClassBatchRepository classBatchRepository;
+    private final ClassStructureRepository classStructureRepository;
     private final AttendanceMapper attendanceMapper;
     private final SecurityUtils securityUtils;
 
@@ -74,34 +77,47 @@ public class AttendanceServiceImpl implements AttendanceService {
     public List<AttendanceResponseDTO> markAttendanceBatch(List<AttendanceBatchRequestDTO> requests) {
         if (requests.isEmpty()) return List.of();
 
-        // Bulk-load all referenced entities to avoid N+1
         Long courseId = requests.get(0).getCourseId();
-        Long classId = requests.get(0).getClassId();
         LocalDate date = requests.get(0).getDate();
 
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found: " + courseId));
-        ClassBatch classBatch = classBatchRepository.findById(classId)
-                .orElseThrow(() -> new ResourceNotFoundException("Class not found: " + classId));
 
         List<Long> studentIds = requests.stream().map(AttendanceBatchRequestDTO::getStudentId).toList();
         Map<Long, Student> studentMap = studentRepository.findAllById(studentIds)
                 .stream().collect(java.util.stream.Collectors.toMap(Student::getId, s -> s));
 
-        // Load existing attendance records for this session in one query
+        // Resolve classId: use provided value or fall back to student's classBatch
+        Long classId = requests.get(0).getClassId();
+        ClassBatch classBatch;
+        if (classId != null) {
+            classBatch = classBatchRepository.findById(classId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Class not found: " + classId));
+        } else {
+            // derive from first student's classBatch
+            Student first = studentMap.get(requests.get(0).getStudentId());
+            if (first == null || first.getClassBatch() == null)
+                throw new BadRequestException("Cannot determine class for attendance — student has no class assigned");
+            classBatch = first.getClassBatch();
+        }
+
+        final ClassBatch resolvedClass = classBatch;
+
         Map<Long, Attendance> existingByStudentId = attendanceRepository
-                .findByCourseIdAndClassBatchIdAndDate(courseId, classId, date)
+                .findByCourseIdAndClassBatchIdAndDate(courseId, resolvedClass.getId(), date)
                 .stream().collect(java.util.stream.Collectors.toMap(a -> a.getStudent().getId(), a -> a));
 
         List<Attendance> toSave = requests.stream().map(req -> {
             Student student = studentMap.get(req.getStudentId());
             if (student == null) throw new ResourceNotFoundException("Student not found: " + req.getStudentId());
-
+            // per-student class resolution
+            ClassBatch studentClass = req.getClassId() != null ? resolvedClass
+                    : (student.getClassBatch() != null ? student.getClassBatch() : resolvedClass);
             Attendance attendance = existingByStudentId.getOrDefault(req.getStudentId(),
-                    Attendance.builder().student(student).course(course).classBatch(classBatch).build());
+                    Attendance.builder().student(student).course(course).classBatch(studentClass).build());
             attendance.setDate(req.getDate());
             attendance.setStatus(req.getStatus());
-            attendance.setClassBatch(classBatch);
+            attendance.setClassBatch(studentClass);
             return attendance;
         }).toList();
 
@@ -197,6 +213,79 @@ public class AttendanceServiceImpl implements AttendanceService {
                     .absentDates(absentDates)
                     .build();
         }).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentAttendanceOverviewDTO> getOverviewByClassStructure(Long classStructureId, Long courseId) {
+        ClassStructure cs = classStructureRepository.findById(classStructureId)
+                .orElseThrow(() -> new ResourceNotFoundException("ClassStructure not found: " + classStructureId));
+
+        // Find students whose classBatch matches this structure's department + yearOfStudy
+        String deptName = cs.getDepartment().getName();
+        Integer yearOfStudy = cs.getYearOfStudy();
+
+        List<Student> students = studentRepository.findByClassBatchId(0L); // init empty
+        // Get all classBatches matching dept name and yearOfStudy
+        List<ClassBatch> matchingBatches = classBatchRepository.findByName(deptName).stream()
+                .filter(b -> yearOfStudy.equals(b.getYearOfStudy()))
+                .toList();
+
+        if (matchingBatches.isEmpty()) return List.of();
+
+        List<Long> batchIds = matchingBatches.stream().map(ClassBatch::getId).toList();
+        students = batchIds.stream()
+                .flatMap(bid -> studentRepository.findByClassBatchId(bid).stream())
+                .distinct()
+                .toList();
+
+        if (students.isEmpty()) return List.of();
+
+        List<Long> studentIds = students.stream().map(Student::getId).toList();
+        List<Attendance> allRecords = attendanceRepository.findByStudentIdInAndCourseId(studentIds, courseId);
+        Map<Long, List<Attendance>> byStudent = allRecords.stream()
+                .collect(java.util.stream.Collectors.groupingBy(a -> a.getStudent().getId()));
+
+        return students.stream().map(s -> {
+            List<Attendance> records = byStudent.getOrDefault(s.getId(), List.of());
+            List<LocalDate> presentDates = records.stream()
+                    .filter(a -> a.getStatus() == AttendanceStatus.PRESENT)
+                    .map(Attendance::getDate).sorted().toList();
+            List<LocalDate> absentDates = records.stream()
+                    .filter(a -> a.getStatus() == AttendanceStatus.ABSENT)
+                    .map(Attendance::getDate).sorted().toList();
+            int total    = records.size();
+            int attended = presentDates.size();
+            double pct   = total == 0 ? 0.0 : Math.round((attended * 100.0 / total) * 10.0) / 10.0;
+            return StudentAttendanceOverviewDTO.builder()
+                    .studentId(s.getId())
+                    .studentName(s.getFirstName() + " " + (s.getLastName() != null ? s.getLastName() : ""))
+                    .registrationNumber(s.getUser() != null ? s.getUser().getRegistrationNumber() : null)
+                    .email(s.getUser() != null ? s.getUser().getEmail() : null)
+                    .totalClasses(total)
+                    .attendedClasses(attended)
+                    .attendancePercentage(pct)
+                    .presentDates(presentDates)
+                    .absentDates(absentDates)
+                    .build();
+        }).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceResponseDTO> getAttendanceByCourseAndClassStructure(Long courseId, Long classStructureId, LocalDate date) {
+        ClassStructure cs = classStructureRepository.findById(classStructureId)
+                .orElseThrow(() -> new ResourceNotFoundException("ClassStructure not found: " + classStructureId));
+        String deptName   = cs.getDepartment().getName();
+        Integer yearOfStudy = cs.getYearOfStudy();
+        List<Long> batchIds = classBatchRepository.findByName(deptName).stream()
+                .filter(b -> yearOfStudy.equals(b.getYearOfStudy()))
+                .map(ClassBatch::getId).toList();
+        if (batchIds.isEmpty()) return List.of();
+        return batchIds.stream()
+                .flatMap(bid -> attendanceRepository.findByCourseIdAndClassBatchIdAndDate(courseId, bid, date).stream())
+                .map(attendanceMapper::toResponseDTO)
+                .toList();
     }
 
     private List<AttendanceSummaryDTO> buildSummary(Student student) {

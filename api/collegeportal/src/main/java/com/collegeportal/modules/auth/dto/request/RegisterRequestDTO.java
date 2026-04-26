@@ -27,12 +27,22 @@ public class RegisterRequestDTO {
     @NotNull
     private RoleType role;
 
-    // For students
+    // Student fields
     private String registrationNumber;
+    private String phone;
+    private java.time.LocalDate dateOfBirth;
+    private String department;
+    private Integer yearOfStudy;
+    private Integer courseStartYear;
+    private Integer courseEndYear;
 
-    // For faculty
+    // Faculty fields
     private String facultyId;
-    
+    private String designation;
+    private String qualification;
+    private Integer experience;
+    private java.time.LocalDate joiningDate;
+
     @JsonSetter("role")
     public void setRole(String roleString) {
         if (roleString != null) {

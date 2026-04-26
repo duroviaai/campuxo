@@ -32,6 +32,7 @@ public class ClassBatchServiceImpl implements ClassBatchService {
     private final StudentMapper studentMapper;
     private final CourseMapper courseMapper;
     private final com.collegeportal.modules.department.repository.DepartmentRepository departmentRepository;
+    private final com.collegeportal.modules.classstructure.repository.ClassStructureRepository classStructureRepository;
 
     @Override
     @Cacheable("classes")
@@ -177,6 +178,38 @@ public class ClassBatchServiceImpl implements ClassBatchService {
                 .map(com.collegeportal.modules.department.entity.Department::getName).toList());
         } catch (Exception ignored) {}
         return new java.util.ArrayList<>(depts);
+    }
+
+    @Override
+    @Transactional
+    public ClassBatchResponseDTO resolveByClassStructure(Long classStructureId) {
+        com.collegeportal.modules.classstructure.entity.ClassStructure cs =
+            classStructureRepository.findById(classStructureId)
+                .orElseThrow(() -> new ResourceNotFoundException("ClassStructure not found: " + classStructureId));
+        String deptName   = cs.getDepartment().getName();
+        Integer year      = cs.getYearOfStudy();
+        String scheme     = cs.getBatch().getScheme();
+        Integer startYear = cs.getBatch().getStartYear();
+        Integer endYear   = cs.getBatch().getEndYear();
+        // find existing matching ClassBatch
+        ClassBatch match = classBatchRepository.findByName(deptName).stream()
+            .filter(b -> year.equals(b.getYearOfStudy())
+                      && scheme.equals(b.getScheme())
+                      && startYear.equals(b.getStartYear())
+                      && endYear.equals(b.getEndYear()))
+            .findFirst()
+            .orElseGet(() -> classBatchRepository.save(ClassBatch.builder()
+                .name(deptName).startYear(startYear).endYear(endYear)
+                .scheme(scheme).yearOfStudy(year).year(startYear).build()));
+        return toResponseDTO(match);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassBatchResponseDTO> getByDepartment(String department) {
+        return classBatchRepository.findByName(department).stream()
+                .map(this::toResponseDTO)
+                .toList();
     }
 
     private ClassBatchResponseDTO toResponseDTO(ClassBatch c) {

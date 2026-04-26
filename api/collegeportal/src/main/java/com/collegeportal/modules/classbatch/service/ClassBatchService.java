@@ -31,4 +31,8 @@ public interface ClassBatchService {
     void removeCourseFromClass(Long classId, Long courseId);
 
     List<String> getAllDepartments();
+
+    ClassBatchResponseDTO resolveByClassStructure(Long classStructureId);
+
+    List<ClassBatchResponseDTO> getByDepartment(String department);
 }

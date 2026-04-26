@@ -6,6 +6,7 @@ import com.collegeportal.modules.classstructure.dto.response.ClassStructureRespo
 import java.util.List;
 
 public interface ClassStructureService {
+    List<ClassStructureResponseDTO> getAll();
     List<ClassStructureResponseDTO> getByBatchDeptSpec(Long batchId, Long deptId, Long specId);
     ClassStructureResponseDTO getOrCreate(ClassStructureRequestDTO request);
 }

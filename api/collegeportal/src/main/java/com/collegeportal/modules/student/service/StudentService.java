@@ -18,6 +18,8 @@ public interface StudentService {
 
     StudentResponseDTO createStudent(StudentRequestDTO request);
 
+    StudentResponseDTO adminCreateStudent(StudentRequestDTO request);
+
     PageResponseDTO<StudentResponseDTO> getAllStudents(Pageable pageable, String search, String department, Long classBatchId);
 
     StudentResponseDTO getMyProfile();

@@ -23,4 +23,8 @@ public interface ClassStructureCourseRepository extends JpaRepository<ClassStruc
     @Modifying
     @Query("DELETE FROM ClassStructureCourse csc WHERE csc.course.id = :courseId")
     void deleteByCourseId(@Param("courseId") Long courseId);
+
+    @Modifying
+    @Query("DELETE FROM ClassStructureCourse csc WHERE csc.classStructure.id IN :ids")
+    void deleteByClassStructureIdIn(@Param("ids") List<Long> ids);
 }

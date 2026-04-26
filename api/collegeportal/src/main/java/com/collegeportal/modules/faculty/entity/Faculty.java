@@ -7,6 +7,7 @@ import com.collegeportal.shared.enums.FacultyRole;
 import com.collegeportal.shared.enums.FacultyStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -22,10 +23,6 @@ public class Faculty extends BaseEntity {
 
     private String lastName;
 
-    /**
-     * Kept as a plain string for backward-compat with existing data that stores
-     * department as a name (e.g. "BCA").  New code should prefer the department FK.
-     */
     private String department;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -36,13 +33,24 @@ public class Faculty extends BaseEntity {
 
     private String designation;
 
+    private String qualification;
+
+    /** Years of experience */
+    private Integer experience;
+
+    /** Comma-separated subject names the faculty handles */
+    @Column(length = 1000)
+    private String subjects;
+
+    private LocalDate joiningDate;
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 10, columnDefinition = "varchar(10) default 'faculty'")
     @Builder.Default
     private FacultyRole role = FacultyRole.faculty;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 10, columnDefinition = "varchar(10) default 'active'")
     @Builder.Default
     private FacultyStatus status = FacultyStatus.active;
 

@@ -32,4 +32,6 @@ public class StudentRequestDTO {
     private String scheme; // NEP or SEP
 
     private Long classBatchId;
+
+    private Long classStructureId; // alternative to classBatchId — resolved server-side
 }

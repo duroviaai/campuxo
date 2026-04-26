@@ -25,6 +25,10 @@ export const coursesAdminApi = apiSlice.injectEndpoints({
       query: (data) => ({ url: '/api/v1/departments', method: 'POST', body: data }),
       invalidatesTags: ['Department'],
     }),
+    deleteDepartment: b.mutation({
+      query: (id) => ({ url: `/api/v1/departments/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Department'],
+    }),
 
     // ── Specializations ───────────────────────────────────────────────────────
     getSpecializationsByDept: b.query({
@@ -58,8 +62,16 @@ export const coursesAdminApi = apiSlice.injectEndpoints({
       providesTags: (_, __, id) => [{ type: 'AdminCourse', id }],
     }),
     getDeptCourses: b.query({
-      query: (departmentId) => `/api/v1/admin/courses/by-dept?departmentId=${departmentId}`,
-      providesTags: (_, __, id) => [{ type: 'AdminCourse', id: `dept-${id}` }],
+      query: ({ departmentId, departmentName, classStructureId }) => {
+        const p = new URLSearchParams();
+        if (departmentId) p.set('departmentId', departmentId);
+        if (departmentName) p.set('departmentName', departmentName);
+        if (classStructureId) p.set('classStructureId', classStructureId);
+        return `/api/v1/admin/courses/by-dept?${p.toString()}`;
+      },
+      providesTags: (_, __, { departmentId, classStructureId }) => [
+        { type: 'AdminCourse', id: `dept-${departmentId}-${classStructureId ?? ''}` },
+      ],
     }),
     createAdminCourse: b.mutation({
       query: (data) => ({ url: '/api/v1/admin/courses', method: 'POST', body: data }),
@@ -92,11 +104,17 @@ export const coursesAdminApi = apiSlice.injectEndpoints({
         url: `/api/v1/admin/courses/${id}?confirmed=${confirmed}`,
         method: 'DELETE',
       }),
+      // 204 = deleted, 409 = needs confirmation — both handled in the component
+      transformErrorResponse: (response) => response,
       invalidatesTags: ['AdminCourse', 'Batch'],
     }),
     checkCourseCode: b.query({
-      query: ({ code, departmentId }) =>
-        `/api/v1/admin/courses/check-code?code=${encodeURIComponent(code)}${departmentId ? `&departmentId=${departmentId}` : ''}`,
+      query: ({ code, departmentId, classStructureId }) => {
+        const p = new URLSearchParams({ code });
+        if (departmentId) p.set('departmentId', departmentId);
+        if (classStructureId) p.set('classStructureId', classStructureId);
+        return `/api/v1/admin/courses/check-code?${p.toString()}`;
+      },
     }),
   }),
 });
@@ -107,6 +125,7 @@ export const {
   useDeleteBatchMutation,
   useGetDepartmentsQuery,
   useCreateDepartmentMutation,
+  useDeleteDepartmentMutation,
   useGetSpecializationsByDeptQuery,
   useCreateSpecializationMutation,
   useDeleteSpecializationMutation,

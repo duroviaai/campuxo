@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useGetFacultyQuery } from '../state/facultyApi';
 
-const useFaculty = ({ search = '', department = '' } = {}) => {
+const useFaculty = ({ search = '', department = '', status = '' } = {}) => {
   const [page, setPage] = useState(0);
 
   const params = { page, size: 10, sort: 'id' };
   if (search)     params.search     = search;
   if (department) params.department = department;
+  if (status)     params.status     = status;
 
   const { data, isLoading: loading, error, refetch } = useGetFacultyQuery(params);
 

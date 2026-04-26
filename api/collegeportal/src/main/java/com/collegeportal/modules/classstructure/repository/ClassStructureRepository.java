@@ -10,6 +10,8 @@ import java.util.Optional;
 
 public interface ClassStructureRepository extends JpaRepository<ClassStructure, Long> {
 
+    boolean existsByBatchId(Long batchId);
+
     @Query("""
         SELECT cs FROM ClassStructure cs
         WHERE cs.batch.id = :batchId

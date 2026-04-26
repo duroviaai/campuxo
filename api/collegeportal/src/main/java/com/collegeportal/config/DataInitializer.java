@@ -86,6 +86,7 @@ public class DataInitializer implements ApplicationRunner {
         b.setStartYear(startYear);
         b.setEndYear(startYear + 3);
         b.setScheme("NEP");
+        b.setYear(startYear);
         return b;
     }
 }

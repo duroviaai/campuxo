@@ -68,10 +68,35 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     boolean existsByCodeAndDepartmentId(String code, Long departmentId);
 
+    boolean existsByCodeAndDepartmentIdAndScheme(String code, Long departmentId, String scheme);
+
     java.util.Optional<Course> findByCodeAndDepartmentId(String code, Long departmentId);
+
+    java.util.Optional<Course> findByCodeAndDepartmentIdAndScheme(String code, Long departmentId, String scheme);
 
     @Query("SELECT c FROM Course c WHERE c.department.id = :deptId ORDER BY c.name")
     java.util.List<Course> findByDepartmentId(@Param("deptId") Long deptId);
+
+    @Query(value = "SELECT * FROM courses WHERE " +
+           "(department_id = :deptId) OR " +
+           "(department_id IS NULL AND program_type = :programType) " +
+           "ORDER BY name", nativeQuery = true)
+    java.util.List<Course> findByDepartmentIdOrProgramType(
+            @Param("deptId") Long deptId,
+            @Param("programType") String programType);
+
+    @Query(value = "SELECT * FROM courses WHERE " +
+           "((department_id = :deptId) OR (department_id IS NULL AND program_type = :programType)) " +
+           "AND (:scheme IS NULL OR scheme = :scheme) " +
+           "AND (:excludeClassStructureId IS NULL OR id NOT IN (" +
+           "  SELECT course_id FROM class_structure_courses WHERE class_structure_id != :excludeClassStructureId" +
+           ")) " +
+           "ORDER BY name", nativeQuery = true)
+    java.util.List<Course> findByDepartmentIdOrProgramTypeAndScheme(
+            @Param("deptId") Long deptId,
+            @Param("programType") String programType,
+            @Param("scheme") String scheme,
+            @Param("excludeClassStructureId") Long excludeClassStructureId);
 
     /** Count courses assigned to a faculty via the assignment table. */
     @Query("SELECT COUNT(DISTINCT a.course.id) FROM com.collegeportal.modules.facultyassignment.entity.FacultyCourseAssignment a WHERE a.faculty.id = :facultyId")

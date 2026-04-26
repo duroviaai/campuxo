@@ -15,6 +15,8 @@ import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.course.entity.Course;
 import com.collegeportal.modules.course.mapper.CourseMapper;
 import com.collegeportal.modules.course.repository.CourseRepository;
+import com.collegeportal.modules.department.entity.Department;
+import com.collegeportal.modules.department.repository.DepartmentRepository;
 import com.collegeportal.modules.faculty.dto.request.FacultyRequestDTO;
 import com.collegeportal.modules.faculty.dto.response.FacultyResponseDTO;
 import com.collegeportal.modules.faculty.entity.Faculty;
@@ -56,6 +58,7 @@ public class FacultyServiceImpl implements FacultyService {
     private final FacultyCourseAssignmentRepository assignmentRepository;
     private final ClassStructureRepository classStructureRepository;
     private final StudentMapper studentMapper;
+    private final DepartmentRepository departmentRepository;
 
     // ── Admin: CRUD ───────────────────────────────────────────────────────────
 
@@ -74,12 +77,14 @@ public class FacultyServiceImpl implements FacultyService {
         return getFilteredFaculty(department, search, null, pageable);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public PageResponseDTO<FacultyResponseDTO> getFilteredFaculty(String department, String search,
                                                                    String status, Pageable pageable) {
         String d = department != null ? department.trim() : "";
         String s = search     != null ? search.trim()     : "";
-        String st = status    != null ? status.trim()     : "";
+        FacultyStatus st = (status != null && !status.isBlank())
+                ? FacultyStatus.valueOf(status.trim().toLowerCase()) : null;
         return PageResponseDTO.from(
                 facultyRepository.findWithFilters(d, s, st, pageable)
                         .map(f -> facultyMapper.toResponseDTO(f,
@@ -90,8 +95,10 @@ public class FacultyServiceImpl implements FacultyService {
     @Override
     @Transactional(readOnly = true)
     public FacultyResponseDTO getFacultyById(Long id) {
-        Faculty f = getFaculty(id);
-        return facultyMapper.toResponseDTO(f, (int) courseRepository.countAssignedCoursesByFacultyId(id));
+        Faculty f = facultyRepository.findByIdWithDept(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + id));
+        var assignments = assignmentRepository.findByFacultyId(id);
+        return facultyMapper.toResponseDTO(f, (int) courseRepository.countAssignedCoursesByFacultyId(id), assignments);
     }
 
     @Override
@@ -116,7 +123,7 @@ public class FacultyServiceImpl implements FacultyService {
                 .password(passwordEncoder.encode("changeme"))
                 .enabled(true)
                 .approved(true)
-                .roles(Set.of(facultyRole))
+                .roles(new java.util.HashSet<>(java.util.Set.of(facultyRole)))
                 .build();
         user = userRepository.save(user);
 
@@ -124,8 +131,14 @@ public class FacultyServiceImpl implements FacultyService {
                 .firstName(parts[0])
                 .lastName(parts.length > 1 ? parts[1] : "")
                 .department(request.getDepartment())
+                .departmentEntity(request.getDepartmentId() != null
+                        ? departmentRepository.findById(request.getDepartmentId()).orElse(null) : null)
                 .phone(request.getPhone())
                 .designation(request.getDesignation())
+                .qualification(request.getQualification())
+                .experience(request.getExperience())
+                .subjects(request.getSubjects())
+                .joiningDate(request.getJoiningDate())
                 .user(user)
                 .build();
         return facultyMapper.toResponseDTO(facultyRepository.save(faculty), 0);
@@ -137,10 +150,17 @@ public class FacultyServiceImpl implements FacultyService {
         Faculty faculty = getFaculty(id);
         if (request.getFirstName()   != null) faculty.setFirstName(request.getFirstName());
         if (request.getLastName()    != null) faculty.setLastName(request.getLastName());
-        if (request.getDepartment()  != null) faculty.setDepartment(request.getDepartment());
-        if (request.getPhone()       != null) faculty.setPhone(request.getPhone());
-        if (request.getDesignation() != null) faculty.setDesignation(request.getDesignation());
-        if (request.getStatus()      != null) {
+        if (request.getDepartment()   != null) faculty.setDepartment(request.getDepartment());
+        if (request.getDepartmentId() != null) {
+            faculty.setDepartmentEntity(departmentRepository.findById(request.getDepartmentId()).orElse(null));
+        }
+        if (request.getPhone()         != null) faculty.setPhone(request.getPhone());
+        if (request.getDesignation()   != null) faculty.setDesignation(request.getDesignation());
+        if (request.getQualification() != null) faculty.setQualification(request.getQualification());
+        if (request.getExperience()    != null) faculty.setExperience(request.getExperience());
+        if (request.getSubjects()      != null) faculty.setSubjects(request.getSubjects());
+        if (request.getJoiningDate()   != null) faculty.setJoiningDate(request.getJoiningDate());
+        if (request.getStatus()        != null) {
             faculty.setStatus(FacultyStatus.valueOf(request.getStatus()));
         }
         if (request.getName() != null && !request.getName().isBlank()) {
@@ -170,11 +190,11 @@ public class FacultyServiceImpl implements FacultyService {
     @Override
     @Transactional(readOnly = true)
     public List<CourseResponseDTO> getAssignedCourses(Long facultyId) {
-        getFaculty(facultyId); // existence check
+        getFaculty(facultyId);
         List<Long> courseIds = assignmentRepository.findDistinctCourseIdsByFacultyId(facultyId);
+        if (courseIds.isEmpty()) return List.of();
         return courseRepository.findAllById(courseIds).stream()
-                .map(c -> courseMapper.toResponseDTO(c,
-                        (int) courseRepository.countStudentsByCourseId(c.getId()), null))
+                .map(c -> courseMapper.toResponseDTO(c, 0, null))
                 .toList();
     }
 
@@ -232,9 +252,9 @@ public class FacultyServiceImpl implements FacultyService {
     public List<CourseResponseDTO> getMyCourses() {
         Faculty faculty = resolveCurrentFaculty();
         List<Long> courseIds = assignmentRepository.findDistinctCourseIdsByFacultyId(faculty.getId());
+        if (courseIds.isEmpty()) return List.of();
         return courseRepository.findAllById(courseIds).stream()
-                .map(c -> courseMapper.toResponseDTO(c,
-                        (int) courseRepository.countStudentsByCourseId(c.getId()), null))
+                .map(c -> courseMapper.toResponseDTO(c, 0, null))
                 .toList();
     }
 

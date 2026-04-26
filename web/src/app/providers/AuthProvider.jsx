@@ -53,6 +53,32 @@ export const AuthProvider = ({ children }) => {
     return res;
   };
 
+  const googleLoginUser = async (idToken) => {
+    const res = await authService.googleAuth(idToken);
+    const userData = {
+      username: res.username,
+      email: res.email,
+      roles: res.roles,
+      profileComplete: res.profileComplete ?? true,
+    };
+    setToken(res.accessToken);
+    setUser(userData);
+    setTokenState(res.accessToken);
+    setUserState(userData);
+    return res;
+  };
+
+  // Fetch Google user info without storing auth state (used during registration flow)
+  const googlePrefill = async (accessToken) => {
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }).then((r) => r.json());
+    if (res.error) throw new Error('Invalid Google token');
+    return { username: res.name, email: res.email, accessToken };
+  };
+
+  const googleRegisterUser = (accessToken, data) => authService.googleRegister(accessToken, data);
+
   const registerUser = (data) => authService.register(data);
 
   const refreshUser = useCallback(() => {
@@ -62,7 +88,7 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = () => user?.roles?.includes('ROLE_ADMIN');
 
   return (
-    <AuthContext.Provider value={{ user, token, loginUser, registerUser, logout, isAdmin, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loginUser, googleLoginUser, googlePrefill, googleRegisterUser, registerUser, logout, isAdmin, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

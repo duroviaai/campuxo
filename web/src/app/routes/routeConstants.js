@@ -6,14 +6,13 @@ const ROUTES = {
   DASHBOARD: '/dashboard',
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_STUDENTS:        '/admin/students',
-  ADMIN_STUDENTS_CREATE: '/admin/students/create',
-  ADMIN_STUDENTS_EDIT:   '/admin/students/:id/edit',
   ADMIN_FACULTY:        '/admin/faculty',
   ADMIN_FACULTY_CREATE:  '/admin/faculty/create',
   ADMIN_FACULTY_EDIT:    '/admin/faculty/:id/edit',
   ADMIN_FACULTY_ASSIGN_COURSES: '/admin/faculty/:id/assign-courses',
   ADMIN_COURSES:        '/admin/courses',
   ADMIN_ATTENDANCE:  '/admin/attendance',
+  ADMIN_IA:          '/admin/ia',
   ADMIN_APPROVALS:   '/admin/approvals',
 
   // Faculty
@@ -30,9 +29,6 @@ const ROUTES = {
 
   // Faculty profile
   FACULTY_PROFILE: '/faculty/profile',
-
-  // Admin student detail
-  ADMIN_STUDENTS_DETAIL: '/admin/students/:id',
 
   // Admin mark attendance
   ADMIN_MARK_ATTENDANCE: '/admin/attendance/mark',

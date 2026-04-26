@@ -22,6 +22,19 @@ public class ClassBatchController {
 
     private final ClassBatchService classBatchService;
 
+    @GetMapping("/by-class-structure")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ClassBatchResponseDTO> resolveByClassStructure(
+            @RequestParam Long classStructureId) {
+        return ResponseEntity.ok(classBatchService.resolveByClassStructure(classStructureId));
+    }
+
+    @GetMapping("/public")
+    public ResponseEntity<List<ClassBatchResponseDTO>> getByDepartment(
+            @RequestParam String department) {
+        return ResponseEntity.ok(classBatchService.getByDepartment(department));
+    }
+
     @GetMapping("/departments")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<List<String>> getAllDepartments() {

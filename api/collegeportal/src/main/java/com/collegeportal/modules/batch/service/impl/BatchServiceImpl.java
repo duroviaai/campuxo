@@ -7,6 +7,8 @@ import com.collegeportal.modules.batch.dto.response.BatchResponseDTO;
 import com.collegeportal.modules.batch.entity.Batch;
 import com.collegeportal.modules.batch.repository.BatchRepository;
 import com.collegeportal.modules.batch.service.BatchService;
+import com.collegeportal.modules.classstructure.repository.ClassStructureCourseRepository;
+import com.collegeportal.modules.classstructure.repository.ClassStructureRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,8 @@ import java.util.List;
 public class BatchServiceImpl implements BatchService {
 
     private final BatchRepository batchRepository;
+    private final ClassStructureRepository classStructureRepository;
+    private final ClassStructureCourseRepository classStructureCourseRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -55,6 +59,14 @@ public class BatchServiceImpl implements BatchService {
     public void delete(Long id) {
         if (!batchRepository.existsById(id))
             throw new ResourceNotFoundException("Batch not found: " + id);
+        // cascade: remove course assignments then class structures before deleting batch
+        List<Long> structureIds = classStructureRepository.findAll().stream()
+                .filter(cs -> cs.getBatch().getId().equals(id))
+                .map(cs -> cs.getId()).toList();
+        if (!structureIds.isEmpty()) {
+            classStructureCourseRepository.deleteByClassStructureIdIn(structureIds);
+            classStructureRepository.deleteAllById(structureIds);
+        }
         batchRepository.deleteById(id);
     }
 }

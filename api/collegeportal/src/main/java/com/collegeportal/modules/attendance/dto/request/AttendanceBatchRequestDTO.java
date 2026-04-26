@@ -15,8 +15,7 @@ public class AttendanceBatchRequestDTO {
     @NotNull
     private Long courseId;
 
-    @NotNull
-    private Long classId;
+    private Long classId; // optional — derived from student's classBatch if null
 
     @NotNull
     private LocalDate date;

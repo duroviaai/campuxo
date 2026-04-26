@@ -13,4 +13,5 @@ public class ClassStructureResponseDTO {
     private String  specializationName;
     private Integer yearOfStudy;
     private Integer semester;
+    private String  displayName; // e.g. "BCA 2023-2026 Sem 3 Year 1"
 }

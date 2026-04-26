@@ -5,6 +5,7 @@ import com.collegeportal.exception.custom.ResourceNotFoundException;
 import com.collegeportal.modules.auth.entity.User;
 import com.collegeportal.modules.classbatch.entity.ClassBatch;
 import com.collegeportal.modules.classbatch.repository.ClassBatchRepository;
+import com.collegeportal.modules.classbatch.service.ClassBatchService;
 import com.collegeportal.modules.attendance.repository.AttendanceRepository;
 import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.course.mapper.CourseMapper;
@@ -34,6 +35,7 @@ public class StudentServiceImpl implements StudentService {
     private final CourseRepository courseRepository;
     private final CourseMapper courseMapper;
     private final ClassBatchRepository classBatchRepository;
+    private final ClassBatchService classBatchService;
     private final AttendanceRepository attendanceRepository;
 
     private Student findStudentById(Long id) {
@@ -52,11 +54,23 @@ public class StudentServiceImpl implements StudentService {
     public StudentResponseDTO updateStudent(Long id, StudentRequestDTO request) {
         Student student = findStudentById(id);
         studentMapper.updateEntity(student, request);
-        if (request.getClassBatchId() != null) {
+        // resolve classBatch: prefer classStructureId (new system) over classBatchId (old system)
+        if (request.getClassStructureId() != null) {
+            com.collegeportal.modules.classbatch.dto.response.ClassBatchResponseDTO batchDTO =
+                classBatchService.resolveByClassStructure(request.getClassStructureId());
+            ClassBatch batch = classBatchRepository.findById(batchDTO.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("ClassBatch not found after resolve"));
+            student.setClassBatch(batch);
+            student.setScheme(batch.getScheme());
+            student.setDepartment(batch.getName());
+            if (batch.getYearOfStudy() != null) student.setYearOfStudy(batch.getYearOfStudy());
+        } else if (request.getClassBatchId() != null) {
             ClassBatch batch = classBatchRepository.findById(request.getClassBatchId())
                     .orElseThrow(() -> new ResourceNotFoundException("ClassBatch not found with id: " + request.getClassBatchId()));
             student.setClassBatch(batch);
-            student.setScheme(batch.getScheme()); // always sync scheme from batch
+            student.setScheme(batch.getScheme());
+            student.setDepartment(batch.getName());
+            if (batch.getYearOfStudy() != null) student.setYearOfStudy(batch.getYearOfStudy());
         } else {
             student.setClassBatch(null);
         }
@@ -71,6 +85,32 @@ public class StudentServiceImpl implements StudentService {
         attendanceRepository.deleteAll(attendanceRepository.findByStudent(student));
         courseRepository.removeStudentFromAllCourses(id);
         studentRepository.delete(student);
+    }
+
+    @Override
+    @Transactional
+    public StudentResponseDTO adminCreateStudent(StudentRequestDTO request) {
+        Student student = studentMapper.toEntity(request);
+        student.setUser(securityUtils.getCurrentUser());
+        if (request.getClassStructureId() != null) {
+            com.collegeportal.modules.classbatch.dto.response.ClassBatchResponseDTO batchDTO =
+                classBatchService.resolveByClassStructure(request.getClassStructureId());
+            ClassBatch batch = classBatchRepository.findById(batchDTO.getId()).orElse(null);
+            student.setClassBatch(batch);
+            if (batch != null) {
+                student.setScheme(batch.getScheme());
+                student.setDepartment(batch.getName());
+                if (batch.getYearOfStudy() != null) student.setYearOfStudy(batch.getYearOfStudy());
+            }
+        } else if (request.getClassBatchId() != null) {
+            ClassBatch batch = classBatchRepository.findById(request.getClassBatchId())
+                    .orElseThrow(() -> new ResourceNotFoundException("ClassBatch not found: " + request.getClassBatchId()));
+            student.setClassBatch(batch);
+            student.setScheme(batch.getScheme());
+            if (student.getDepartment() == null) student.setDepartment(batch.getName());
+            if (student.getYearOfStudy() == null) student.setYearOfStudy(batch.getYearOfStudy());
+        }
+        return studentMapper.toResponseDTO(studentRepository.save(student));
     }
 
     @Override

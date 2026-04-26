@@ -98,16 +98,13 @@ const BatchList = ({ onSelect }) => {
     e.stopPropagation();
     if (!window.confirm('Delete this batch and all its class structure?')) return;
     try { await deleteBatch(id).unwrap(); toast.success('Batch deleted.'); }
-    catch { toast.error('Failed to delete batch.'); }
+    catch (err) { toast.error(err?.data?.message || 'Failed to delete batch.'); }
   };
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Batches</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Select a batch to manage its courses.</p>
-        </div>
+        <p className="text-xs text-gray-500">Select a batch to manage its courses.</p>
         <button onClick={() => setAddOpen(true)}
           className="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
           + Add Batch

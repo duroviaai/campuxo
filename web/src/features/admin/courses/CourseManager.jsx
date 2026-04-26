@@ -11,9 +11,9 @@ import {
 } from './coursesAdminApi';
 
 /* ── Reuse suggestion banner ── */
-const ReuseHint = ({ code, departmentId, onUse }) => {
+const ReuseHint = ({ code, departmentId, classStructureId, onUse }) => {
   const { data, isFetching } = useCheckCourseCodeQuery(
-    { code, departmentId },
+    { code, departmentId, classStructureId },
     { skip: !code || code.length < 2 }
   );
   if (isFetching || !data?.exists) return null;
@@ -35,22 +35,39 @@ const CreateTab = ({ classStructure, departmentId }) => {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [credits, setCredits] = useState('');
-  const [createCourse, { isLoading }] = useCreateAdminCourseMutation();
+  const [existingId, setExistingId] = useState(null);
+  const [createCourse, { isLoading: creating }] = useCreateAdminCourseMutation();
+  const [assignCourse, { isLoading: assigning }] = useAssignCourseMutation();
+  const isLoading = creating || assigning;
+
+  const reset = () => { setName(''); setCode(''); setCredits(''); setExistingId(null); };
+
+  const handleUseExisting = (c) => {
+    setExistingId(c.id);
+    setName(c.name);
+    setCode(c.code);
+    setCredits(c.credits ?? '');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim() || !code.trim()) return;
     try {
-      await createCourse({
-        name: name.trim(), code: code.trim(),
-        credits: credits ? Number(credits) : null,
-        departmentId,
-        classStructureId: classStructure.id,
-      }).unwrap();
-      toast.success('Course created and assigned.');
-      setName(''); setCode(''); setCredits('');
+      if (existingId) {
+        await assignCourse({ classStructureId: classStructure.id, courseId: existingId }).unwrap();
+        toast.success('Course assigned.');
+      } else {
+        await createCourse({
+          name: name.trim(), code: code.trim(),
+          credits: credits ? Number(credits) : null,
+          departmentId,
+          classStructureId: classStructure.id,
+        }).unwrap();
+        toast.success('Course created and assigned.');
+      }
+      reset();
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to add course.');
+      toast.error(err?.data?.message || 'Failed to save course.');
     }
   };
 
@@ -58,26 +75,29 @@ const CreateTab = ({ classStructure, departmentId }) => {
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
         <label className="text-xs text-gray-500 block mb-1">Name *</label>
-        <input value={name} onChange={(e) => setName(e.target.value)}
+        <input value={name} onChange={(e) => { setName(e.target.value); setExistingId(null); }}
           placeholder="e.g. Data Structures" className={inputCls} />
       </div>
       <div>
         <label className="text-xs text-gray-500 block mb-1">Code *</label>
-        <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}
+        <input value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setExistingId(null); }}
           placeholder="e.g. CS301" className={inputCls} />
-        {code.length >= 2 && (
-          <ReuseHint code={code} departmentId={departmentId}
-            onUse={(c) => { setName(c.name); setCode(c.code); setCredits(c.credits ?? ''); }} />
+        {code.length >= 2 && !existingId && (
+          <ReuseHint code={code} departmentId={departmentId} classStructureId={classStructure.id}
+            onUse={handleUseExisting} />
+        )}
+        {existingId && (
+          <p className="text-xs text-emerald-600 mt-1">✓ Will assign existing course</p>
         )}
       </div>
       <div>
         <label className="text-xs text-gray-500 block mb-1">Credits</label>
         <input type="number" min="1" max="10" value={credits} onChange={(e) => setCredits(e.target.value)}
-          placeholder="e.g. 4" className={inputCls} />
+          placeholder="e.g. 4" className={inputCls} disabled={!!existingId} />
       </div>
       <button type="submit" disabled={!name.trim() || !code.trim() || isLoading}
         className="w-full py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50">
-        {isLoading ? 'Adding…' : '+ Create & Assign'}
+        {isLoading ? 'Saving…' : existingId ? 'Assign Existing' : '+ Create & Assign'}
       </button>
     </form>
   );
@@ -86,9 +106,14 @@ const CreateTab = ({ classStructure, departmentId }) => {
 /* ── Assign existing course tab ── */
 const AssignTab = ({ classStructure, departmentId }) => {
   const [search, setSearch] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const { data: assigned = [] } = useGetAdminCoursesQuery(classStructure.id);
-  const { data: allDeptCourses = [], isLoading } = useGetDeptCoursesQuery(departmentId, { skip: !departmentId });
+  const { data: allDeptCourses = [], isLoading } = useGetDeptCoursesQuery(
+    { departmentId, classStructureId: classStructure.id },
+    { skip: !departmentId }
+  );
   const [assignCourse, { isLoading: assigning }] = useAssignCourseMutation();
+  const [deleteCourse, { isLoading: deleting }] = useDeleteAdminCourseMutation();
 
   const assignedIds = useMemo(() => new Set(assigned.map((c) => c.id)), [assigned]);
 
@@ -105,6 +130,20 @@ const AssignTab = ({ classStructure, departmentId }) => {
       toast.success('Course assigned.');
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to assign.');
+    }
+  };
+
+  const handleDelete = async (course, confirmed = false) => {
+    try {
+      await deleteCourse({ id: course.id, confirmed }).unwrap();
+      toast.success('Course deleted.');
+      setDeleteConfirm(null);
+    } catch (err) {
+      if (err?.status === 409) {
+        setDeleteConfirm({ course, usages: err.data?.usages });
+      } else {
+        toast.error('Failed to delete.');
+      }
     }
   };
 
@@ -125,17 +164,46 @@ const AssignTab = ({ classStructure, departmentId }) => {
         <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
           {available.map((c) => (
             <div key={c.id}
-              className="flex items-center justify-between p-2.5 rounded-lg border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition-colors">
+              className="flex items-center justify-between p-2.5 rounded-lg border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition-colors group">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">{c.name}</p>
                 <p className="text-xs text-gray-400 font-mono">{c.code}{c.credits ? ` · ${c.credits} cr` : ''}</p>
               </div>
-              <button onClick={() => handleAssign(c.id)} disabled={assigning}
-                className="ml-2 shrink-0 px-3 py-1 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50">
-                Assign
-              </button>
+              <div className="flex gap-1.5 ml-2 shrink-0">
+                <button onClick={() => handleAssign(c.id)} disabled={assigning}
+                  className="px-3 py-1 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50">
+                  Assign
+                </button>
+                <button onClick={() => handleDelete(c)} disabled={deleting}
+                  className="px-2 py-1 text-xs font-semibold rounded border border-red-100 text-red-500 hover:bg-red-50 disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity">
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="text-base font-bold text-gray-900">Delete Course?</h3>
+            <p className="text-sm text-gray-600">
+              <strong>{deleteConfirm.course.name}</strong> is used in{' '}
+              <strong>{deleteConfirm.usages}</strong> semester{deleteConfirm.usages !== 1 ? 's' : ''}.
+              Deleting it will remove it from all of them.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+                Cancel
+              </button>
+              <button onClick={() => handleDelete(deleteConfirm.course, true)} disabled={deleting}
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">
+                {deleting ? 'Deleting…' : 'Delete Anyway'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -168,11 +236,9 @@ const CourseForm = ({ classStructure, departmentId }) => {
 const CourseList = ({ classStructure }) => {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('name');
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const { data: courses = [], isLoading } = useGetAdminCoursesQuery(classStructure.id);
   const [unassign, { isLoading: unassigning }] = useUnassignCourseMutation();
-  const [deleteCourse, { isLoading: deleting }] = useDeleteAdminCourseMutation();
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -190,24 +256,6 @@ const CourseList = ({ classStructure }) => {
       await unassign({ classStructureId: classStructure.id, courseId }).unwrap();
       toast.success('Course unassigned.');
     } catch { toast.error('Failed to unassign.'); }
-  };
-
-  const handleDelete = async (course, confirmed = false) => {
-    try {
-      const result = await deleteCourse({ id: course.id, confirmed }).unwrap();
-      if (result?.usages) {
-        setDeleteConfirm({ course, usages: result.usages });
-        return;
-      }
-      toast.success('Course deleted.');
-      setDeleteConfirm(null);
-    } catch (err) {
-      if (err?.status === 409) {
-        setDeleteConfirm({ course, usages: err.data?.usages });
-      } else {
-        toast.error('Failed to delete.');
-      }
-    }
   };
 
   return (
@@ -250,42 +298,12 @@ const CourseList = ({ classStructure }) => {
                   {c.code}{c.credits ? ` · ${c.credits} cr` : ''}
                 </p>
               </div>
-              <div className="flex gap-1.5 ml-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => handleUnassign(c.id)} disabled={unassigning}
-                  className="px-2 py-1 text-xs font-semibold rounded border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-50">
-                  Unassign
-                </button>
-                <button onClick={() => handleDelete(c)} disabled={deleting}
-                  className="px-2 py-1 text-xs font-semibold rounded border border-red-100 text-red-500 hover:bg-red-50 disabled:opacity-50">
-                  Delete
-                </button>
-              </div>
+              <button onClick={() => handleUnassign(c.id)} disabled={unassigning}
+                className="ml-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-xs font-semibold rounded border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-50">
+                Unassign
+              </button>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Delete confirmation dialog */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
-            <h3 className="text-base font-bold text-gray-900">Delete Course?</h3>
-            <p className="text-sm text-gray-600">
-              <strong>{deleteConfirm.course.name}</strong> is used in{' '}
-              <strong>{deleteConfirm.usages}</strong> semester{deleteConfirm.usages !== 1 ? 's' : ''}.
-              Deleting it will remove it from all of them.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
-                Cancel
-              </button>
-              <button onClick={() => handleDelete(deleteConfirm.course, true)} disabled={deleting}
-                className="px-4 py-2 text-xs font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">
-                {deleting ? 'Deleting…' : 'Delete Anyway'}
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>
@@ -311,12 +329,12 @@ const CourseManager = ({ batch, dept, spec, classStructure, onBack }) => (
 
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
       {/* Left — Add form */}
-      <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5">
+      <div className="lg:col-span-2 rounded-xl border border-gray-200 p-5">
         <CourseForm classStructure={classStructure} departmentId={dept.id} />
       </div>
 
       {/* Right — Course list */}
-      <div className="lg:col-span-3 bg-white rounded-xl border border-gray-200 p-5">
+      <div className="lg:col-span-3 rounded-xl border border-gray-200 p-5">
         <CourseList classStructure={classStructure} />
       </div>
     </div>

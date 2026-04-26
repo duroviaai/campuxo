@@ -23,7 +23,7 @@ public class CourseRequestDTO {
 
     private Long classBatchId;
 
-    private Long facultyId;
+    // facultyId removed — course-faculty link is now exclusively via FacultyCourseAssignment
 
     private String specialization;
 }

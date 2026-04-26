@@ -12,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin")
@@ -26,21 +27,41 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getStats());
     }
 
+    @GetMapping("/departments-summary")
+    public ResponseEntity<Map<String, Long>> getDepartmentsSummary() {
+        return ResponseEntity.ok(adminService.getDepartmentPendingCounts());
+    }
+
     @GetMapping("/pending-users")
     public ResponseEntity<List<AdminResponseDTO>> getPendingUsers(
-            @RequestParam(required = false) RoleType role) {
-        return ResponseEntity.ok(adminService.getPendingUsers(role));
+            @RequestParam(required = false) RoleType role,
+            @RequestParam(required = false) String department) {
+        List<AdminResponseDTO> users = adminService.getPendingUsers(role);
+        if (department != null && !department.isBlank()) {
+            users = users.stream().filter(u -> department.equals(u.getDepartment())).toList();
+        }
+        return ResponseEntity.ok(users);
     }
 
     @GetMapping("/approved-users")
     public ResponseEntity<List<AdminResponseDTO>> getApprovedUsers(
-            @RequestParam(required = false) RoleType role) {
-        return ResponseEntity.ok(adminService.getApprovedUsers(role));
+            @RequestParam(required = false) RoleType role,
+            @RequestParam(required = false) String department) {
+        List<AdminResponseDTO> users = adminService.getApprovedUsers(role);
+        if (department != null && !department.isBlank()) {
+            users = users.stream().filter(u -> department.equals(u.getDepartment())).toList();
+        }
+        return ResponseEntity.ok(users);
     }
 
     @GetMapping("/rejected-users")
-    public ResponseEntity<List<AdminResponseDTO>> getRejectedUsers() {
-        return ResponseEntity.ok(adminService.getRejectedUsers());
+    public ResponseEntity<List<AdminResponseDTO>> getRejectedUsers(
+            @RequestParam(required = false) String department) {
+        List<AdminResponseDTO> users = adminService.getRejectedUsers();
+        if (department != null && !department.isBlank()) {
+            users = users.stream().filter(u -> department.equals(u.getDepartment())).toList();
+        }
+        return ResponseEntity.ok(users);
     }
 
     @PutMapping("/approve/{userId}")

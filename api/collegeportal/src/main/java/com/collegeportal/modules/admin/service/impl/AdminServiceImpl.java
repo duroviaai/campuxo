@@ -13,6 +13,7 @@ import com.collegeportal.modules.course.repository.CourseRepository;
 import com.collegeportal.modules.faculty.entity.Faculty;
 import com.collegeportal.modules.faculty.repository.FacultyRepository;
 import com.collegeportal.modules.facultyassignment.repository.FacultyCourseAssignmentRepository;
+import com.collegeportal.modules.student.entity.Student;
 import com.collegeportal.modules.student.repository.StudentRepository;
 import com.collegeportal.shared.enums.FacultyRole;
 import com.collegeportal.shared.enums.RoleType;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -57,6 +59,14 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public List<AdminResponseDTO> getRejectedUsers() {
         return userRepository.findRejectedUsers().stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<String, Long> getDepartmentPendingCounts() {
+        return userRepository.findPendingApprovalUsers().stream()
+                .map(this::toDTO)
+                .filter(dto -> dto.getDepartment() != null)
+                .collect(Collectors.groupingBy(AdminResponseDTO::getDepartment, Collectors.counting()));
     }
 
     @Override
@@ -148,7 +158,9 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public void assignHodRole(Long userId) {
-        User user = getUser(userId);
+        User user = userRepository.findByIdWithRoles(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
         Faculty faculty = facultyRepository.findByUser(user)
                 .orElseThrow(() -> new BadRequestException("User does not have a faculty profile"));
 
@@ -157,24 +169,25 @@ public class AdminServiceImpl implements AdminService {
             throw new BadRequestException("Faculty must have a department assigned before becoming HOD");
         }
 
-        // Demote existing HOD in this department
+        // Demote existing HOD in this department (if any, and not the same person)
         facultyRepository.findByDepartmentAndRole(department, FacultyRole.hod)
                 .filter(existing -> !existing.getId().equals(faculty.getId()))
                 .ifPresent(existing -> {
                     existing.setRole(FacultyRole.faculty);
                     facultyRepository.save(existing);
-                    // Remove ROLE_HOD from old HOD's user
-                    existing.getUser().getRoles().removeIf(r -> r.getName() == RoleType.ROLE_HOD);
-                    userRepository.save(existing.getUser());
+                    userRepository.findByIdWithRoles(existing.getUser().getId()).ifPresent(oldUser -> {
+                        oldUser.getRoles().removeIf(r -> r.getName() == RoleType.ROLE_HOD);
+                        userRepository.save(oldUser);
+                    });
                 });
 
         // Promote new HOD
         faculty.setRole(FacultyRole.hod);
         facultyRepository.save(faculty);
 
-        // Sync ROLE_HOD on User for Spring Security
+        // Add ROLE_HOD to user
         Role hodRole = roleRepository.findByName(RoleType.ROLE_HOD)
-                .orElseThrow(() -> new ResourceNotFoundException("ROLE_HOD not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("ROLE_HOD not found in DB. Run the startup migration."));
         user.getRoles().add(hodRole);
         userRepository.save(user);
     }
@@ -182,7 +195,8 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public void removeHodRole(Long userId) {
-        User user = getUser(userId);
+        User user = userRepository.findByIdWithRoles(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         facultyRepository.findByUser(user).ifPresent(faculty -> {
             faculty.setRole(FacultyRole.faculty);
             facultyRepository.save(faculty);
@@ -199,6 +213,20 @@ public class AdminServiceImpl implements AdminService {
     }
 
     private AdminResponseDTO toDTO(User user) {
+        // Resolve department and profileId from student or faculty profile
+        String department = null;
+        Long profileId = null;
+        var studentOpt = studentRepository.findByUser(user);
+        if (studentOpt.isPresent()) {
+            department = studentOpt.get().getDepartment();
+            profileId  = studentOpt.get().getId();
+        } else {
+            var facultyOpt = facultyRepository.findByUser(user);
+            if (facultyOpt.isPresent()) {
+                department = facultyOpt.get().getDepartment();
+                profileId  = facultyOpt.get().getId();
+            }
+        }
         return AdminResponseDTO.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
@@ -209,6 +237,8 @@ public class AdminServiceImpl implements AdminService {
                 .approved(user.isApproved())
                 .enabled(user.isEnabled())
                 .createdAt(user.getCreatedAt())
+                .department(department)
+                .profileId(profileId)
                 .build();
     }
 }

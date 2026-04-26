@@ -29,4 +29,10 @@ public interface AttendanceService {
 
     /** Returns one row per student in the class for the given course — used by admin/faculty overview table */
     List<StudentAttendanceOverviewDTO> getClassCourseOverview(Long classId, Long courseId);
+
+    /** Same overview but keyed by ClassStructure (admin courses flow) */
+    List<StudentAttendanceOverviewDTO> getOverviewByClassStructure(Long classStructureId, Long courseId);
+
+    /** Attendance records for a course on a date, scoped to a ClassStructure */
+    List<AttendanceResponseDTO> getAttendanceByCourseAndClassStructure(Long courseId, Long classStructureId, LocalDate date);
 }

@@ -10,7 +10,7 @@ const PendingUsersTable = memo(({ users, onApprove, onReject, onRevoke, mode = '
   if (!users.length) {
     return (
       <div className="text-center py-12 text-gray-400 text-sm">
-        {mode === 'pending' ? '🎉 No pending approvals' : 'No approved users yet'}
+        {mode === 'pending' ? 'No pending approvals' : 'No approved users yet'}
       </div>
     );
   }

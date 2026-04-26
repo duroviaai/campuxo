@@ -54,8 +54,13 @@ public class StudentMapper {
                 .scheme(student.getScheme())
                 .classBatchName(student.getClassBatch() != null ? student.getClassBatch().getName() : null)
                 .classBatchId(student.getClassBatch() != null ? student.getClassBatch().getId() : null)
+                .classBatchStartYear(student.getClassBatch() != null ? student.getClassBatch().getStartYear() : null)
+                .classBatchEndYear(student.getClassBatch() != null ? student.getClassBatch().getEndYear() : null)
                 .classBatchDisplayName(student.getClassBatch() != null
-                        ? student.getClassBatch().getName() + " " + student.getClassBatch().getStartYear() + "-" + student.getClassBatch().getEndYear() + " (" + student.getClassBatch().getScheme() + ")"
+                        ? student.getClassBatch().getName()
+                            + (student.getYearOfStudy() != null ? " Y" + student.getYearOfStudy() : "")
+                            + " " + student.getClassBatch().getStartYear() + "-" + student.getClassBatch().getEndYear()
+                            + " (" + student.getClassBatch().getScheme() + ")"
                         : null)
                 .build();
     }

@@ -1,6 +1,7 @@
 package com.collegeportal.modules.auth.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -15,10 +16,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import com.collegeportal.exception.custom.BadRequestException;
 import com.collegeportal.exception.custom.ResourceNotFoundException;
 import com.collegeportal.modules.auth.dto.request.ForgotPasswordRequestDTO;
+import com.collegeportal.modules.auth.dto.request.GoogleAuthRequestDTO;
 import com.collegeportal.modules.auth.dto.request.LoginRequestDTO;
 import com.collegeportal.modules.auth.dto.request.RegisterRequestDTO;
 import com.collegeportal.modules.auth.dto.request.ResetPasswordRequestDTO;
@@ -50,6 +53,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final FacultyRepository facultyRepository;
     private final StudentRepository studentRepository;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     private boolean isStudentProfileComplete(User user) {
         return studentRepository.findByUser(user)
@@ -94,6 +98,12 @@ public class AuthServiceImpl implements AuthService {
             facultyRepository.save(Faculty.builder()
                     .firstName(parts[0])
                     .lastName(parts.length > 1 ? parts[1] : "")
+                    .phone(request.getPhone())
+                    .department(request.getDepartment())
+                    .designation(request.getDesignation())
+                    .qualification(request.getQualification())
+                    .experience(request.getExperience())
+                    .joiningDate(request.getJoiningDate())
                     .user(savedUser)
                     .build());
         } else if (request.getRole() == RoleType.ROLE_STUDENT) {
@@ -101,6 +111,12 @@ public class AuthServiceImpl implements AuthService {
             studentRepository.save(Student.builder()
                     .firstName(parts[0])
                     .lastName(parts.length > 1 ? parts[1] : "")
+                    .phone(request.getPhone())
+                    .dateOfBirth(request.getDateOfBirth())
+                    .department(request.getDepartment())
+                    .yearOfStudy(request.getYearOfStudy())
+                    .courseStartYear(request.getCourseStartYear())
+                    .courseEndYear(request.getCourseEndYear())
                     .user(savedUser)
                     .build());
         }
@@ -203,6 +219,65 @@ public class AuthServiceImpl implements AuthService {
         } catch (BadCredentialsException e) {
             throw new BadRequestException("Invalid credentials");
         }
+    }
+
+    private Map<?, ?> fetchGoogleUserInfo(String accessToken) {
+        String url = "https://www.googleapis.com/oauth2/v3/userinfo";
+        try {
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            var entity = new org.springframework.http.HttpEntity<>(headers);
+            Map<?, ?> payload = restTemplate.exchange(url, org.springframework.http.HttpMethod.GET, entity, Map.class).getBody();
+            if (payload == null || payload.containsKey("error")) throw new BadRequestException("Invalid Google token");
+            return payload;
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BadRequestException("Invalid Google token");
+        }
+    }
+
+    @Override
+    @Transactional
+    public AuthResponseDTO googleRegister(String accessToken, RegisterRequestDTO request) {
+        Map<?, ?> payload = fetchGoogleUserInfo(accessToken);
+        String email = (String) payload.get("email");
+        String name  = (String) payload.get("name");
+        if (email == null) throw new BadRequestException("Google token missing email");
+        // Override with verified Google email/name
+        request.setEmail(email);
+        if (name != null && (request.getFullName() == null || request.getFullName().isBlank()))
+            request.setFullName(name);
+        return register(request);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponseDTO googleAuth(GoogleAuthRequestDTO request) {
+        Map<?, ?> payload = fetchGoogleUserInfo(request.getIdToken());
+        String email = (String) payload.get("email");
+        String name  = (String) payload.get("name");
+        if (email == null) throw new BadRequestException("Google token missing email");
+
+        // Find or create user
+        User user = userRepository.findByEmail(email).orElseGet(() -> {
+            Role studentRole = roleRepository.findByName(RoleType.ROLE_STUDENT)
+                    .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
+            User newUser = User.builder()
+                    .fullName(name != null ? name : email)
+                    .email(email)
+                    .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .enabled(true)
+                    .approved(true)
+                    .roles(Set.of(studentRole))
+                    .build();
+            return userRepository.save(newUser);
+        });
+
+        if (!user.isEnabled()) throw new BadRequestException("Your account is pending admin approval");
+
+        String token = jwtTokenProvider.generateTokenForEmail(email);
+        return buildAuthResponse(user, token);
     }
 
     private AuthResponseDTO buildAuthResponse(User user, String token) {

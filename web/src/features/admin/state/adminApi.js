@@ -4,18 +4,18 @@ const BASE = '/api/v1/admin';
 
 export const adminApi = apiSlice.injectEndpoints({
   endpoints: (b) => ({
-    getStats:         b.query({ query: () => `${BASE}/stats`, providesTags: ['AdminStats'], keepUnusedDataFor: 60 }),
-    getPendingUsers:  b.query({ query: (role) => `${BASE}/pending-users${role ? `?role=${role}` : ''}`, providesTags: (_, __, role) => [{ type: 'PendingUsers', id: role ?? 'ALL' }], keepUnusedDataFor: 30 }),
-    getApprovedUsers: b.query({ query: (role) => `${BASE}/approved-users${role ? `?role=${role}` : ''}`, providesTags: (_, __, role) => [{ type: 'ApprovedUsers', id: role ?? 'ALL' }], keepUnusedDataFor: 30 }),
+    getStats:               b.query({ query: () => `${BASE}/stats`, providesTags: ['AdminStats'], keepUnusedDataFor: 60 }),
+    getDepartmentsSummary:  b.query({ query: () => `${BASE}/departments-summary`, providesTags: ['DeptSummary'], keepUnusedDataFor: 30 }),
+    getPendingUsers:        b.query({ query: ({ role, department } = {}) => { const p = new URLSearchParams(); if (role) p.set('role', role); if (department) p.set('department', department); const q = p.toString(); return `${BASE}/pending-users${q ? `?${q}` : ''}`; }, providesTags: (_, __, arg) => [{ type: 'PendingUsers', id: arg?.department ?? 'ALL' }], keepUnusedDataFor: 30 }),
+    getApprovedUsers:       b.query({ query: ({ role, department } = {}) => { const p = new URLSearchParams(); if (role) p.set('role', role); if (department) p.set('department', department); const q = p.toString(); return `${BASE}/approved-users${q ? `?${q}` : ''}`; }, providesTags: (_, __, arg) => [{ type: 'ApprovedUsers', id: arg?.department ?? 'ALL' }], keepUnusedDataFor: 30 }),
+    getRejectedUsers:       b.query({ query: ({ department } = {}) => `${BASE}/rejected-users${department ? `?department=${encodeURIComponent(department)}` : ''}`, providesTags: (_, __, arg) => [{ type: 'RejectedUsers', id: arg?.department ?? 'ALL' }], keepUnusedDataFor: 30 }),
 
-    getRejectedUsers: b.query({ query: (role) => `${BASE}/rejected-users${role ? `?role=${role}` : ''}`, providesTags: (_, __, role) => [{ type: 'RejectedUsers', id: role ?? 'ALL' }], keepUnusedDataFor: 30 }),
-
-    approveUser:  b.mutation({ query: (userId) => ({ url: `${BASE}/approve/${userId}`, method: 'PUT' }),    invalidatesTags: ['PendingUsers', 'ApprovedUsers', 'RejectedUsers', 'AdminStats'] }),
-    rejectUser:   b.mutation({ query: ({ userId, reason }) => ({ url: `${BASE}/reject/${userId}`, method: 'DELETE', body: reason ? { reason } : undefined }), invalidatesTags: ['PendingUsers', 'RejectedUsers', 'AdminStats'] }),
-    revokeUser:   b.mutation({ query: (userId) => ({ url: `${BASE}/revoke/${userId}`,  method: 'PUT' }),    invalidatesTags: ['ApprovedUsers', 'PendingUsers', 'AdminStats'] }),
-    deleteUser:   b.mutation({ query: (userId) => ({ url: `${BASE}/users/${userId}`,   method: 'DELETE' }), invalidatesTags: ['PendingUsers', 'ApprovedUsers', 'RejectedUsers', 'AdminStats'] }),
-    bulkApprove:  b.mutation({ query: (userIds) => ({ url: `${BASE}/bulk-approve`, method: 'PUT',    body: { userIds } }), invalidatesTags: ['PendingUsers', 'ApprovedUsers', 'AdminStats'] }),
-    bulkReject:   b.mutation({ query: ({ userIds, reason }) => ({ url: `${BASE}/bulk-reject`,  method: 'DELETE', body: { userIds, reason } }), invalidatesTags: ['PendingUsers', 'RejectedUsers', 'AdminStats'] }),
+    approveUser:  b.mutation({ query: (userId) => ({ url: `${BASE}/approve/${userId}`, method: 'PUT' }),    invalidatesTags: ['PendingUsers', 'ApprovedUsers', 'RejectedUsers', 'AdminStats', 'DeptSummary'] }),
+    rejectUser:   b.mutation({ query: ({ userId, reason }) => ({ url: `${BASE}/reject/${userId}`, method: 'DELETE', body: reason ? { reason } : undefined }), invalidatesTags: ['PendingUsers', 'RejectedUsers', 'AdminStats', 'DeptSummary'] }),
+    revokeUser:   b.mutation({ query: (userId) => ({ url: `${BASE}/revoke/${userId}`,  method: 'PUT' }),    invalidatesTags: ['ApprovedUsers', 'PendingUsers', 'AdminStats', 'DeptSummary'] }),
+    deleteUser:   b.mutation({ query: (userId) => ({ url: `${BASE}/users/${userId}`,   method: 'DELETE' }), invalidatesTags: ['PendingUsers', 'ApprovedUsers', 'RejectedUsers', 'AdminStats', 'DeptSummary'] }),
+    bulkApprove:  b.mutation({ query: (userIds) => ({ url: `${BASE}/bulk-approve`, method: 'PUT',    body: { userIds } }), invalidatesTags: ['PendingUsers', 'ApprovedUsers', 'AdminStats', 'DeptSummary'] }),
+    bulkReject:   b.mutation({ query: ({ userIds, reason }) => ({ url: `${BASE}/bulk-reject`,  method: 'DELETE', body: { userIds, reason } }), invalidatesTags: ['PendingUsers', 'RejectedUsers', 'AdminStats', 'DeptSummary'] }),
     assignHod:    b.mutation({ query: (userId) => ({ url: `${BASE}/users/${userId}/assign-hod`, method: 'PUT' }), invalidatesTags: ['Faculty', 'ApprovedUsers'] }),
     removeHod:    b.mutation({ query: (userId) => ({ url: `${BASE}/users/${userId}/remove-hod`, method: 'PUT' }), invalidatesTags: ['Faculty', 'ApprovedUsers'] }),
   }),
@@ -23,6 +23,7 @@ export const adminApi = apiSlice.injectEndpoints({
 
 export const {
   useGetStatsQuery,
+  useGetDepartmentsSummaryQuery,
   useGetPendingUsersQuery,
   useGetApprovedUsersQuery,
   useGetRejectedUsersQuery,

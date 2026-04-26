@@ -1,256 +1,410 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useGetFacultyByIdQuery, useGetFacultyAssignedCoursesQuery, useAssignCoursesToFacultyMutation, useRemoveCourseFromFacultyMutation, useAssignClassesToCourseMutation } from '../state/facultyApi';
-import { useGetCoursesQuery } from '../../course/state/courseApi';
-import { useGetAllClassesQuery } from '../../student/state/studentApi';
+import {
+  useGetFacultyByIdQuery,
+  useGetFacultyAssignedCoursesQuery,
+  useAssignCoursesToFacultyMutation,
+  useRemoveCourseFromFacultyMutation,
+} from '../state/facultyApi';
+import {
+  useGetBatchesQuery,
+  useGetAdminCoursesQuery,
+} from '../../admin/courses/coursesAdminApi';
 import { getFullName } from '../utils/facultyHelpers';
 import Loader from '../../../shared/components/feedback/Loader';
 import ROUTES from '../../../app/routes/routeConstants';
 
+const YEAR_GROUPS = [
+  { year: 1, semesters: [1, 2] },
+  { year: 2, semesters: [3, 4] },
+  { year: 3, semesters: [5, 6] },
+];
+
+// ── Semester courses scoped to a class structure ──────────────────────────────
+const SemesterCourses = ({ classStructureId, assignedIds, saving, onAssign, onBack }) => {
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState([]);
+  const { data: semCourses = [], isLoading } = useGetAdminCoursesQuery(classStructureId);
+
+  const available = semCourses.filter(
+    (c) => !assignedIds.has(c.id) &&
+      (!search || c.name.toLowerCase().includes(search.toLowerCase()) ||
+       c.code.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const toggle = (id) => setSelected((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+
+  const handleAssign = async () => {
+    await onAssign(selected);
+    setSelected([]);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <button onClick={onBack} className="text-xs text-indigo-600 hover:underline">← Back</button>
+        <span className="text-xs text-gray-400">Courses in this semester</span>
+      </div>
+      <input value={search} onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search by name or code…"
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+        {isLoading ? (
+          [1, 2, 3].map((i) => <div key={i} className="h-10 rounded-lg bg-gray-100 animate-pulse" />)
+        ) : available.length === 0 ? (
+          <p className="text-xs text-gray-400 text-center py-6">
+            {semCourses.length === 0
+              ? 'No courses assigned to this semester yet.'
+              : search ? 'No courses match.' : 'All courses already assigned to this faculty.'}
+          </p>
+        ) : (
+          available.map((c) => {
+            const isSel = selected.includes(c.id);
+            return (
+              <label key={c.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all ${
+                isSel ? 'border-indigo-300 bg-indigo-50' : 'border-gray-100 hover:border-indigo-200 hover:bg-gray-50'
+              }`}>
+                <input type="checkbox" checked={isSel} onChange={() => toggle(c.id)}
+                  className="accent-indigo-600 w-4 h-4 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{c.name}</p>
+                  <p className="text-xs text-gray-400 font-mono">{c.code}{c.credits ? ` · ${c.credits} cr` : ''}</p>
+                </div>
+              </label>
+            );
+          })
+        )}
+      </div>
+      {selected.length > 0 && (
+        <button onClick={handleAssign} disabled={saving}
+          className="w-full py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50">
+          {saving ? 'Assigning…' : `Assign ${selected.length} Course${selected.length > 1 ? 's' : ''} →`}
+        </button>
+      )}
+    </div>
+  );
+};
+
+// ── Batch → Year → Semester picker ───────────────────────────────────────────
+const ClassStructurePicker = ({ deptId, deptName, assignedIds, saving, onAssign }) => {
+  const [selBatch, setSelBatch] = useState(null);
+  const [selYear, setSelYear]   = useState(null);
+  const [selCs, setSelCs]       = useState(null);   // { id, semester, yearOfStudy }
+
+  const { data: batches = [], isLoading: batchLoading } = useGetBatchesQuery();
+
+  // Reset downstream when going back
+  const resetToYear  = () => { setSelYear(null); setSelCs(null); };
+  const resetToBatch = () => { setSelBatch(null); setSelYear(null); setSelCs(null); };
+
+  if (!deptId && !deptName) {
+    return (
+      <p className="text-sm text-gray-400 text-center py-6">
+        No department linked to this faculty. Edit faculty profile first.
+      </p>
+    );
+  }
+
+  // Step 3 — show semester-scoped courses
+  if (selCs) {
+    return (
+      <SemesterCourses
+        classStructureId={selCs.id}
+        assignedIds={assignedIds}
+        saving={saving}
+        onAssign={onAssign}
+        onBack={() => setSelCs(null)}
+      />
+    );
+  }
+
+  // Step 2 — pick year then semester
+  if (selBatch) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <button onClick={resetToBatch} className="text-xs text-indigo-600 hover:underline">← Batches</button>
+          <span className="text-xs text-gray-500 font-mono font-semibold">
+            {selBatch.startYear}–{selBatch.endYear}
+            <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-bold ${
+              selBatch.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+            }`}>{selBatch.scheme}</span>
+          </span>
+        </div>
+
+        {YEAR_GROUPS.map(({ year, semesters }) => (
+          <div key={year}>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Year {year}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {semesters.map((sem) => (
+                <button key={sem}
+                  onClick={() => setSelCs({ id: null, semester: sem, yearOfStudy: year, batchId: selBatch.id })}
+                  className="py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 transition-all">
+                  Semester {sem}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Step 1 — pick batch
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-gray-400">Select a batch to browse its semesters.</p>
+      {batchLoading ? (
+        [1, 2].map((i) => <div key={i} className="h-12 rounded-xl bg-gray-100 animate-pulse" />)
+      ) : batches.length === 0 ? (
+        <p className="text-xs text-gray-400 text-center py-4">No batches found.</p>
+      ) : (
+        batches.map((b) => (
+          <button key={b.id} onClick={() => setSelBatch(b)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all group">
+            <span className="text-sm font-bold text-gray-900 font-mono">{b.startYear}–{b.endYear}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+              b.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+            }`}>{b.scheme}</span>
+          </button>
+        ))
+      )}
+    </div>
+  );
+};
+
+// ── Resolve classStructureId then load courses ────────────────────────────────
+// When user picks a semester we need the actual class_structure id for that
+// batch+dept+year+sem combination. We fetch it lazily via the existing endpoint.
+const SemesterCoursesResolver = ({ selCs, deptId, deptName, assignedIds, saving, onAssign, onBack }) => {
+  const [csId, setCsId] = useState(null);
+  const [error, setError] = useState(false);
+
+  // Fetch the class structure id once on mount
+  useState(() => {
+    if (csId || !selCs) return;
+    const params = new URLSearchParams({ batchId: selCs.batchId });
+    if (deptId) params.set('deptId', deptId);
+    fetch(`/api/v1/class-structure?${params}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    })
+      .then((r) => r.json())
+      .then((list) => {
+        const arr = Array.isArray(list) ? list : [];
+        const match = arr.find(
+          (cs) => cs.yearOfStudy === selCs.yearOfStudy && cs.semester === selCs.semester &&
+            (!deptId || cs.departmentId === deptId)
+        );
+        if (match) setCsId(match.id);
+        else setError(true);
+      })
+      .catch(() => setError(true));
+  }, []);
+
+  if (error) return (
+    <div className="space-y-3">
+      <button onClick={onBack} className="text-xs text-indigo-600 hover:underline">← Back</button>
+      <p className="text-xs text-gray-400 text-center py-4">
+        No courses configured for this semester yet.
+      </p>
+    </div>
+  );
+
+  if (!csId) return (
+    <div className="space-y-2">
+      <button onClick={onBack} className="text-xs text-indigo-600 hover:underline">← Back</button>
+      {[1, 2, 3].map((i) => <div key={i} className="h-10 rounded-lg bg-gray-100 animate-pulse" />)}
+    </div>
+  );
+
+  return (
+    <SemesterCourses
+      classStructureId={csId}
+      assignedIds={assignedIds}
+      saving={saving}
+      onAssign={onAssign}
+      onBack={onBack}
+    />
+  );
+};
+
+// ── Smarter picker that resolves class structure id ───────────────────────────
+const AvailablePanel = ({ deptId, deptName, assignedIds, saving, onAssign }) => {
+  const [selBatch, setSelBatch] = useState(null);
+  const [selSem, setSelSem]     = useState(null);   // { semester, yearOfStudy, batchId }
+
+  const { data: batches = [], isLoading: batchLoading } = useGetBatchesQuery();
+
+  const resetToBatch = () => { setSelBatch(null); setSelSem(null); };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+      <h2 className="text-sm font-bold text-gray-700">Available Courses</h2>
+
+      {!deptId && !deptName ? (
+        <p className="text-sm text-gray-400 text-center py-6">
+          No department linked to this faculty. Edit faculty profile first.
+        </p>
+      ) : selSem ? (
+        <SemesterCoursesResolver
+          selCs={selSem}
+          deptId={deptId}
+          deptName={deptName}
+          assignedIds={assignedIds}
+          saving={saving}
+          onAssign={onAssign}
+          onBack={() => setSelSem(null)}
+        />
+      ) : selBatch ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <button onClick={resetToBatch} className="text-xs text-indigo-600 hover:underline">← Batches</button>
+            <span className="text-xs text-gray-500 font-semibold font-mono">
+              {selBatch.startYear}–{selBatch.endYear}
+              <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                selBatch.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+              }`}>{selBatch.scheme}</span>
+            </span>
+          </div>
+          {YEAR_GROUPS.map(({ year, semesters }) => (
+            <div key={year}>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Year {year}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {semesters.map((sem) => (
+                  <button key={sem}
+                    onClick={() => setSelSem({ semester: sem, yearOfStudy: year, batchId: selBatch.id })}
+                    className="py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 transition-all">
+                    Semester {sem}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-xs text-gray-400">Select a batch to browse its semesters.</p>
+          {batchLoading ? (
+            [1, 2].map((i) => <div key={i} className="h-12 rounded-xl bg-gray-100 animate-pulse" />)
+          ) : batches.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-4">No batches found.</p>
+          ) : (
+            batches.map((b) => (
+              <button key={b.id} onClick={() => setSelBatch(b)}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all">
+                <span className="text-sm font-bold text-gray-900 font-mono">{b.startYear}–{b.endYear}</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                  b.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+                }`}>{b.scheme}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Assigned Courses Panel ────────────────────────────────────────────────────
+const AssignedPanel = ({ assigned, onRemove }) => (
+  <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+    <h2 className="text-sm font-bold text-gray-700">
+      Assigned Courses
+      <span className="ml-2 text-xs font-semibold bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">
+        {assigned.length}
+      </span>
+    </h2>
+    <div className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
+      {assigned.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-6">No courses assigned yet.</p>
+      ) : (
+        assigned.map((c) => (
+          <div key={c.id}
+            className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50/60 group hover:border-gray-200">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{c.name}</p>
+              <p className="text-xs text-gray-400 font-mono">{c.code}{c.credits ? ` · ${c.credits} cr` : ''}</p>
+            </div>
+            <button onClick={() => onRemove(c.id)}
+              className="ml-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-xs font-semibold rounded border border-red-100 text-red-500 hover:bg-red-50">
+              Remove
+            </button>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+);
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 const AssignCoursesPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const { data: faculty, isLoading: facultyLoading } = useGetFacultyByIdQuery(id);
-  const { data: coursesData, isLoading: coursesLoading } = useGetCoursesQuery({ size: 200 });
   const { data: assigned = [], isLoading: assignedLoading } = useGetFacultyAssignedCoursesQuery(id);
-  const { data: allClasses = [] } = useGetAllClassesQuery();
   const [assignCoursesToFaculty, { isLoading: saving }] = useAssignCoursesToFacultyMutation();
   const [removeCourseFromFaculty] = useRemoveCourseFromFacultyMutation();
-  const [assignClassesToCourse] = useAssignClassesToCourseMutation();
-
-  const [selected, setSelected]         = useState([]);
-  const [search, setSearch]             = useState('');
-  const [classModal, setClassModal]     = useState(null); // { courseId, courseName }
-  const [selectedClasses, setSelectedClasses] = useState([]);
-
-  const allCourses = coursesData?.content ?? coursesData ?? [];
-  const loading = facultyLoading || coursesLoading || assignedLoading;
 
   const assignedIds = new Set(assigned.map((c) => c.id));
 
-  const unassigned = allCourses.filter(
-    (c) => !assignedIds.has(c.id) &&
-      (c.name?.toLowerCase().includes(search.toLowerCase()) ||
-       c.code?.toLowerCase().includes(search.toLowerCase()))
-  );
-
-  const toggleSelect = (courseId) =>
-    setSelected((prev) =>
-      prev.includes(courseId) ? prev.filter((x) => x !== courseId) : [...prev, courseId]
-    );
-
-  const handleAssign = async () => {
-    if (!selected.length) return;
+  const handleAssign = async (courseIds) => {
+    if (!courseIds.length) return;
     try {
-      await assignCoursesToFaculty({ facultyId: id, courseIds: selected }).unwrap();
-      toast.success(`${selected.length} course(s) assigned.`);
-      setSelected([]);
-    } catch {
-      toast.error('Failed to assign courses.');
-    }
+      await assignCoursesToFaculty({ facultyId: id, courseIds }).unwrap();
+      toast.success(`${courseIds.length} course(s) assigned.`);
+    } catch { toast.error('Failed to assign courses.'); }
   };
 
   const handleRemove = async (courseId) => {
     if (!window.confirm('Remove this course from faculty?')) return;
-    try {
-      await removeCourseFromFaculty({ facultyId: id, courseId }).unwrap();
-      toast.success('Course removed.');
-    } catch {
-      toast.error('Failed to remove course.');
-    }
+    try { await removeCourseFromFaculty({ facultyId: id, courseId }).unwrap(); toast.success('Course removed.'); }
+    catch (err) { toast.error(err?.data?.message || 'Failed to remove course.'); }
   };
 
-  const openClassModal = (course) => {
-    setClassModal({ courseId: course.id, courseName: course.name });
-    setSelectedClasses([]);
-  };
-
-  const handleAssignClasses = async () => {
-    if (!selectedClasses.length) return;
-    try {
-      await assignClassesToCourse({ facultyId: id, courseId: classModal.courseId, classIds: selectedClasses }).unwrap();
-      toast.success(`${selectedClasses.length} class(es) assigned.`);
-      setClassModal(null);
-    } catch {
-      toast.error('Failed to assign classes.');
-    }
-  };
-
-  if (loading) return <Loader />;
+  if (facultyLoading || assignedLoading) return <Loader />;
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => navigate(ROUTES.ADMIN_FACULTY)}
-          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-        >
-          ←
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Assign Courses</h1>
-          {faculty && (
-            <p className="text-sm text-gray-500 mt-0.5">
-              Faculty: <span className="font-semibold text-gray-700">{getFullName(faculty)}</span>
-              {faculty.department && <span className="ml-2 text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-medium">{faculty.department}</span>}
-            </p>
-          )}
-        </div>
+    <div className="space-y-5 max-w-4xl">
+      <div className="flex items-center gap-2 text-xs flex-wrap">
+        <button onClick={() => navigate(ROUTES.ADMIN_FACULTY)} className="text-indigo-600 hover:underline">Faculty</button>
+        <span className="text-gray-300">/</span>
+        <span className="font-semibold text-gray-800">{faculty ? getFullName(faculty) : '…'}</span>
+        <span className="text-gray-300">/</span>
+        <span className="font-semibold text-gray-800">Assign Courses</span>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Left: Available courses to assign */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-gray-700">Available Courses</h2>
-            {selected.length > 0 && (
-              <button
-                onClick={handleAssign}
-                disabled={saving}
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50"
-              >
-                {saving ? 'Assigning…' : `Assign (${selected.length})`}
-              </button>
-            )}
+      {faculty && (
+        <div className="bg-white rounded-xl border border-gray-200 px-5 py-3 flex items-center gap-3 flex-wrap">
+          <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-700 shrink-0">
+            {getFullName(faculty).split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
           </div>
-
-          <input
-            type="text"
-            placeholder="Search by name or code…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-          />
-
-          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-            {unassigned.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-6">
-                {allCourses.length === assigned.length ? 'All courses are already assigned.' : 'No courses match.'}
-              </p>
-            ) : (
-              unassigned.map((course) => {
-                const isSelected = selected.includes(course.id);
-                return (
-                  <label
-                    key={course.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                      isSelected
-                        ? 'border-indigo-300 bg-indigo-50'
-                        : 'border-gray-100 hover:border-indigo-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelect(course.id)}
-                      className="accent-indigo-600 w-4 h-4 shrink-0"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{course.name}</p>
-                      <p className="text-xs text-gray-400 font-mono">{course.code}{course.credits ? ` · ${course.credits} credits` : ''}</p>
-                    </div>
-                  </label>
-                );
-              })
-            )}
+          <div>
+            <p className="text-sm font-bold text-gray-900">{getFullName(faculty)}</p>
+            <p className="text-xs text-gray-400">{faculty.email}</p>
           </div>
-
-          {selected.length > 0 && (
-            <button
-              onClick={handleAssign}
-              disabled={saving}
-              className="w-full py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50"
-            >
-              {saving ? 'Assigning…' : `Assign ${selected.length} Course${selected.length > 1 ? 's' : ''} →`}
-            </button>
-          )}
-        </div>
-
-        {/* Right: Already assigned */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <h2 className="text-sm font-bold text-gray-700">
-            Assigned Courses
-            <span className="ml-2 text-xs font-semibold bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">
-              {assigned.length}
+          {faculty.department && (
+            <span className="ml-auto text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-semibold">
+              {faculty.department}
             </span>
-          </h2>
-
-          <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
-            {assigned.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-6">No courses assigned yet.</p>
-            ) : (
-              assigned.map((course) => (
-                <div
-                  key={course.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50/60 group"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{course.name}</p>
-                    <p className="text-xs text-gray-400 font-mono">{course.code}{course.credits ? ` · ${course.credits} credits` : ''}</p>
-                  </div>
-                  <div className="flex items-center gap-2 ml-3 shrink-0">
-                    <button
-                      onClick={() => openClassModal(course)}
-                      className="px-2.5 py-1 text-xs font-semibold rounded-lg text-indigo-600 border border-indigo-100 hover:bg-indigo-50 transition-colors"
-                    >
-                      + Classes
-                    </button>
-                    <button
-                      onClick={() => handleRemove(course.id)}
-                      className="px-2.5 py-1 text-xs font-semibold rounded-lg text-red-500 border border-red-100 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      {classModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-gray-900">Assign Classes</h2>
-              <button onClick={() => setClassModal(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
-            </div>
-            <p className="text-xs text-gray-500">Course: <span className="font-semibold text-gray-700">{classModal.courseName}</span></p>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {allClasses.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">No classes available. Create classes first.</p>
-              ) : (
-                allClasses.map((cls) => (
-                  <label key={cls.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all ${
-                    selectedClasses.includes(cls.id) ? 'border-indigo-300 bg-indigo-50' : 'border-gray-100 hover:border-indigo-200'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      checked={selectedClasses.includes(cls.id)}
-                      onChange={() => setSelectedClasses((prev) =>
-                        prev.includes(cls.id) ? prev.filter((x) => x !== cls.id) : [...prev, cls.id]
-                      )}
-                      className="accent-indigo-600 w-4 h-4 shrink-0"
-                    />
-                    <span className="text-sm text-gray-800">{cls.displayName}</span>
-                  </label>
-                ))
-              )}
-            </div>
-            <button
-              onClick={handleAssignClasses}
-              disabled={!selectedClasses.length}
-              className="w-full py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40"
-            >
-              Assign {selectedClasses.length > 0 ? `${selectedClasses.length} Class(es)` : 'Classes'}
-            </button>
-          </div>
+          )}
+          {faculty.hod && (
+            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-bold">HOD</span>
+          )}
         </div>
       )}
+
+      <div className="grid md:grid-cols-2 gap-5">
+        <AvailablePanel
+          deptId={faculty?.departmentId}
+          deptName={faculty?.department}
+          assignedIds={assignedIds}
+          saving={saving}
+          onAssign={handleAssign}
+        />
+        <AssignedPanel assigned={assigned} onRemove={handleRemove} />
+      </div>
     </div>
   );
 };

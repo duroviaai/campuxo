@@ -16,3 +16,9 @@ export const getStudentAttendanceSummary = (studentId) =>
 
 export const getClassCourseOverview = (classId, courseId) =>
   axiosInstance.get(`${BASE}/class/${classId}/course/${courseId}/overview`).then((r) => r.data);
+
+export const getOverviewByClassStructure = (classStructureId, courseId) =>
+  axiosInstance.get(`${BASE}/class-structure/${classStructureId}/course/${courseId}/overview`).then((r) => r.data);
+
+export const getAttendanceByCourseAndClassStructure = (courseId, classStructureId, date) =>
+  axiosInstance.get(`${BASE}/course/${courseId}/class-structure/${classStructureId}`, { params: { date } }).then((r) => r.data);

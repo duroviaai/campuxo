@@ -4,6 +4,7 @@ import com.collegeportal.modules.auth.dto.request.LoginRequestDTO;
 import com.collegeportal.modules.auth.dto.request.RegisterRequestDTO;
 import com.collegeportal.modules.auth.dto.request.ForgotPasswordRequestDTO;
 import com.collegeportal.modules.auth.dto.request.ResetPasswordRequestDTO;
+import com.collegeportal.modules.auth.dto.request.GoogleAuthRequestDTO;
 import com.collegeportal.modules.auth.dto.response.AuthResponseDTO;
 
 public interface AuthService {
@@ -15,4 +16,8 @@ public interface AuthService {
     AuthResponseDTO forgotPassword(ForgotPasswordRequestDTO request);
     
     AuthResponseDTO resetPassword(ResetPasswordRequestDTO request);
+
+    AuthResponseDTO googleAuth(GoogleAuthRequestDTO request);
+
+    AuthResponseDTO googleRegister(String accessToken, RegisterRequestDTO request);
 }

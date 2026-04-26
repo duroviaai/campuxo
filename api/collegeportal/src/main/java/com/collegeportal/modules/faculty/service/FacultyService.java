@@ -17,6 +17,8 @@ public interface FacultyService {
 
     PageResponseDTO<FacultyResponseDTO> getFilteredFaculty(String department, String search, Pageable pageable);
 
+    PageResponseDTO<FacultyResponseDTO> getFilteredFaculty(String department, String search, String status, Pageable pageable);
+
     FacultyResponseDTO getFacultyById(Long id);
 
     FacultyResponseDTO createFaculty(FacultyRequestDTO request);

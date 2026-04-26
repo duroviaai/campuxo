@@ -83,4 +83,21 @@ public class AttendanceController {
             @PathVariable Long courseId) {
         return ResponseEntity.ok(attendanceService.getClassCourseOverview(classId, courseId));
     }
+
+    @GetMapping("/class-structure/{classStructureId}/course/{courseId}/overview")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<List<StudentAttendanceOverviewDTO>> getOverviewByClassStructure(
+            @PathVariable Long classStructureId,
+            @PathVariable Long courseId) {
+        return ResponseEntity.ok(attendanceService.getOverviewByClassStructure(classStructureId, courseId));
+    }
+
+    @GetMapping("/course/{courseId}/class-structure/{classStructureId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<List<AttendanceResponseDTO>> getAttendanceByCourseAndClassStructure(
+            @PathVariable Long courseId,
+            @PathVariable Long classStructureId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(attendanceService.getAttendanceByCourseAndClassStructure(courseId, classStructureId, date));
+    }
 }

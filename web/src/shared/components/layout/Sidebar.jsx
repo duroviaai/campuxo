@@ -12,6 +12,7 @@ const ICONS = {
   classes:    'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 00-1-1h-2a1 1 0 00-1 1v5m4 0H9',
   attendance: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
   approvals:  'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+  ia:         'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-3-3v6',
 };
 
 const HOD_ITEMS = [
@@ -50,6 +51,7 @@ const Sidebar = () => {
     { to: ROUTES.ADMIN_FACULTY,    label: 'Faculty',    icon: ICONS.faculty },
     { to: ROUTES.ADMIN_COURSES,    label: 'Courses',    icon: ICONS.courses },
     { to: ROUTES.ADMIN_ATTENDANCE, label: 'Attendance', icon: ICONS.attendance },
+    { to: ROUTES.ADMIN_IA,         label: 'IA Marks',   icon: ICONS.ia },
     { to: ROUTES.ADMIN_APPROVALS,  label: 'Approvals',  icon: ICONS.approvals, badge: pendingCount },
   ];
 

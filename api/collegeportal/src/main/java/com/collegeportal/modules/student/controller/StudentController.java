@@ -29,6 +29,12 @@ public class StudentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(studentService.createStudent(request));
     }
 
+    @PostMapping("/admin")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<StudentResponseDTO> adminCreateStudent(@Valid @RequestBody StudentRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(studentService.adminCreateStudent(request));
+    }
+
     @GetMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<PageResponseDTO<StudentResponseDTO>> getAllStudents(

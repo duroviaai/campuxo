@@ -30,6 +30,12 @@ public class ClassStructureServiceImpl implements ClassStructureService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<ClassStructureResponseDTO> getAll() {
+        return classStructureRepository.findAll().stream().map(this::toDTO).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ClassStructureResponseDTO> getByBatchDeptSpec(Long batchId, Long deptId, Long specId) {
         List<ClassStructure> list = specId != null
                 ? classStructureRepository.findByBatchDeptSpec(batchId, deptId, specId)
@@ -65,6 +71,10 @@ public class ClassStructureServiceImpl implements ClassStructureService {
     }
 
     private ClassStructureResponseDTO toDTO(ClassStructure cs) {
+        String spec = cs.getSpecialization() != null ? " (" + cs.getSpecialization().getName() + ")" : "";
+        String display = cs.getDepartment().getName()
+                + " " + cs.getBatch().getStartYear() + "-" + cs.getBatch().getEndYear()
+                + spec + " · Year " + cs.getYearOfStudy() + " Sem " + cs.getSemester();
         return ClassStructureResponseDTO.builder()
                 .id(cs.getId())
                 .batchId(cs.getBatch().getId())
@@ -74,6 +84,7 @@ public class ClassStructureServiceImpl implements ClassStructureService {
                 .specializationName(cs.getSpecialization() != null ? cs.getSpecialization().getName() : null)
                 .yearOfStudy(cs.getYearOfStudy())
                 .semester(cs.getSemester())
+                .displayName(display)
                 .build();
     }
 }

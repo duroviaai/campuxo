@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './providers/AuthProvider';
 import ErrorBoundary from '../shared/components/feedback/ErrorBoundary';
 import Loader from '../shared/components/feedback/Loader';
@@ -28,18 +29,14 @@ const FacultyDashboardPage = lazy(() => import('../features/dashboard/pages/Facu
 const StudentDashboardPage = lazy(() => import('../features/dashboard/pages/StudentDashboardPage'));
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
-const StudentListPage      = lazy(() => import('../features/student/pages/StudentListPage'));
-const CreateStudentPage    = lazy(() => import('../features/student/pages/CreateStudentPage'));
-const EditStudentPage      = lazy(() => import('../features/student/pages/EditStudentPage'));
-const StudentDetailsPage   = lazy(() => import('../features/student/pages/StudentDetailsPage'));
+const StudentListPage      = lazy(() => import('../features/student/pages/StudentsPage'));
 const FacultyListPage      = lazy(() => import('../features/faculty/pages/FacultyListPage'));
-const CreateFacultyPage    = lazy(() => import('../features/faculty/pages/CreateFacultyPage'));
-const EditFacultyPage      = lazy(() => import('../features/faculty/pages/EditFacultyPage'));
 const AssignCoursesPage    = lazy(() => import('../features/faculty/pages/AssignCoursesPage'));
 const AdminCoursesPage     = lazy(() => import('../features/admin/courses/CoursesPage'));
 const AttendancePage       = lazy(() => import('../features/attendance/pages/AttendancePage'));
 const MarkAttendancePage   = lazy(() => import('../features/attendance/pages/MarkAttendancePage'));
 const AdminAttendancePage  = lazy(() => import('../features/admin/pages/AdminAttendancePage'));
+const AdminIAPage          = lazy(() => import('../features/admin/ia/AdminIAPage'));
 const ApprovalsPage        = lazy(() => import('../features/admin/pages/ApprovalsPage'));
 const ApprovedUsersPage    = lazy(() => import('../features/admin/pages/ApprovedUsersPage'));
 
@@ -83,6 +80,7 @@ const RootRedirect = () => {
 
 const App = () => (
   <ErrorBoundary>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
     <BrowserRouter>
       <AuthProvider>
         <Toaster
@@ -115,18 +113,13 @@ const App = () => (
               <Route element={<AdminGuard />}>
                 <Route path={ROUTES.ADMIN_DASHBOARD}       element={<AdminDashboardPage />} />
                 <Route path={ROUTES.ADMIN_STUDENTS}        element={<StudentListPage />} />
-                <Route path={ROUTES.ADMIN_STUDENTS_CREATE} element={<CreateStudentPage />} />
-                <Route path={ROUTES.ADMIN_STUDENTS_EDIT}   element={<EditStudentPage />} />
-                <Route path={ROUTES.ADMIN_STUDENTS_DETAIL} element={<StudentDetailsPage />} />
                 <Route path={ROUTES.ADMIN_FACULTY}         element={<FacultyListPage />} />
-                <Route path={ROUTES.ADMIN_FACULTY_CREATE}  element={<CreateFacultyPage />} />
-                <Route path={ROUTES.ADMIN_FACULTY_EDIT}    element={<EditFacultyPage />} />
                 <Route path={ROUTES.ADMIN_FACULTY_ASSIGN_COURSES} element={<AssignCoursesPage />} />
                 <Route path={ROUTES.ADMIN_COURSES}         element={<AdminCoursesPage />} />
                 <Route path={ROUTES.ADMIN_ATTENDANCE}      element={<AdminAttendancePage />} />
                 <Route path={ROUTES.ADMIN_MARK_ATTENDANCE} element={<MarkAttendancePage />} />
+                <Route path={ROUTES.ADMIN_IA}              element={<AdminIAPage />} />
                 <Route path={ROUTES.ADMIN_APPROVALS}       element={<ApprovalsPage />} />
-                <Route path={ROUTES.ADMIN_APPROVALS}       element={<ApprovedUsersPage />} />
               </Route>
 
               {/* ── HOD ── */}
@@ -162,6 +155,7 @@ const App = () => (
         </Suspense>
       </AuthProvider>
     </BrowserRouter>
+    </GoogleOAuthProvider>
   </ErrorBoundary>
 );
 

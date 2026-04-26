@@ -20,4 +20,6 @@ public class AdminResponseDTO {
     private LocalDateTime createdAt;
     private String message;
     private String rejectionReason;
+    private String department;
+    private Long profileId; // student or faculty profile id
 }

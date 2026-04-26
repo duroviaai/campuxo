@@ -21,9 +21,12 @@ public class ClassStructureController {
     @GetMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<List<ClassStructureResponseDTO>> get(
-            @RequestParam Long batchId,
-            @RequestParam Long deptId,
+            @RequestParam(required = false) Long batchId,
+            @RequestParam(required = false) Long deptId,
             @RequestParam(required = false) Long specId) {
+        if (batchId == null && deptId == null) {
+            return ResponseEntity.ok(classStructureService.getAll());
+        }
         return ResponseEntity.ok(classStructureService.getByBatchDeptSpec(batchId, deptId, specId));
     }
 

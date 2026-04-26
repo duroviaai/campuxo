@@ -5,7 +5,6 @@ import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.faculty.dto.request.FacultyRequestDTO;
 import com.collegeportal.modules.faculty.dto.response.FacultyResponseDTO;
 import com.collegeportal.modules.faculty.service.FacultyService;
-import com.collegeportal.modules.faculty.service.impl.FacultyServiceImpl;
 import com.collegeportal.modules.facultyassignment.dto.response.FacultyCourseAssignmentResponseDTO;
 import com.collegeportal.modules.student.dto.response.StudentResponseDTO;
 import com.collegeportal.shared.dto.PageResponseDTO;
@@ -37,10 +36,7 @@ public class FacultyController {
             @RequestParam(required = false) String department,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status) {
-        // Delegate to the impl's status-aware overload
-        PageResponseDTO<FacultyResponseDTO> result = ((FacultyServiceImpl) facultyService)
-                .getFilteredFaculty(department, search, status, pageable);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(facultyService.getFilteredFaculty(department, search, status, pageable));
     }
 
     @GetMapping("/{id}")

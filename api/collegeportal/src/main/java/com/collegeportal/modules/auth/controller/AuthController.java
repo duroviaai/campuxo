@@ -1,9 +1,11 @@
 package com.collegeportal.modules.auth.controller;
 
+import com.collegeportal.modules.auth.dto.request.GoogleRegisterRequestDTO;
 import com.collegeportal.modules.auth.dto.request.LoginRequestDTO;
 import com.collegeportal.modules.auth.dto.request.RegisterRequestDTO;
 import com.collegeportal.modules.auth.dto.request.ForgotPasswordRequestDTO;
 import com.collegeportal.modules.auth.dto.request.ResetPasswordRequestDTO;
+import com.collegeportal.modules.auth.dto.request.GoogleAuthRequestDTO;
 import com.collegeportal.modules.auth.dto.response.AuthResponseDTO;
 import com.collegeportal.modules.auth.service.AuthService;
 import jakarta.validation.Valid;
@@ -40,5 +42,16 @@ public class AuthController {
     @PostMapping("/reset-password")
     public ResponseEntity<AuthResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO request) {
         return ResponseEntity.ok(authService.resetPassword(request));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponseDTO> googleAuth(@Valid @RequestBody GoogleAuthRequestDTO request) {
+        return ResponseEntity.ok(authService.googleAuth(request));
+    }
+
+    @PostMapping("/google/register")
+    public ResponseEntity<AuthResponseDTO> googleRegister(@Valid @RequestBody GoogleRegisterRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(authService.googleRegister(request.getAccessToken(), request.toRegisterRequest()));
     }
 }
