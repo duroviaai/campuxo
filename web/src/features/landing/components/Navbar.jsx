@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import BrandLogo from '../../../shared/components/ui/BrandLogo';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -16,56 +17,59 @@ const Navbar = () => {
   }, []);
 
   return (
-    <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${dark ? 'bg-transparent' : 'bg-white/90 backdrop-blur-lg shadow-sm border-b border-gray-100'}`}>
+    <nav
+      className="fixed top-0 inset-x-0 z-50 transition-all duration-300"
+      style={dark
+        ? { background: 'transparent' }
+        : { background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e5e7eb', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }
+      }
+    >
       <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <button onClick={() => navigate('/')} className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md">
-            <span className="text-white text-xs font-black tracking-tight">cx</span>
-          </div>
-          <span className={`text-lg font-black tracking-tight transition-colors ${dark ? 'text-white' : 'text-gray-900'}`}>
-            campuxo
-          </span>
+        <button onClick={() => navigate('/')} className="flex items-center">
+          <BrandLogo size="md" dark={dark} />
         </button>
 
-        {/* Desktop actions */}
         <div className="hidden md:flex items-center gap-2">
           <button
             onClick={() => navigate('/login')}
-            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${dark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+            className="px-4 py-2 text-sm font-semibold rounded-lg transition-all"
+            style={dark
+              ? { color: 'rgba(255,255,255,0.8)' }
+              : { color: '#374151' }
+            }
+            onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.1)' : '#f3f4f6'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
           >
             Sign In
           </button>
           <button
             onClick={() => navigate('/register')}
-            className="px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:opacity-90 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-px active:scale-95 transition-all"
+            className="px-5 py-2 text-sm font-semibold text-white rounded-lg transition-all"
+            style={{ background: '#2563eb', boxShadow: '0 2px 8px rgba(37,99,235,0.3)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#1d4ed8'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#2563eb'; }}
           >
-            Get Started Free
+            Get Started
           </button>
         </div>
 
-        {/* Mobile hamburger */}
         <button
-          className={`md:hidden p-2 rounded-lg transition-colors ${dark ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'}`}
+          className="md:hidden p-2 rounded-lg transition-colors"
+          style={{ color: dark ? '#fff' : '#374151' }}
           onClick={() => setMenuOpen(p => !p)}
           aria-label="Toggle menu"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            {menuOpen
-              ? <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              : <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />}
-          </svg>
+          <i className={`fa-solid ${menuOpen ? 'fa-xmark' : 'fa-bars'} text-base`} />
         </button>
       </div>
 
-      {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 flex flex-col gap-3 shadow-lg">
-          <button onClick={() => navigate('/login')} className="w-full py-2.5 text-sm font-semibold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
+        <div className="md:hidden bg-white px-6 py-4 flex flex-col gap-3" style={{ borderTop: '1px solid #e5e7eb' }}>
+          <button onClick={() => navigate('/login')} className="w-full py-2.5 text-sm font-semibold rounded-lg" style={{ border: '1px solid #e5e7eb', color: '#374151' }}>
             Sign In
           </button>
-          <button onClick={() => navigate('/register')} className="w-full py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:opacity-90 transition-all">
-            Get Started Free
+          <button onClick={() => navigate('/register')} className="w-full py-2.5 text-sm font-semibold text-white rounded-lg" style={{ background: '#2563eb' }}>
+            Get Started
           </button>
         </div>
       )}

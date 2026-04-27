@@ -2,6 +2,7 @@ package com.collegeportal.modules.hod.controller;
 
 import com.collegeportal.modules.attendance.dto.response.StudentAttendanceOverviewDTO;
 import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
+import com.collegeportal.modules.department.repository.DepartmentRepository;
 import com.collegeportal.modules.faculty.dto.response.FacultyResponseDTO;
 import com.collegeportal.modules.hod.dto.response.HodStatsDTO;
 import com.collegeportal.modules.hod.service.HodService;
@@ -12,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/hod")
@@ -20,6 +22,7 @@ import java.util.List;
 public class HodController {
 
     private final HodService hodService;
+    private final DepartmentRepository departmentRepository;
 
     @GetMapping("/stats")
     public ResponseEntity<HodStatsDTO> getStats() {
@@ -46,5 +49,13 @@ public class HodController {
             @RequestParam Long courseId,
             @RequestParam Long classId) {
         return ResponseEntity.ok(hodService.getStudentAttendanceOverview(courseId, classId));
+    }
+
+    @GetMapping("/dept")
+    public ResponseEntity<Map<String, Object>> getDept() {
+        HodStatsDTO stats = hodService.getStats();
+        return departmentRepository.findByName(stats.getDepartment())
+                .map(d -> ResponseEntity.ok(Map.<String, Object>of("id", d.getId(), "name", d.getName())))
+                .orElse(ResponseEntity.notFound().build());
     }
 }

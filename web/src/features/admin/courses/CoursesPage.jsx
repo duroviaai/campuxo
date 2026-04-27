@@ -53,11 +53,6 @@ const CoursesPage = () => {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Courses</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage batches, departments and course assignments</p>
-      </div>
-
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         {level === LEVEL.BATCH && (
           <BatchList onSelect={handleBatchSelect} />

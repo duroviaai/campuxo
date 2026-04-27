@@ -7,6 +7,7 @@ import com.collegeportal.modules.course.entity.Course;
 import com.collegeportal.modules.course.repository.CourseRepository;
 import com.collegeportal.modules.ia.dto.request.IASaveRequestDTO;
 import com.collegeportal.modules.ia.dto.response.StudentIAResponseDTO;
+import com.collegeportal.modules.ia.dto.response.StudentFinalMarksResponseDTO;
 import com.collegeportal.modules.ia.entity.InternalAssessment;
 import com.collegeportal.modules.ia.repository.InternalAssessmentRepository;
 import com.collegeportal.modules.ia.service.IAService;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -56,9 +58,12 @@ public class IAServiceImpl implements IAService {
             sRecords.forEach(ia -> {
                 marks.put(ia.getIaNumber(), ia.getMarksObtained());
                 maxMarks.put(ia.getIaNumber(), ia.getMaxMarks());
-                if (ia.getSubmittedDate() != null) dates.put(ia.getIaNumber(), ia.getSubmittedDate());
-                else if (ia.getIaDate() != null) dates.put(ia.getIaNumber(), ia.getIaDate());
+                if (ia.getIaDate() != null) dates.put(ia.getIaNumber(), ia.getIaDate());
             });
+            
+            BigDecimal finalMarks = sRecords.isEmpty() ? null : sRecords.get(0).getFinalMarks();
+            LocalDate finalMarksDate = sRecords.isEmpty() ? null : sRecords.get(0).getFinalMarksCalculatedDate();
+            
             return StudentIAResponseDTO.builder()
                     .studentId(s.getId())
                     .studentName(s.getFirstName() + " " + (s.getLastName() != null ? s.getLastName() : ""))
@@ -66,6 +71,8 @@ public class IAServiceImpl implements IAService {
                     .marks(marks)
                     .maxMarks(maxMarks)
                     .dates(dates)
+                    .finalMarks(finalMarks)
+                    .finalMarksCalculatedDate(finalMarksDate)
                     .build();
         }).toList();
     }
@@ -97,11 +104,95 @@ public class IAServiceImpl implements IAService {
             ia.setMarksObtained(m.getMarksObtained());
             ia.setMaxMarks(req.getMaxMarks());
             if (req.getIaDate() != null) ia.setIaDate(req.getIaDate());
-            if (m.getSubmittedDate() != null) ia.setSubmittedDate(m.getSubmittedDate());
             return ia;
         }).toList();
 
         iaRepository.saveAll(toSave);
+    }
+
+    @Override
+    @Transactional
+    public void calculateFinalMarksForAllStudents(Long classStructureId, Long courseId) {
+        ClassStructure cs = classStructureRepository.findById(classStructureId)
+                .orElseThrow(() -> new ResourceNotFoundException("ClassStructure not found"));
+
+        List<Student> students = resolveStudents(cs);
+        if (students.isEmpty()) return;
+
+        List<InternalAssessment> records =
+                iaRepository.findByClassStructureIdAndCourseId(classStructureId, courseId);
+
+        Map<Long, List<InternalAssessment>> byStudent = records.stream()
+                .collect(Collectors.groupingBy(ia -> ia.getStudent().getId()));
+
+        List<InternalAssessment> toUpdate = new ArrayList<>();
+        students.forEach(student -> {
+            List<InternalAssessment> studentIAs = byStudent.getOrDefault(student.getId(), List.of());
+            if (studentIAs.size() >= 2) {
+                BigDecimal finalMarks = calculateTopTwoAverage(studentIAs);
+                studentIAs.forEach(ia -> {
+                    ia.setFinalMarks(finalMarks);
+                    ia.setFinalMarksCalculatedDate(LocalDate.now());
+                    toUpdate.add(ia);
+                });
+            }
+        });
+
+        if (!toUpdate.isEmpty()) {
+            iaRepository.saveAll(toUpdate);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentFinalMarksResponseDTO> calculateAndGetFinalMarks(Long classStructureId, Long courseId) {
+        ClassStructure cs = classStructureRepository.findById(classStructureId)
+                .orElseThrow(() -> new ResourceNotFoundException("ClassStructure not found"));
+
+        List<Student> students = resolveStudents(cs);
+        if (students.isEmpty()) return List.of();
+
+        List<InternalAssessment> records =
+                iaRepository.findByClassStructureIdAndCourseId(classStructureId, courseId);
+
+        Map<Long, List<InternalAssessment>> byStudent = records.stream()
+                .collect(Collectors.groupingBy(ia -> ia.getStudent().getId()));
+
+        return students.stream().map(student -> {
+            List<InternalAssessment> studentIAs = byStudent.getOrDefault(student.getId(), List.of());
+            Map<Integer, BigDecimal> iaMarks = studentIAs.stream()
+                    .collect(Collectors.toMap(InternalAssessment::getIaNumber, InternalAssessment::getMarksObtained));
+
+            BigDecimal ia1 = iaMarks.getOrDefault(1, BigDecimal.ZERO);
+            BigDecimal ia2 = iaMarks.getOrDefault(2, BigDecimal.ZERO);
+            BigDecimal ia3 = iaMarks.getOrDefault(3, BigDecimal.ZERO);
+
+            BigDecimal topTwoAvg = calculateTopTwoAverage(studentIAs);
+            LocalDate calcDate = studentIAs.isEmpty() ? null : studentIAs.get(0).getFinalMarksCalculatedDate();
+
+            return StudentFinalMarksResponseDTO.builder()
+                    .studentId(student.getId())
+                    .studentName(student.getFirstName() + " " + (student.getLastName() != null ? student.getLastName() : ""))
+                    .registrationNumber(student.getUser() != null ? student.getUser().getRegistrationNumber() : null)
+                    .ia1Marks(ia1)
+                    .ia2Marks(ia2)
+                    .ia3Marks(ia3)
+                    .topTwoAverage(topTwoAvg)
+                    .finalMarks(topTwoAvg)
+                    .calculatedDate(calcDate)
+                    .build();
+        }).toList();
+    }
+
+    private BigDecimal calculateTopTwoAverage(List<InternalAssessment> studentIAs) {
+        if (studentIAs.size() < 2) return null;
+
+        return studentIAs.stream()
+                .map(InternalAssessment::getMarksObtained)
+                .sorted(Comparator.reverseOrder())
+                .limit(2)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
     }
 
     private List<Student> resolveStudents(ClassStructure cs) {

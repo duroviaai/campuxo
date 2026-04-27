@@ -21,6 +21,5 @@ public class IASaveRequestDTO {
     public static class StudentMarkDTO {
         @NotNull private Long studentId;
         @NotNull @DecimalMin("0") private BigDecimal marksObtained;
-        private LocalDate submittedDate;
     }
 }

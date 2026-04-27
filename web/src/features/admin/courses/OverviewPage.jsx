@@ -9,33 +9,40 @@ import {
 } from './coursesAdminApi';
 import { useGetStatsQuery } from '../state/adminApi';
 import { useGetFacultyQuery } from '../../faculty/state/facultyApi';
+import { useGetStudentsQuery } from '../../student/state/studentApi';
 import ROUTES from '../../../app/routes/routeConstants';
 
 // -- Stats Bar ----------------------------------------------------------------
-const StatCard = ({ label, value, to, color }) => {
-  const navigate = useNavigate();
-  return (
-    <button
-      onClick={() => navigate(to)}
-      className={`flex-1 min-w-[120px] bg-white rounded-xl border p-4 text-left hover:shadow-md transition-all group ${color.border}`}
-    >
-      <p className={`text-2xl font-black ${color.text}`}>{value ?? '-'}</p>
-      <p className="text-xs text-gray-500 mt-0.5 group-hover:text-gray-700">{label}</p>
-    </button>
-  );
-};
+const StatCard = ({ label, value, color, onClick, active }) => (
+  <button
+    onClick={onClick}
+    className={`flex-1 min-w-[120px] rounded-xl border p-4 text-left hover:shadow-md transition-all group ${
+      active ? `${color.activeBg} ${color.border}` : `bg-white ${color.border}`
+    }`}
+  >
+    <p className={`text-2xl font-black ${color.text}`}>{value ?? '-'}</p>
+    <p className="text-xs text-gray-500 mt-0.5 group-hover:text-gray-700">{label}</p>
+  </button>
+);
 
-const StatsBar = () => {
+const StatsBar = ({ activeTab, onTabChange, navigate }) => {
   const { data } = useGetStatsQuery();
   const items = [
-    { label: 'Students',          value: data?.totalStudents,    to: ROUTES.ADMIN_STUDENTS,  color: { border: 'border-blue-100',    text: 'text-blue-600'    } },
-    { label: 'Faculty',           value: data?.totalFaculty,     to: ROUTES.ADMIN_FACULTY,   color: { border: 'border-indigo-100',  text: 'text-indigo-600'  } },
-    { label: 'Courses',           value: data?.totalCourses,     to: ROUTES.ADMIN_COURSES,   color: { border: 'border-emerald-100', text: 'text-emerald-600' } },
-    { label: 'Pending Approvals', value: data?.pendingApprovals, to: ROUTES.ADMIN_APPROVALS, color: { border: 'border-amber-100',   text: 'text-amber-600'   } },
+    { label: 'Students',          value: data?.totalStudents,    tab: 'students', color: { border: 'border-blue-200',    text: 'text-blue-600',    activeBg: 'bg-blue-50'    } },
+    { label: 'Faculty',           value: data?.totalFaculty,     tab: 'faculty',  color: { border: 'border-indigo-200',  text: 'text-indigo-600',  activeBg: 'bg-indigo-50'  } },
+    { label: 'Courses',           value: data?.totalCourses,     tab: 'courses',  color: { border: 'border-emerald-200', text: 'text-emerald-600', activeBg: 'bg-emerald-50' } },
+    { label: 'Pending Approvals', value: data?.pendingApprovals, tab: null,       color: { border: 'border-amber-200',   text: 'text-amber-600',   activeBg: 'bg-amber-50'   } },
   ];
   return (
     <div className="flex flex-wrap gap-3">
-      {items.map((item) => <StatCard key={item.label} {...item} />)}
+      {items.map((item) => (
+        <StatCard
+          key={item.label}
+          {...item}
+          active={item.tab && activeTab === item.tab}
+          onClick={() => item.tab ? onTabChange(item.tab) : navigate(ROUTES.ADMIN_APPROVALS)}
+        />
+      ))}
     </div>
   );
 };
@@ -96,7 +103,7 @@ const CourseCard = ({ course, faculty = [], onAssignFaculty }) => (
 const SemesterCourses = ({ classStructure, dept, batch, spec, onBack }) => {
   const navigate = useNavigate();
   const { data: courses = [], isLoading } = useGetAdminCoursesQuery({ classStructureId: classStructure.id });
-  const getFaculty = (course) => course.assignedFaculty ?? [];
+  const getFaculty = (course) => course.facultyId ? [{ id: course.facultyId, fullName: course.facultyName }] : [];
   const unassigned = courses.filter((c) => getFaculty(c).length === 0).length;
 
   return (
@@ -437,8 +444,20 @@ const CoursesTab = () => {
   );
 };
 
-// -- Placeholder tabs (to be built next) --------------------------------------
+// -- Dept student count badge ------------------------------------------------
+const DeptStudentCount = ({ deptName }) => {
+  const { data } = useGetStudentsQuery({ page: 0, size: 1, department: deptName });
+  const count = data?.totalElements;
+  if (count == null) return null;
+  return (
+    <span className="shrink-0 text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-semibold ml-2">
+      {count} student{count !== 1 ? 's' : ''}
+    </span>
+  );
+};
+
 const FacultyTab = () => {
+  const navigate = useNavigate();
   const [dept, setDept] = useState(null);
   const { data: departments = [], isLoading: deptsLoading } = useGetDepartmentsQuery();
   const { data: facultyData, isLoading: facultyLoading } = useGetFacultyQuery(
@@ -506,6 +525,10 @@ const FacultyTab = () => {
           <h2 className="text-base font-bold text-gray-900">Faculty by Department</h2>
           <p className="text-xs text-gray-400 mt-0.5">Select a department to view its faculty members.</p>
         </div>
+        <button onClick={() => navigate(ROUTES.ADMIN_FACULTY)}
+          className="text-xs font-semibold text-indigo-600 hover:underline">
+          View full page &rarr;
+        </button>
       </div>
       {deptsLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -516,7 +539,10 @@ const FacultyTab = () => {
           {departments.map((d) => (
             <button key={d.id} onClick={() => setDept(d)}
               className="text-left bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-400 hover:shadow-md transition-all group">
-              <p className="text-base font-bold text-gray-900">{d.name}</p>
+              <div className="flex items-start justify-between">
+                <p className="text-base font-bold text-gray-900">{d.name}</p>
+                <DeptStudentCount deptName={d.name} />
+              </div>
               <p className="text-indigo-400 text-xs mt-3 opacity-0 group-hover:opacity-100 transition-opacity">View faculty &rarr;</p>
             </button>
           ))}
@@ -558,84 +584,69 @@ const FacultyViewCard = ({ f, getName, initials }) => (
   </div>
 );
 
-const StudentsTab = () => {
+// -- Student list (drill level 3) --------------------------------------------
+const StudentList = ({ batch, dept, onBack }) => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [deptFilter, setDeptFilter] = useState('');
   const [page, setPage] = useState(0);
   const [detail, setDetail] = useState(null);
 
-  const { data: depts = [] } = useGetDepartmentsQuery();
-  const { data, isLoading } = useGetStudentsQuery(
-    { page, size: 15, sort: 'id', ...(search ? { search } : {}), ...(deptFilter ? { department: deptFilter } : {}) },
-  );
+  const { data, isLoading } = useGetStudentsQuery({
+    page, size: 15, sort: 'id',
+    department: dept.name,
+    classBatchStartYear: batch.startYear,
+    classBatchEndYear: batch.endYear,
+    ...(search ? { search } : {}),
+  });
   const students = data?.content ?? data ?? [];
   const totalPages = data?.totalPages ?? 0;
   const totalElements = data?.totalElements ?? 0;
 
   const getName = (s) => [s.firstName, s.lastName].filter(Boolean).join(' ') || s.fullName || '-';
-  const initials = (s) => getName(s).split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
+  const getInitials = (s) => getName(s).split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2 text-xs flex-wrap">
+        <button onClick={() => onBack('batch')} className="text-indigo-600 hover:underline">Batches</button>
+        <span className="text-gray-300">/</span>
+        <button onClick={() => onBack('dept')} className="text-indigo-600 hover:underline">{batch.startYear}-{batch.endYear}</button>
+        <span className="text-gray-300">/</span>
+        <span className="font-semibold text-gray-800">{dept.name}</span>
+      </div>
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-base font-bold text-gray-900">Students</h2>
-          {!isLoading && <p className="text-xs text-gray-400 mt-0.5">{totalElements} total</p>}
+          <h2 className="text-base font-bold text-gray-900">{dept.name} &middot; {batch.startYear}-{batch.endYear}</h2>
+          {!isLoading && <p className="text-xs text-gray-400 mt-0.5">{totalElements} student{totalElements !== 1 ? 's' : ''}</p>}
         </div>
+        <button onClick={() => navigate(ROUTES.ADMIN_STUDENTS)}
+          className="text-xs font-semibold text-indigo-600 hover:underline">View full page &rarr;</button>
       </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <input
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          placeholder="Search name, email or reg. no."
-          className="border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300 min-w-[220px]"
-        />
-        <select
-          value={deptFilter}
-          onChange={(e) => { setDeptFilter(e.target.value); setPage(0); }}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300"
-        >
-          <option value="">All Departments</option>
-          {depts.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
-        </select>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+        placeholder="Search name, email or reg. no."
+        className="border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300 w-full max-w-xs" />
+      <div className="rounded-xl border border-gray-200 overflow-hidden">
         {isLoading ? (
-          <div className="p-4 space-y-3">
-            {[1,2,3,4,5].map((i) => <div key={i} className="h-10 rounded-lg bg-gray-100 animate-pulse" />)}
-          </div>
+          <div className="p-4 space-y-3">{[1,2,3,4,5].map((i) => <div key={i} className="h-10 rounded-lg bg-gray-100 animate-pulse" />)}</div>
         ) : students.length === 0 ? (
-          <div className="py-14 text-center space-y-2">
-            <p className="text-3xl">🎓</p>
-            <p className="text-sm font-semibold text-gray-700">
-              {search || deptFilter ? 'No students match your filters.' : 'No students yet.'}
-            </p>
+          <div className="py-14 text-center bg-white space-y-2">
+            <p className="text-3xl">&#127891;</p>
+            <p className="text-sm font-semibold text-gray-700">{search ? 'No students match.' : 'No students in this batch & department.'}</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                {['Student', 'Reg. No.', 'Department', 'Year', 'Batch', 'Scheme'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
+              <tr>{['Student','Reg. No.','Year','Scheme'].map((h) => (
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+              ))}</tr>
             </thead>
             <tbody>
               {students.map((s, i) => (
-                <tr key={s.id}
-                  onClick={() => setDetail(s)}
-                  className={`border-b border-gray-100 last:border-0 cursor-pointer hover:bg-indigo-50/40 transition-colors ${
-                    i % 2 === 1 ? 'bg-gray-50/40' : 'bg-white'
-                  }`}>
+                <tr key={s.id} onClick={() => setDetail(s)}
+                  className={`border-b border-gray-100 last:border-0 cursor-pointer hover:bg-indigo-50/40 transition-colors ${i % 2 === 1 ? 'bg-gray-50/40' : 'bg-white'}`}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700 shrink-0">
-                        {initials(s)}
-                      </div>
+                      <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700 shrink-0">{getInitials(s)}</div>
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-gray-900 truncate">{getName(s)}</p>
                         <p className="text-[10px] text-gray-400 truncate">{s.email || '-'}</p>
@@ -643,22 +654,9 @@ const StudentsTab = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500 font-mono">{s.registrationNumber || '-'}</td>
-                  <td className="px-4 py-3 text-xs">
-                    {s.department
-                      ? <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-semibold">{s.department}</span>
-                      : <span className="text-gray-300">-</span>}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-600">
-                    {s.yearOfStudy ? `Year ${s.yearOfStudy}` : <span className="text-gray-300">-</span>}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 font-mono">
-                    {s.classBatchStartYear ? `${s.classBatchStartYear}-${s.classBatchEndYear}` : <span className="text-gray-300">-</span>}
-                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-600">{s.yearOfStudy ? `Year ${s.yearOfStudy}` : <span className="text-gray-300">-</span>}</td>
                   <td className="px-4 py-3">
-                    {s.scheme
-                      ? <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                          s.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
-                        }`}>{s.scheme}</span>
+                    {s.scheme ? <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${s.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>{s.scheme}</span>
                       : <span className="text-gray-300 text-xs">-</span>}
                   </td>
                 </tr>
@@ -666,57 +664,41 @@ const StudentsTab = () => {
             </tbody>
           </table>
         )}
-
-        {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-white">
             <p className="text-xs text-gray-400">Page {page + 1} of {totalPages}</p>
             <div className="flex gap-2">
               <button onClick={() => setPage((p) => p - 1)} disabled={page === 0}
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40">
-                Prev
-              </button>
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40">Prev</button>
               <button onClick={() => setPage((p) => p + 1)} disabled={page + 1 >= totalPages}
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40">
-                Next
-              </button>
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40">Next</button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Detail slide-over */}
       {detail && (
         <div className="fixed inset-0 z-50 flex">
           <div className="flex-1 bg-black/30" onClick={() => setDetail(null)} />
           <div className="w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-              <button onClick={() => setDetail(null)} className="text-xs text-indigo-600 hover:underline">Back</button>
-              <p className="text-sm font-bold text-gray-900">{getName(detail)}</p>
+              <button onClick={() => setDetail(null)} className="text-xs text-indigo-600 hover:underline">&#8592; Back</button>
+              <p className="text-sm font-bold text-gray-900 truncate mx-2">{getName(detail)}</p>
               <div className="w-10" />
             </div>
             <div className="overflow-y-auto flex-1 p-5 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-base font-bold text-indigo-700">
-                  {initials(detail)}
-                </div>
+                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-base font-bold text-indigo-700 shrink-0">{getInitials(detail)}</div>
                 <div>
                   <p className="text-base font-bold text-gray-900">{getName(detail)}</p>
-                  {detail.registrationNumber && (
-                    <p className="text-xs text-gray-400 font-mono mt-0.5">{detail.registrationNumber}</p>
-                  )}
+                  {detail.registrationNumber && <p className="text-xs text-gray-400 font-mono mt-0.5">{detail.registrationNumber}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  ['Email',    detail.email],
-                  ['Phone',    detail.phone],
-                  ['Dept',     detail.department],
-                  ['Year',     detail.yearOfStudy ? `Year ${detail.yearOfStudy}` : null],
-                  ['Batch',    detail.classBatchStartYear ? `${detail.classBatchStartYear}-${detail.classBatchEndYear}` : null],
-                  ['Scheme',   detail.scheme],
-                  ['DOB',      detail.dateOfBirth],
-                ].filter(([, v]) => v).map(([label, value]) => (
+                {[['Email',detail.email],['Phone',detail.phone],['Dept',detail.department],
+                  ['Year',detail.yearOfStudy?`Year ${detail.yearOfStudy}`:null],
+                  ['Batch',detail.classBatchStartYear?`${detail.classBatchStartYear}-${detail.classBatchEndYear}`:null],
+                  ['Scheme',detail.scheme],['DOB',detail.dateOfBirth]
+                ].filter(([,v])=>v).map(([label,value])=>(
                   <div key={label}>
                     <p className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</p>
                     <p className="text-xs font-semibold text-gray-800 mt-0.5">{value}</p>
@@ -731,18 +713,79 @@ const StudentsTab = () => {
   );
 };
 
+// -- Dept picker for students (drill level 2) ---------------------------------
+const StudentDeptLevel = ({ batch, onSelect, onBack }) => {
+  const { data: departments = [], isLoading } = useGetDepartmentsQuery();
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-2 text-xs">
+        <button onClick={onBack} className="text-indigo-600 hover:underline">Batches</button>
+        <span className="text-gray-300">/</span>
+        <span className="font-semibold text-gray-800">{batch.startYear}-{batch.endYear} <SchemeBadge scheme={batch.scheme} /></span>
+      </div>
+      <div>
+        <h2 className="text-base font-bold text-gray-900">Departments</h2>
+        <p className="text-xs text-gray-400 mt-0.5">Select a department to view its students.</p>
+      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1,2,3,4].map((i) => <div key={i} className="h-20 rounded-xl bg-gray-100 animate-pulse" />)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {departments.map((d) => (
+            <button key={d.id} onClick={() => onSelect(d)}
+              className="text-left bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-400 hover:shadow-md transition-all group">
+              <div className="flex items-start justify-between">
+                <p className="text-base font-bold text-gray-900">{d.name}</p>
+                <DeptStudentCount deptName={d.name} />
+              </div>
+              <p className="text-indigo-400 text-xs mt-3 opacity-0 group-hover:opacity-100 transition-opacity">View students &rarr;</p>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const S_LEVEL = { BATCH: 'batch', DEPT: 'dept', LIST: 'list' };
+
+const StudentsTab = () => {
+  const [level, setLevel] = useState(S_LEVEL.BATCH);
+  const [batch, setBatch] = useState(null);
+  const [dept, setDept] = useState(null);
+
+  const handleBack = (to) => {
+    if (to === 'batch') { setBatch(null); setDept(null); setLevel(S_LEVEL.BATCH); }
+    if (to === 'dept')  { setDept(null); setLevel(S_LEVEL.DEPT); }
+  };
+
+  return (
+    <>
+      {level === S_LEVEL.BATCH && (
+        <BatchLevel onSelect={(b) => { setBatch(b); setLevel(S_LEVEL.DEPT); }} />
+      )}
+      {level === S_LEVEL.DEPT && batch && (
+        <StudentDeptLevel batch={batch} onSelect={(d) => { setDept(d); setLevel(S_LEVEL.LIST); }} onBack={() => handleBack('batch')} />
+      )}
+      {level === S_LEVEL.LIST && batch && dept && (
+        <StudentList batch={batch} dept={dept} onBack={handleBack} />
+      )}
+    </>
+  );
+};
+
+
+
 // -- Main Page ----------------------------------------------------------------
 const OverviewPage = () => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState('courses');
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Overview</h1>
-        <p className="text-sm text-gray-500 mt-0.5">View and manage courses, faculty and students in one place</p>
-      </div>
-
-      <StatsBar />
+      <StatsBar activeTab={tab} onTabChange={setTab} navigate={navigate} />
 
       <div className="bg-white rounded-xl border border-gray-200">
         <div className="px-6 pt-4">

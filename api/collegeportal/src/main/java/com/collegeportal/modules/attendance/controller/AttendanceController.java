@@ -34,7 +34,7 @@ public class AttendanceController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FACULTY')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FACULTY', 'ROLE_HOD')")
     public ResponseEntity<List<AttendanceResponseDTO>> markAttendanceBatch(
             @Valid @RequestBody List<AttendanceBatchRequestDTO> requests) {
         return ResponseEntity.status(HttpStatus.CREATED).body(attendanceService.markAttendanceBatch(requests));
@@ -85,7 +85,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/class-structure/{classStructureId}/course/{courseId}/overview")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_HOD')")
     public ResponseEntity<List<StudentAttendanceOverviewDTO>> getOverviewByClassStructure(
             @PathVariable Long classStructureId,
             @PathVariable Long courseId) {
@@ -93,7 +93,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/course/{courseId}/class-structure/{classStructureId}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_HOD')")
     public ResponseEntity<List<AttendanceResponseDTO>> getAttendanceByCourseAndClassStructure(
             @PathVariable Long courseId,
             @PathVariable Long classStructureId,

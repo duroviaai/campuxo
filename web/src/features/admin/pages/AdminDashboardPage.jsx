@@ -31,7 +31,6 @@ const AdminDashboardPage = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

@@ -3,92 +3,146 @@ import ROUTES from '../../../app/routes/routeConstants';
 import ROLES from '../../constants/roles';
 import SidebarItem from './SidebarItem';
 import { useGetStatsQuery } from '../../../features/admin/state/adminApi';
-
-const ICONS = {
-  overview:   'M4 6h16M4 10h16M4 14h16M4 18h16',
-  dashboard:  'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6',
-  students:   'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197',
-  faculty:    'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0',
-  courses:    'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
-  classes:    'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 00-1-1h-2a1 1 0 00-1 1v5m4 0H9',
-  attendance: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
-  approvals:  'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-  ia:         'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-3-3v6',
-};
+import { Icon, NavIcons, AcademicIcons, ActionIcons, StatusIcons } from '../icons/IconLibrary';
+import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import BrandLogo from '../ui/BrandLogo';
 
 const HOD_ITEMS = [
-  { to: ROUTES.HOD_DASHBOARD, label: 'Dashboard', icon: ICONS.dashboard, end: true },
-  { to: ROUTES.HOD_FACULTY,   label: 'Faculty',   icon: ICONS.faculty },
-  { to: ROUTES.HOD_STUDENTS,  label: 'Students',  icon: ICONS.students },
-  { to: ROUTES.HOD_COURSES,   label: 'Courses',   icon: ICONS.courses },
+  { to: ROUTES.HOD_DASHBOARD, label: 'Dashboard', icon: NavIcons.dashboard, end: true },
+  { to: ROUTES.HOD_FACULTY,   label: 'Faculty',   icon: NavIcons.faculty },
+  { to: ROUTES.HOD_STUDENTS,  label: 'Students',  icon: NavIcons.students },
+  { to: ROUTES.HOD_COURSES,   label: 'Courses',   icon: AcademicIcons.book },
 ];
 
 const FACULTY_ITEMS = [
-  { to: ROUTES.FACULTY_DASHBOARD,  label: 'Dashboard',  icon: ICONS.dashboard, end: true },
-  { to: ROUTES.FACULTY_COURSES,    label: 'My Courses', icon: ICONS.courses },
-  { to: ROUTES.FACULTY_ATTENDANCE, label: 'Attendance', icon: ICONS.attendance },
-  { to: ROUTES.FACULTY_PROFILE,    label: 'Profile',    icon: ICONS.students },
+  { to: ROUTES.FACULTY_DASHBOARD,  label: 'Dashboard',  icon: NavIcons.dashboard, end: true },
+  { to: ROUTES.FACULTY_COURSES,    label: 'My Courses', icon: AcademicIcons.book },
+  { to: ROUTES.FACULTY_ATTENDANCE, label: 'Attendance', icon: NavIcons.attendance },
+  { to: ROUTES.FACULTY_PROFILE,    label: 'Profile',    icon: NavIcons.users },
 ];
 
 const STUDENT_ITEMS = [
-  { to: ROUTES.STUDENT_DASHBOARD,  label: 'Dashboard',  icon: ICONS.dashboard, end: true },
-  { to: ROUTES.STUDENT_COURSES,    label: 'My Courses', icon: ICONS.courses },
-  { to: ROUTES.STUDENT_ATTENDANCE, label: 'Attendance', icon: ICONS.attendance },
-  { to: ROUTES.STUDENT_PROFILE,    label: 'Profile',    icon: ICONS.students },
+  { to: ROUTES.STUDENT_DASHBOARD,  label: 'Dashboard',  icon: NavIcons.dashboard, end: true },
+  { to: ROUTES.STUDENT_COURSES,    label: 'My Courses', icon: AcademicIcons.book },
+  { to: ROUTES.STUDENT_ATTENDANCE, label: 'Attendance', icon: NavIcons.attendance },
+  { to: ROUTES.STUDENT_PROFILE,    label: 'Profile',    icon: NavIcons.users },
 ];
 
-const Sidebar = () => {
+const ROLE_BADGE = {
+  admin:   { label: 'Admin',   color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
+  hod:     { label: 'HOD',     color: '#38bdf8', bg: 'rgba(56,189,248,0.12)' },
+  faculty: { label: 'Faculty', color: '#34d399', bg: 'rgba(52,211,153,0.12)' },
+  student: { label: 'Student', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
+};
+
+const Sidebar = ({ collapsed, onToggle }) => {
   const { user } = useAuth();
-  const roles = user?.roles ?? [];
-  const isAdmin = roles.includes(ROLES.ADMIN);
-  const isHod    = roles.includes('ROLE_HOD');
+  const roles     = user?.roles ?? [];
+  const isAdmin   = roles.includes(ROLES.ADMIN);
+  const isHod     = roles.includes('ROLE_HOD');
+  const isFaculty = roles.includes(ROLES.FACULTY);
 
   const { data: stats } = useGetStatsQuery(undefined, { skip: !isAdmin });
   const pendingCount = stats?.pendingApprovals ?? 0;
 
   const ADMIN_ITEMS = [
-    { to: ROUTES.ADMIN_DASHBOARD,  label: 'Dashboard',  icon: ICONS.dashboard,  end: true },
-    { to: ROUTES.ADMIN_STUDENTS,   label: 'Students',   icon: ICONS.students },
-    { to: ROUTES.ADMIN_FACULTY,    label: 'Faculty',    icon: ICONS.faculty },
-    { to: ROUTES.ADMIN_COURSES,    label: 'Courses',    icon: ICONS.courses },
-    { to: ROUTES.ADMIN_OVERVIEW,   label: 'Overview',   icon: ICONS.overview },
-    { to: ROUTES.ADMIN_ATTENDANCE, label: 'Attendance', icon: ICONS.attendance },
-    { to: ROUTES.ADMIN_IA,         label: 'IA Marks',   icon: ICONS.ia },
-    { to: ROUTES.ADMIN_APPROVALS,  label: 'Approvals',  icon: ICONS.approvals, badge: pendingCount },
+    { to: ROUTES.ADMIN_DASHBOARD, label: 'Dashboard',          icon: NavIcons.dashboard,  end: true },
+    { to: ROUTES.ADMIN_STUDENTS,  label: 'Students',           icon: NavIcons.students },
+    { to: ROUTES.ADMIN_FACULTY,   label: 'Faculty',            icon: NavIcons.faculty },
+    { to: ROUTES.ADMIN_COURSES,   label: 'Courses',            icon: AcademicIcons.book },
+    { to: ROUTES.ADMIN_OVERVIEW,  label: 'Overview',           icon: ActionIcons.filter },
+    { to: ROUTES.ADMIN_ATTENDANCE,label: 'Attendance',         icon: NavIcons.attendance },
+    { to: ROUTES.ADMIN_IA,        label: 'Internal Assessment',icon: AcademicIcons.marks },
+    { to: ROUTES.ADMIN_APPROVALS, label: 'Approvals',          icon: StatusIcons.check, badge: pendingCount },
   ];
 
-  const items = isAdmin
-    ? ADMIN_ITEMS
-    : isHod
-    ? HOD_ITEMS
-    : roles.includes(ROLES.FACULTY)
-    ? FACULTY_ITEMS
-    : STUDENT_ITEMS;
-
-  const subtitle = isAdmin
-    ? 'Admin Panel'
-    : isHod
-    ? 'HOD Panel'
-    : roles.includes(ROLES.FACULTY)
-    ? 'Faculty Panel'
-    : 'Student Panel';
+  const items   = isAdmin ? ADMIN_ITEMS : isHod ? HOD_ITEMS : isFaculty ? FACULTY_ITEMS : STUDENT_ITEMS;
+  const roleKey = isAdmin ? 'admin' : isHod ? 'hod' : isFaculty ? 'faculty' : 'student';
+  const badge   = ROLE_BADGE[roleKey];
 
   return (
-    <aside className="w-64 bg-gray-900 text-white flex flex-col">
-      <div className="px-5 py-5 border-b border-gray-700">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0">
-            <span className="text-white text-[10px] font-black tracking-tight">cx</span>
-          </div>
-          <span className="text-base font-bold text-white tracking-tight">campuxo</span>
+    <aside
+      className="flex flex-col h-screen sticky top-0 shrink-0 transition-all duration-300"
+      style={{
+        width: collapsed ? '68px' : '236px',
+        background: '#0f172a',
+        borderRight: '1px solid rgba(255,255,255,0.05)',
+        boxShadow: '1px 0 0 rgba(255,255,255,0.04)',
+      }}
+    >
+      {/* Brand */}
+      <div className="flex items-center h-16 shrink-0 px-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="shrink-0">
+          {collapsed
+            ? <BrandLogo size="sm" dark iconOnly />
+            : <BrandLogo size="sm" dark />
+          }
         </div>
-        <p className="text-xs text-gray-400 mt-1.5">{subtitle}</p>
+
+        {!collapsed && (
+          <div className="ml-auto">
+            <span
+              className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md inline-block"
+              style={{ background: badge.bg, color: badge.color }}
+            >
+              {badge.label}
+            </span>
+          </div>
+        )}
+
+        <button
+          onClick={onToggle}
+          className="w-6 h-6 flex items-center justify-center rounded-md transition-colors shrink-0"
+          style={{ color: 'rgba(100,116,139,1)', marginLeft: collapsed ? 'auto' : undefined }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'rgba(100,116,139,1)'; }}
+        >
+          <Icon icon={collapsed ? faChevronRight : faChevronLeft} size="xs" />
+        </button>
       </div>
-      <nav className="flex-1 p-3 flex flex-col gap-1">
+
+      {/* Nav */}
+      <nav className="flex-1 px-2 py-4 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden">
+        {!collapsed && (
+          <p className="text-[10px] font-semibold uppercase tracking-widest px-2 mb-2" style={{ color: 'rgba(71,85,105,1)' }}>
+            Navigation
+          </p>
+        )}
         {items.map((item) => (
-          <SidebarItem key={item.to} {...item} />
+          <SidebarItem key={item.to} {...item} collapsed={collapsed} />
         ))}
       </nav>
+
+      {/* User footer */}
+      <div
+        className="p-3 shrink-0"
+        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+      >
+        {collapsed ? (
+          <div
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold mx-auto"
+            style={{ background: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', color: '#fff' }}
+          >
+            {user?.username?.[0]?.toUpperCase() ?? '?'}
+          </div>
+        ) : (
+          <div
+            className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg"
+            style={{ background: 'rgba(255,255,255,0.04)' }}
+          >
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
+              style={{ background: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', color: '#fff' }}
+            >
+              {user?.username?.[0]?.toUpperCase() ?? '?'}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold truncate" style={{ color: '#f1f5f9' }}>{user?.username}</p>
+              <p className="text-[10px] truncate" style={{ color: 'rgba(100,116,139,1)' }}>{badge.label}</p>
+            </div>
+          </div>
+        )}
+      </div>
     </aside>
   );
 };

@@ -631,8 +631,6 @@ const AdminAttendancePage = () => {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900">Attendance</h1>
-
       <Crumb items={crumbs} onNav={(i) => goTo(i)} />
 
       <div className="bg-white rounded-xl border border-gray-200 p-6">

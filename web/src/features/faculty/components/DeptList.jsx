@@ -24,7 +24,6 @@ const DeptList = ({ onSelect }) => {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Faculty</h1>
         <p className="text-xs text-gray-400 mt-0.5">Select a department to manage its faculty.</p>
       </div>
 

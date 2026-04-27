@@ -1,70 +1,81 @@
 import { useGetHodStatsQuery, useGetHodCoursesQuery } from '../state/hodApi';
-import useAuth from '../../auth/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import ROUTES from '../../../app/routes/routeConstants';
+import { Card, EmptyState } from '../../../shared/components/ui/PageShell';
+import { FaChalkboardTeacher, FaUserGraduate, FaBook } from 'react-icons/fa';
 
-const StatCard = ({ label, value, icon, color, onClick }) => (
-  <div
+const STATS_CFG = [
+  { key: 'totalFaculty',  label: 'Faculty',  icon: FaChalkboardTeacher, accent: { bg: '#f5f3ff', color: '#7c3aed' }, route: 'HOD_FACULTY' },
+  { key: 'totalStudents', label: 'Students', icon: FaUserGraduate,      accent: { bg: '#ecfdf5', color: '#059669' }, route: 'HOD_STUDENTS' },
+  { key: 'totalCourses',  label: 'Courses',  icon: FaBook,              accent: { bg: '#fffbeb', color: '#d97706' }, route: 'HOD_COURSES' },
+];
+
+const StatCard = ({ label, value, Icon, accent, onClick }) => (
+  <button
     onClick={onClick}
-    className={`bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+    className="group bg-white rounded-xl p-5 flex flex-col gap-3 text-left w-full transition-all"
+    style={{ border: '1px solid #e8edf2' }}
+    onMouseEnter={e => { e.currentTarget.style.borderColor = accent.color + '40'; e.currentTarget.style.boxShadow = `0 4px 16px ${accent.color}15`; }}
+    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e8edf2'; e.currentTarget.style.boxShadow = ''; }}
   >
-    <div className={`text-2xl w-12 h-12 flex items-center justify-center rounded-lg ${color}`}>{icon}</div>
-    <div>
-      <p className="text-xs text-gray-500 font-medium">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 leading-tight">{value}</p>
+    <div className="flex items-center justify-between">
+      <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: accent.bg, color: accent.color }}>
+        <Icon size={14} />
+      </div>
+      <svg className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: accent.color }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 17L17 7M17 7H7M17 7v10" />
+      </svg>
     </div>
-  </div>
+    <div>
+      <p className="text-2xl font-bold tracking-tight" style={{ color: '#0f172a' }}>{value ?? '—'}</p>
+      <p className="text-xs font-medium mt-0.5" style={{ color: '#64748b' }}>{label}</p>
+    </div>
+  </button>
 );
 
 const HodDashboardPage = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const { data: stats, isLoading: statsLoading } = useGetHodStatsQuery();
   const { data: courses = [], isLoading: coursesLoading } = useGetHodCoursesQuery();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Welcome, {user?.username} 👋</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          HOD Panel — {stats?.department ?? 'Loading department...'}
-        </p>
+    <div className="space-y-5 max-w-5xl">
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {statsLoading
+          ? [1,2,3].map(i => <div key={i} className="rounded-xl h-28 skeleton" />)
+          : STATS_CFG.map(({ key, label, icon: Icon, accent, route }) => (
+              <StatCard key={key} label={label} value={stats?.[key] ?? 0} Icon={Icon} accent={accent} onClick={() => navigate(ROUTES[route])} />
+            ))
+        }
       </div>
 
-      {statsLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => <div key={i} className="bg-white rounded-xl border border-gray-100 h-24 animate-pulse" />)}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard label="Faculty" value={stats?.totalFaculty ?? 0} icon="👨‍🏫" color="bg-indigo-50 text-indigo-600" onClick={() => navigate(ROUTES.HOD_FACULTY)} />
-          <StatCard label="Students" value={stats?.totalStudents ?? 0} icon="🎓" color="bg-emerald-50 text-emerald-600" onClick={() => navigate(ROUTES.HOD_STUDENTS)} />
-          <StatCard label="Courses" value={stats?.totalCourses ?? 0} icon="📚" color="bg-amber-50 text-amber-600" onClick={() => navigate(ROUTES.HOD_COURSES)} />
-        </div>
+      {/* Department courses */}
+      {!coursesLoading && courses.length === 0 && (
+        <EmptyState message="No courses in your department yet." />
       )}
-
       {!coursesLoading && courses.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-800">Department Courses</h2>
-            <button onClick={() => navigate(ROUTES.HOD_COURSES)} className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
-              View all →
+        <Card>
+          <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #f1f5f9' }}>
+            <p className="text-sm font-semibold" style={{ color: '#0f172a' }}>Department Courses</p>
+            <button onClick={() => navigate(ROUTES.HOD_COURSES)} className="text-xs font-semibold" style={{ color: '#7c3aed' }}>
+              View all
             </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4">
             {courses.slice(0, 6).map((c) => (
-              <div key={c.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
-                  {c.code?.slice(0, 2)}
+              <div key={c.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{ border: '1px solid #f1f5f9' }}>
+                <div className="w-8 h-8 rounded-md flex items-center justify-center text-[11px] font-bold text-white shrink-0" style={{ background: '#7c3aed' }}>
+                  {c.code?.slice(0, 2) ?? '??'}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-gray-900 truncate">{c.name}</p>
-                  <p className="text-xs text-gray-400">{c.studentCount ?? 0} students · {c.facultyName ?? 'Unassigned'}</p>
+                  <p className="text-xs font-semibold truncate" style={{ color: '#0f172a' }}>{c.name}</p>
+                  <p className="text-[11px]" style={{ color: '#94a3b8' }}>{c.studentCount ?? 0} students · {c.facultyName ?? 'Unassigned'}</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

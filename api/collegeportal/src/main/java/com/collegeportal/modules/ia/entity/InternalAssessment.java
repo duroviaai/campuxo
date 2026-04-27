@@ -43,6 +43,9 @@ public class InternalAssessment extends BaseEntity {
     @Column(name = "ia_date")
     private LocalDate iaDate;
 
-    @Column(name = "submitted_date")
-    private LocalDate submittedDate;
+    @Column(name = "final_marks", precision = 5, scale = 2)
+    private BigDecimal finalMarks;
+
+    @Column(name = "final_marks_calculated_date")
+    private LocalDate finalMarksCalculatedDate;
 }

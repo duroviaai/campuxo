@@ -1,0 +1,16 @@
+export {
+  Icon,
+  ICON_SIZES,
+  NavIcons,
+  ActionIcons,
+  StatusIcons,
+  UserIcons,
+  AcademicIcons,
+  NavigationIcons,
+  TimeIcons,
+  FileIcons,
+  NotificationIcons,
+  UtilityIcons,
+  SecurityIcons,
+  SystemIcons,
+} from './IconLibrary';

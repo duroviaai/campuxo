@@ -15,4 +15,6 @@ public class StudentIAResponseDTO {
     private Map<Integer, BigDecimal> marks;
     private Map<Integer, BigDecimal> maxMarks;
     private Map<Integer, LocalDate>  dates;
+    private BigDecimal finalMarks;
+    private LocalDate finalMarksCalculatedDate;
 }

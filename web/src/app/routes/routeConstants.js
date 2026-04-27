@@ -38,10 +38,12 @@ const ROUTES = {
   FACULTY_STUDENT_ATTENDANCE: '/faculty/students/:studentId/attendance',
 
   // HOD
-  HOD_DASHBOARD: '/hod/dashboard',
-  HOD_FACULTY:   '/hod/faculty',
-  HOD_STUDENTS:  '/hod/students',
-  HOD_COURSES:   '/hod/courses',
+  HOD_DASHBOARD:    '/hod/dashboard',
+  HOD_FACULTY:      '/hod/faculty',
+  HOD_STUDENTS:     '/hod/students',
+  HOD_COURSES:      '/hod/courses',
+  HOD_ATTENDANCE:   '/hod/attendance',
+  HOD_IA:           '/hod/ia',
 };
 
 export default ROUTES;

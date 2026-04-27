@@ -742,7 +742,7 @@ const CoursePanel = ({ course, classStructure }) => {
         {course.facultyName && <FacultyLink facultyId={course.facultyId} facultyName={course.facultyName} />}
       </div>
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-        {[['ia', 'IA Marks'], ['assignment', 'Assignment'], ['seminar', 'Seminar']].map(([key, label]) => (
+        {[['ia', 'Internal Assessment'], ['assignment', 'Assignment'], ['seminar', 'Seminar']].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
             className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
               tab === key ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
@@ -783,7 +783,6 @@ const AdminIAPage = () => {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900">Internal Assessment</h1>
       <Crumb items={crumbs} onNav={(i) => goTo(i)} />
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         {level === L.BATCH && <BatchStep onSelect={(b) => { setBatch(b); setLevel(L.DEPT); }} />}

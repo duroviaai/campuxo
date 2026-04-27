@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
+import { FaLayerGroup, FaUserGraduate, FaChalkboardTeacher, FaBook, FaClipboardList, FaCheckCircle, FaCheck, FaTimes, FaHourglassHalf } from 'react-icons/fa';
 import {
   useGetStatsQuery,
   useGetPendingUsersQuery,
@@ -25,31 +26,39 @@ const RoleBadge = ({ roles }) => {
   );
 };
 
-const StatCard = ({ label, value, icon, bg, onClick, loading }) => (
+const StatCard = ({ label, value, icon, accent, onClick, loading }) => (
   <button
     onClick={onClick}
-    className="group bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all text-left w-full"
+    className="group bg-white rounded-xl p-5 flex flex-col gap-3 text-left w-full transition-all duration-200"
+    style={{ border: '1px solid #e8edf2', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+    onMouseEnter={e => { e.currentTarget.style.borderColor = accent.color + '40'; e.currentTarget.style.boxShadow = `0 4px 16px ${accent.color}18`; }}
+    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e8edf2'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'; }}
   >
-    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg shrink-0 ${bg}`}>
-      {icon}
+    <div className="flex items-center justify-between">
+      <div className="w-9 h-9 rounded-lg flex items-center justify-center text-sm shrink-0" style={{ background: accent.bg, color: accent.color }}>
+        {icon}
+      </div>
+      <svg className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: accent.color }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 17L17 7M17 7H7M17 7v10" /></svg>
     </div>
-    <div className="min-w-0">
-      <p className="text-xs text-gray-400 font-medium truncate">{label}</p>
+    <div>
       {loading
-        ? <div className="h-7 w-10 bg-gray-100 rounded-lg animate-pulse mt-0.5" />
-        : <p className="text-2xl font-bold text-gray-900 leading-tight">{value ?? '—'}</p>
+        ? <div className="h-7 w-12 bg-slate-100 rounded animate-pulse mb-1" />
+        : <p className="text-2xl font-bold tracking-tight" style={{ color: '#0f172a' }}>{value ?? '—'}</p>
       }
+      <p className="text-xs font-medium mt-0.5" style={{ color: '#64748b' }}>{label}</p>
     </div>
-    <span className="ml-auto text-gray-300 group-hover:text-indigo-400 transition-colors text-sm">→</span>
   </button>
 );
 
 const QuickAction = ({ label, icon, onClick }) => (
   <button
     onClick={onClick}
-    className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-100 bg-white hover:border-indigo-300 hover:bg-indigo-50/50 transition-all text-sm font-medium text-gray-700 hover:text-indigo-700 w-full"
+    className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium w-full text-left"
+    style={{ color: '#475569' }}
+    onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#0f172a'; }}
+    onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#475569'; }}
   >
-    <span className="text-base">{icon}</span>
+    <span className="w-7 h-7 rounded-md flex items-center justify-center text-xs shrink-0" style={{ background: '#f1f5f9', color: '#64748b' }}>{icon}</span>
     {label}
   </button>
 );
@@ -68,9 +77,9 @@ const CoursesByDeptInner = ({ depts }) => {
   const max = Math.max(1, ...counts);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-bold text-gray-900">Courses by Department</h2>
+        <h2 className="text-sm font-bold text-slate-900">Courses by Department</h2>
         <button
           onClick={() => navigate(ROUTES.ADMIN_COURSES)}
           className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold"
@@ -145,41 +154,32 @@ const AdminDashboardPage = () => {
   };
 
   const STATS = [
-    { label: 'Students',         value: stats?.totalStudents,    icon: '🎓', bg: 'bg-indigo-50 text-indigo-500',  route: ROUTES.ADMIN_STUDENTS },
-    { label: 'Faculty',          value: stats?.totalFaculty,     icon: '👨‍🏫', bg: 'bg-emerald-50 text-emerald-500', route: ROUTES.ADMIN_FACULTY },
-    { label: 'Courses',          value: stats?.totalCourses,     icon: '📚', bg: 'bg-amber-50 text-amber-500',    route: ROUTES.ADMIN_COURSES },
-    { label: 'Pending Approvals',value: stats?.pendingApprovals, icon: '⏳', bg: 'bg-rose-50 text-rose-500',      route: ROUTES.ADMIN_APPROVALS },
+    { label: 'Students',          value: stats?.totalStudents,    icon: <FaUserGraduate />,     accent: { bg: '#f5f3ff', color: '#7c3aed' }, route: ROUTES.ADMIN_STUDENTS },
+    { label: 'Faculty',           value: stats?.totalFaculty,     icon: <FaChalkboardTeacher />, accent: { bg: '#ecfdf5', color: '#059669' }, route: ROUTES.ADMIN_FACULTY },
+    { label: 'Courses',           value: stats?.totalCourses,     icon: <FaBook />,              accent: { bg: '#fffbeb', color: '#d97706' }, route: ROUTES.ADMIN_COURSES },
+    { label: 'Pending Approvals', value: stats?.pendingApprovals, icon: <FaHourglassHalf />,     accent: { bg: '#fef2f2', color: '#dc2626' }, route: ROUTES.ADMIN_APPROVALS },
   ];
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Welcome back, Admin</p>
-        </div>
-        {pending.length > 0 && (
-          <button
-            onClick={() => navigate(ROUTES.ADMIN_APPROVALS)}
-            className="flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-600 text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-rose-100 transition-colors"
-          >
-            <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
-            {pending.length} pending approval{pending.length !== 1 ? 's' : ''}
-          </button>
-        )}
-      </div>
-
       {/* Stat Cards */}
+      {pending.length > 0 && (
+        <button
+          onClick={() => navigate(ROUTES.ADMIN_APPROVALS)}
+          className="flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-600 text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-rose-100 transition-colors w-fit"
+        >
+          <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+          {pending.length} pending approval{pending.length !== 1 ? 's' : ''}
+        </button>
+      )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {STATS.map(({ label, value, icon, bg, route }) => (
+        {STATS.map(({ label, value, icon, accent, route }) => (
           <StatCard
             key={label}
             label={label}
             value={value}
             icon={icon}
-            bg={bg}
+            accent={accent}
             loading={statsLoading}
             onClick={() => navigate(route)}
           />
@@ -189,8 +189,8 @@ const AdminDashboardPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Pending Approvals Table */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="lg:col-span-2 bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #e8edf2' }}>
+          <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid #f1f5f9' }}>
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-bold text-gray-900">Pending Approvals</h2>
               {!pendingLoading && pending.length > 0 && (
@@ -221,16 +221,16 @@ const AdminDashboardPage = () => {
             </div>
           ) : pending.length === 0 ? (
             <div className="py-14 text-center">
-              <p className="text-2xl mb-2">🎉</p>
+              <FaCheckCircle className="text-3xl text-green-300 mb-2 mx-auto" />
               <p className="text-sm text-gray-400">No pending approvals</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50/70">
+                  <tr style={{ background: '#fafafa' }}>
                     {['Name', 'Role', 'Dept', 'Date', 'Actions'].map((h) => (
-                      <th key={h} className="px-5 py-2.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                      <th key={h} className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#94a3b8' }}>
                         {h}
                       </th>
                     ))}
@@ -251,15 +251,11 @@ const AdminDashboardPage = () => {
                           <button
                             onClick={() => handleApprove(user.id)}
                             className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-green-500 hover:bg-green-600 text-white transition-colors"
-                          >
-                            ✓
-                          </button>
+                          ><FaCheck /></button>
                           <button
                             onClick={() => handleReject(user.id)}
                             className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-100 hover:bg-red-500 text-red-500 hover:text-white transition-colors"
-                          >
-                            ✕
-                          </button>
+                          ><FaTimes /></button>
                         </div>
                       </td>
                     </tr>
@@ -271,20 +267,18 @@ const AdminDashboardPage = () => {
         </div>
 
         {/* Right column */}
-        <div className="space-y-5">
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h2 className="text-sm font-bold text-gray-900 mb-3">Quick Actions</h2>
-            <div className="space-y-2">
-              <QuickAction label="Manage Approvals"  icon="✅" onClick={() => navigate(ROUTES.ADMIN_APPROVALS)} />
-              <QuickAction label="View Students"     icon="🎓" onClick={() => navigate(ROUTES.ADMIN_STUDENTS)} />
-              <QuickAction label="View Faculty"      icon="👨‍🏫" onClick={() => navigate(ROUTES.ADMIN_FACULTY)} />
-              <QuickAction label="Manage Courses"    icon="📚" onClick={() => navigate(ROUTES.ADMIN_COURSES)} />
-              <QuickAction label="Attendance"        icon="📋" onClick={() => navigate(ROUTES.ADMIN_ATTENDANCE)} />
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl p-4" style={{ border: '1px solid #e8edf2' }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#94a3b8' }}>Quick Actions</p>
+            <div className="space-y-0.5">
+              <QuickAction label="Overview"           icon={<FaLayerGroup />} onClick={() => navigate(ROUTES.ADMIN_OVERVIEW)} />
+              <QuickAction label="Manage Approvals"  icon={<FaCheckCircle />} onClick={() => navigate(ROUTES.ADMIN_APPROVALS)} />
+              <QuickAction label="View Students"     icon={<FaUserGraduate />} onClick={() => navigate(ROUTES.ADMIN_STUDENTS)} />
+              <QuickAction label="View Faculty"      icon={<FaChalkboardTeacher />} onClick={() => navigate(ROUTES.ADMIN_FACULTY)} />
+              <QuickAction label="Manage Courses"    icon={<FaBook />} onClick={() => navigate(ROUTES.ADMIN_COURSES)} />
+              <QuickAction label="Attendance"        icon={<FaClipboardList />} onClick={() => navigate(ROUTES.ADMIN_ATTENDANCE)} />
             </div>
           </div>
-
           <CoursesByDept />
 
         </div>

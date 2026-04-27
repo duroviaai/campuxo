@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { getMyProfile, getFacultyAssignments } from '../services/facultyService';
+import { Card } from '../../../shared/components/ui/PageShell';
 
 const Field = ({ label, value }) => (
-  <div className="flex flex-col gap-0.5">
-    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</p>
-    <p className="text-sm font-semibold text-gray-800">{value || '—'}</p>
+  <div>
+    <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}>{label}</p>
+    <p className="text-sm font-medium" style={{ color: value ? '#0f172a' : '#cbd5e1' }}>{value || '—'}</p>
   </div>
 );
 
@@ -21,57 +22,57 @@ const FacultyProfilePage = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
-  if (error)   return <p className="text-sm text-red-500">{error}</p>;
+  if (loading) return <div className="space-y-3">{[1,2].map(i => <div key={i} className="rounded-xl h-32 skeleton" />)}</div>;
+  if (error)   return <p className="text-sm" style={{ color: '#dc2626' }}>{error}</p>;
 
-  const uniqueCourses = [...new Map(assignments.map((a) => [a.courseId, a])).values()];
+  const uniqueCourses = [...new Map(assignments.map(a => [a.courseId, a])).values()];
 
   return (
-    <div className="space-y-5 max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-
-      {/* Identity card */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-xl font-bold text-indigo-600">
-            {profile.fullName?.charAt(0) ?? '?'}
+    <div className="space-y-4 max-w-2xl">
+      <Card>
+        <div className="p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold text-white shrink-0" style={{ background: '#7c3aed' }}>
+              {profile.fullName?.charAt(0)?.toUpperCase() ?? '?'}
+            </div>
+            <div>
+              <p className="text-base font-bold" style={{ color: '#0f172a', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{profile.fullName}</p>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md" style={{ background: '#f5f3ff', color: '#7c3aed' }}>Faculty</span>
+            </div>
           </div>
-          <div>
-            <p className="text-lg font-bold text-gray-900">{profile.fullName}</p>
-            <span className="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full font-semibold">
-              Faculty
-            </span>
+          <div className="grid grid-cols-2 gap-5 pt-5" style={{ borderTop: '1px solid #f1f5f9' }}>
+            <Field label="Email"            value={profile.email} />
+            <Field label="Faculty ID"       value={profile.facultyId} />
+            <Field label="Department"       value={profile.department} />
+            <Field label="Courses Assigned" value={uniqueCourses.length || null} />
           </div>
         </div>
+      </Card>
 
-        <div className="grid grid-cols-2 gap-5 pt-2 border-t border-gray-100">
-          <Field label="Email"      value={profile.email} />
-          <Field label="Faculty ID" value={profile.facultyId} />
-          <Field label="Department" value={profile.department} />
-          <Field label="Courses Assigned" value={uniqueCourses.length} />
-        </div>
-      </div>
-
-      {/* Assigned courses */}
       {uniqueCourses.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-gray-700">Assigned Courses</h2>
-          <div className="space-y-2">
+        <Card>
+          <div className="px-5 py-4" style={{ borderBottom: '1px solid #f1f5f9' }}>
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#94a3b8' }}>Assigned Courses</p>
+          </div>
+          <div className="p-4 space-y-2">
             {uniqueCourses.map((a) => (
-              <div key={a.courseId} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{a.courseName}</p>
-                  <p className="text-xs text-gray-400 font-mono">{a.courseCode}</p>
+              <div key={a.courseId} className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ border: '1px solid #f1f5f9' }}>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-bold text-white shrink-0" style={{ background: '#7c3aed' }}>
+                    {a.courseCode?.slice(0, 2) ?? '??'}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: '#0f172a' }}>{a.courseName}</p>
+                    <p className="text-[10px] font-mono" style={{ color: '#94a3b8' }}>{a.courseCode}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-500">
-                    {assignments.filter((x) => x.courseId === a.courseId).map((x) => x.classDisplayName).join(', ')}
-                  </p>
-                </div>
+                <p className="text-xs" style={{ color: '#64748b' }}>
+                  {assignments.filter(x => x.courseId === a.courseId).map(x => x.classDisplayName).join(', ')}
+                </p>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

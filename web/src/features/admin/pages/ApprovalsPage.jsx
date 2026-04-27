@@ -480,19 +480,6 @@ const ApprovalsPage = () => {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Approvals</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage user registration requests by department</p>
-        </div>
-        {department === undefined && pending.length > 0 && (
-          <span className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            {pending.length} pending
-          </span>
-        )}
-      </div>
-
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         {department === undefined ? (
           <DeptList onSelect={(d) => setDepartment(d === null ? null : d)} />

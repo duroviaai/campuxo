@@ -2,6 +2,7 @@ package com.collegeportal.modules.ia.controller;
 
 import com.collegeportal.modules.ia.dto.request.IASaveRequestDTO;
 import com.collegeportal.modules.ia.dto.response.StudentIAResponseDTO;
+import com.collegeportal.modules.ia.dto.response.StudentFinalMarksResponseDTO;
 import com.collegeportal.modules.ia.service.IAService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/ia")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ROLE_ADMIN')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_HOD')")
 public class IAController {
 
     private final IAService iaService;
@@ -30,5 +31,20 @@ public class IAController {
     public ResponseEntity<Void> saveMarks(@Valid @RequestBody IASaveRequestDTO request) {
         iaService.saveMarks(request);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/calculate-final-marks")
+    public ResponseEntity<Void> calculateFinalMarks(
+            @RequestParam Long classStructureId,
+            @RequestParam Long courseId) {
+        iaService.calculateFinalMarksForAllStudents(classStructureId, courseId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/final-marks")
+    public ResponseEntity<List<StudentFinalMarksResponseDTO>> getFinalMarks(
+            @RequestParam Long classStructureId,
+            @RequestParam Long courseId) {
+        return ResponseEntity.ok(iaService.calculateAndGetFinalMarks(classStructureId, courseId));
     }
 }
