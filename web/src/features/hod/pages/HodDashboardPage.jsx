@@ -2,15 +2,20 @@ import { useGetHodStatsQuery, useGetHodCoursesQuery } from '../state/hodApi';
 import { useNavigate } from 'react-router-dom';
 import ROUTES from '../../../app/routes/routeConstants';
 import { Card, EmptyState } from '../../../shared/components/ui/PageShell';
-import { FaChalkboardTeacher, FaUserGraduate, FaBook } from 'react-icons/fa';
+import { FaChalkboardTeacher, FaUserGraduate, FaBook, FaClipboardList, FaChartBar } from 'react-icons/fa';
 
 const STATS_CFG = [
   { key: 'totalFaculty',  label: 'Faculty',  icon: FaChalkboardTeacher, accent: { bg: '#f5f3ff', color: '#7c3aed' }, route: 'HOD_FACULTY' },
   { key: 'totalStudents', label: 'Students', icon: FaUserGraduate,      accent: { bg: '#ecfdf5', color: '#059669' }, route: 'HOD_STUDENTS' },
-  { key: 'totalCourses',  label: 'Courses',  icon: FaBook,              accent: { bg: '#fffbeb', color: '#d97706' }, route: 'HOD_COURSES' },
+  { key: 'totalCourses',  label: 'Programs',  icon: FaBook,              accent: { bg: '#fffbeb', color: '#d97706' }, route: 'HOD_COURSES' },
+  { key: 'attendance',    label: 'Attendance', icon: FaClipboardList,   accent: { bg: '#eff6ff', color: '#2563eb' }, route: 'HOD_ATTENDANCE' },
+  { key: 'ia',            label: 'Internal Assessment', icon: FaChartBar, accent: { bg: '#fdf4ff', color: '#9333ea' }, route: 'HOD_IA' },
 ];
 
-const StatCard = ({ label, value, Icon, accent, onClick }) => (
+// nav-only keys that don't map to a stats field
+const NAV_ONLY = new Set(['attendance', 'ia']);
+
+const StatCard = ({ statKey, label, value, Icon, accent, onClick }) => (
   <button
     onClick={onClick}
     className="group bg-white rounded-xl p-5 flex flex-col gap-3 text-left w-full transition-all"
@@ -27,7 +32,10 @@ const StatCard = ({ label, value, Icon, accent, onClick }) => (
       </svg>
     </div>
     <div>
-      <p className="text-2xl font-bold tracking-tight" style={{ color: '#0f172a' }}>{value ?? '—'}</p>
+      {NAV_ONLY.has(statKey)
+        ? <p className="text-xs font-semibold mt-1" style={{ color: accent.color }}>View →</p>
+        : <p className="text-2xl font-bold tracking-tight" style={{ color: '#0f172a' }}>{value ?? '—'}</p>
+      }
       <p className="text-xs font-medium mt-0.5" style={{ color: '#64748b' }}>{label}</p>
     </div>
   </button>
@@ -41,23 +49,23 @@ const HodDashboardPage = () => {
   return (
     <div className="space-y-5 max-w-5xl">
       {/* Stat cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {statsLoading
           ? [1,2,3].map(i => <div key={i} className="rounded-xl h-28 skeleton" />)
           : STATS_CFG.map(({ key, label, icon: Icon, accent, route }) => (
-              <StatCard key={key} label={label} value={stats?.[key] ?? 0} Icon={Icon} accent={accent} onClick={() => navigate(ROUTES[route])} />
+              <StatCard key={key} statKey={key} label={label} value={stats?.[key]} Icon={Icon} accent={accent} onClick={() => navigate(ROUTES[route])} />
             ))
         }
       </div>
 
-      {/* Department courses */}
+      {/* Department programs */}
       {!coursesLoading && courses.length === 0 && (
-        <EmptyState message="No courses in your department yet." />
+        <EmptyState message="No programs in your department yet." />
       )}
       {!coursesLoading && courses.length > 0 && (
         <Card>
           <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #f1f5f9' }}>
-            <p className="text-sm font-semibold" style={{ color: '#0f172a' }}>Department Courses</p>
+            <p className="text-sm font-semibold" style={{ color: '#0f172a' }}>Department Programs</p>
             <button onClick={() => navigate(ROUTES.HOD_COURSES)} className="text-xs font-semibold" style={{ color: '#7c3aed' }}>
               View all
             </button>

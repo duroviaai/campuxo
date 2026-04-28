@@ -60,11 +60,14 @@ const FacultyLink = ({ facultyId, facultyName }) => {
   const navigate = useNavigate();
   if (!facultyName) return null;
   return (
-    <button
+    <span
+      role="link"
+      tabIndex={0}
       onClick={(e) => { e.stopPropagation(); navigate(ROUTES.ADMIN_FACULTY_ASSIGN_COURSES.replace(':id', facultyId)); }}
-      className="text-xs text-indigo-500 hover:text-indigo-700 hover:underline mt-1 truncate block text-left">
+      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); navigate(ROUTES.ADMIN_FACULTY_ASSIGN_COURSES.replace(':id', facultyId)); } }}
+      className="text-xs text-indigo-500 hover:text-indigo-700 hover:underline mt-1 truncate block text-left cursor-pointer">
       {facultyName}
-    </button>
+    </span>
   );
 };
 

@@ -37,7 +37,7 @@ const LogoMark = ({ size = 32 }) => (
     <rect x="13" y="21" width="14" height="9" rx="2" fill="white" opacity="0.9" />
 
     {/* Teal accent stripe on scroll */}
-    <rect x="13" y="27" width="14" height="3" rx="0 0 2 2" fill="#14B8A6" opacity="0.85" />
+    <rect x="13" y="27" width="14" height="3" rx="2" fill="#14B8A6" opacity="0.85" />
   </svg>
 );
 

@@ -25,7 +25,7 @@ public class SpecializationController {
     private final DepartmentRepository departmentRepository;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FACULTY', 'ROLE_STUDENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_FACULTY', 'ROLE_STUDENT', 'ROLE_HOD')")
     public ResponseEntity<List<Map<String, Object>>> getAll(
             @RequestParam(required = false) String department,
             @RequestParam(required = false) Long deptId,

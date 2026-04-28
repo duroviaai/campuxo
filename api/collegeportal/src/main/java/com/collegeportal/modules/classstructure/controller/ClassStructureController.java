@@ -19,7 +19,7 @@ public class ClassStructureController {
     private final ClassStructureService classStructureService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_HOD')")
     public ResponseEntity<List<ClassStructureResponseDTO>> get(
             @RequestParam(required = false) Long batchId,
             @RequestParam(required = false) Long deptId,
@@ -32,7 +32,7 @@ public class ClassStructureController {
 
     /** Auto-creates the semester record if it doesn't exist yet (idempotent). */
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_HOD')")
     public ResponseEntity<ClassStructureResponseDTO> getOrCreate(
             @Valid @RequestBody ClassStructureRequestDTO req) {
         return ResponseEntity.ok(classStructureService.getOrCreate(req));

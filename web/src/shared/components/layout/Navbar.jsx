@@ -15,10 +15,10 @@ const ROLE_META = {
 
 const PAGE_TITLES = {
   admin: 'Dashboard', student: 'Dashboard', faculty: 'Dashboard', hod: 'Dashboard',
-  dashboard: 'Dashboard', students: 'Students', courses: 'Courses',
+  dashboard: 'Dashboard', students: 'Students', courses: 'Programs',
   attendance: 'Attendance', profile: 'Profile', approvals: 'Approvals',
   overview: 'Overview', ia: 'Internal Assessment', approved: 'Approved Users',
-  faculty: 'Faculty',
+  faculty: 'Faculty', 'my-courses': 'My Programs', 'my-attendance': 'My Attendance',
 };
 
 const getPageTitle = (pathname) => {
@@ -81,14 +81,14 @@ const Navbar = () => {
         className="h-16 px-6 flex items-center justify-between sticky top-0 z-40 shrink-0"
         style={{
           background: '#ffffff',
-          borderBottom: '1px solid #f1f5f9',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          borderBottom: '1px solid #e2e8f0',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
         }}
       >
         {/* Page title */}
         <h1
-          className="text-[15px] font-bold text-slate-900"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}
+          className="text-[15px] font-bold"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em', color: '#0f172a' }}
         >
           {pageTitle}
         </h1>
@@ -100,7 +100,7 @@ const Navbar = () => {
           <button
             className="relative w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
             style={{ color: '#94a3b8' }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#475569'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#475569'; }}
             onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#94a3b8'; }}
           >
             <Icon icon={faBell} size="sm" />
@@ -119,12 +119,12 @@ const Navbar = () => {
             >
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 text-white"
-                style={{ background: '#2563eb' }}
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', color: '#fff' }}
               >
                 {userInitial}
               </div>
               <div className="hidden sm:block text-left">
-                <p className="text-xs font-semibold text-slate-800 leading-tight">{user?.username}</p>
+                <p className="text-xs font-semibold leading-tight" style={{ color: '#0f172a' }}>{user?.username}</p>
                 <span
                   className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md"
                   style={{ background: roleMeta.bg, color: roleMeta.color }}

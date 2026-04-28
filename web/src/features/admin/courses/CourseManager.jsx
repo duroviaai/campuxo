@@ -55,7 +55,7 @@ const CreateTab = ({ classStructure, departmentId }) => {
     try {
       if (existingId) {
         await assignCourse({ classStructureId: classStructure.id, courseId: existingId }).unwrap();
-        toast.success('Course assigned.');
+        toast.success('Program assigned.');
       } else {
         await createCourse({
           name: name.trim(), code: code.trim(),
@@ -63,7 +63,7 @@ const CreateTab = ({ classStructure, departmentId }) => {
           departmentId,
           classStructureId: classStructure.id,
         }).unwrap();
-        toast.success('Course created and assigned.');
+        toast.success('Program created and assigned.');
       }
       reset();
     } catch (err) {
@@ -87,7 +87,7 @@ const CreateTab = ({ classStructure, departmentId }) => {
             onUse={handleUseExisting} />
         )}
         {existingId && (
-          <p className="text-xs text-emerald-600 mt-1">✓ Will assign existing course</p>
+          <p className="text-xs text-emerald-600 mt-1">✓ Will assign existing program</p>
         )}
       </div>
       <div>
@@ -127,7 +127,7 @@ const AssignTab = ({ classStructure, departmentId }) => {
   const handleAssign = async (courseId) => {
     try {
       await assignCourse({ classStructureId: classStructure.id, courseId }).unwrap();
-      toast.success('Course assigned.');
+      toast.success('Program assigned.');
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to assign.');
     }
@@ -136,7 +136,7 @@ const AssignTab = ({ classStructure, departmentId }) => {
   const handleDelete = async (course, confirmed = false) => {
     try {
       await deleteCourse({ id: course.id, confirmed }).unwrap();
-      toast.success('Course deleted.');
+      toast.success('Program deleted.');
       setDeleteConfirm(null);
     } catch (err) {
       if (err?.status === 409) {
@@ -150,7 +150,7 @@ const AssignTab = ({ classStructure, departmentId }) => {
   return (
     <div className="space-y-3">
       <input value={search} onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search courses in this department…"
+        placeholder="Search programs in this department…"
         className={inputCls} />
       {isLoading ? (
         <div className="space-y-2">
@@ -158,7 +158,7 @@ const AssignTab = ({ classStructure, departmentId }) => {
         </div>
       ) : available.length === 0 ? (
         <p className="text-xs text-gray-400 py-6 text-center">
-          {search ? 'No courses match your search.' : 'All department courses are already assigned.'}
+          {search ? 'No programs match your search.' : 'All department programs are already assigned.'}
         </p>
       ) : (
         <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
@@ -187,7 +187,7 @@ const AssignTab = ({ classStructure, departmentId }) => {
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
-            <h3 className="text-base font-bold text-gray-900">Delete Course?</h3>
+            <h3 className="text-base font-bold text-gray-900">Delete Program?</h3>
             <p className="text-sm text-gray-600">
               <strong>{deleteConfirm.course.name}</strong> is used in{' '}
               <strong>{deleteConfirm.usages}</strong> semester{deleteConfirm.usages !== 1 ? 's' : ''}.
@@ -254,7 +254,7 @@ const CourseList = ({ classStructure }) => {
   const handleUnassign = async (courseId) => {
     try {
       await unassign({ classStructureId: classStructure.id, courseId }).unwrap();
-      toast.success('Course unassigned.');
+      toast.success('Program unassigned.');
     } catch { toast.error('Failed to unassign.'); }
   };
 
@@ -262,7 +262,7 @@ const CourseList = ({ classStructure }) => {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide flex-1">
-          Assigned Courses
+          Assigned Programs
           <span className="ml-2 bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full text-xs font-bold">
             {courses.length}
           </span>
@@ -285,7 +285,7 @@ const CourseList = ({ classStructure }) => {
         </div>
       ) : filtered.length === 0 ? (
         <p className="text-xs text-gray-400 py-6 text-center">
-          {search ? 'No courses match your search.' : 'No courses assigned yet.'}
+          {search ? 'No programs match your search.' : 'No programs assigned yet.'}
         </p>
       ) : (
         <div className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
@@ -333,7 +333,7 @@ const CourseManager = ({ batch, dept, spec, classStructure, onBack }) => (
         <CourseForm classStructure={classStructure} departmentId={dept.id} />
       </div>
 
-      {/* Right — Course list */}
+      {/* Right — Program list */}
       <div className="lg:col-span-3 rounded-xl border border-gray-200 p-5">
         <CourseList classStructure={classStructure} />
       </div>

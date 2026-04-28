@@ -30,7 +30,7 @@ const StatsBar = ({ activeTab, onTabChange, navigate }) => {
   const items = [
     { label: 'Students',          value: data?.totalStudents,    tab: 'students', color: { border: 'border-blue-200',    text: 'text-blue-600',    activeBg: 'bg-blue-50'    } },
     { label: 'Faculty',           value: data?.totalFaculty,     tab: 'faculty',  color: { border: 'border-indigo-200',  text: 'text-indigo-600',  activeBg: 'bg-indigo-50'  } },
-    { label: 'Courses',           value: data?.totalCourses,     tab: 'courses',  color: { border: 'border-emerald-200', text: 'text-emerald-600', activeBg: 'bg-emerald-50' } },
+    { label: 'Programs',          value: data?.totalCourses,     tab: 'courses',  color: { border: 'border-emerald-200', text: 'text-emerald-600', activeBg: 'bg-emerald-50' } },
     { label: 'Pending Approvals', value: data?.pendingApprovals, tab: null,       color: { border: 'border-amber-200',   text: 'text-amber-600',   activeBg: 'bg-amber-50'   } },
   ];
   return (
@@ -132,7 +132,7 @@ const SemesterCourses = ({ classStructure, dept, batch, spec, onBack }) => {
             </span>
           )}
           <span className="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-semibold">
-            {courses.length} course{courses.length !== 1 ? 's' : ''}
+            {courses.length} program{courses.length !== 1 ? 's' : ''}
           </span>
           <button onClick={() => navigate(ROUTES.ADMIN_FACULTY)}
             className="text-xs font-semibold text-indigo-600 hover:underline">
@@ -140,7 +140,7 @@ const SemesterCourses = ({ classStructure, dept, batch, spec, onBack }) => {
           </button>
           <button onClick={() => navigate(ROUTES.ADMIN_COURSES)}
             className="text-xs text-gray-400 hover:text-gray-600 hover:underline">
-            Manage Courses
+            Manage Programs
           </button>
         </div>
       </div>
@@ -152,10 +152,10 @@ const SemesterCourses = ({ classStructure, dept, batch, spec, onBack }) => {
       ) : courses.length === 0 ? (
         <div className="py-16 text-center space-y-3">
           <p className="text-3xl">📚</p>
-          <p className="text-sm font-semibold text-gray-700">No courses assigned yet</p>
+          <p className="text-sm font-semibold text-gray-700">No programs assigned yet</p>
           <button onClick={() => navigate(ROUTES.ADMIN_COURSES)}
             className="text-xs text-indigo-600 hover:underline">
-            Go to Courses to assign courses to this semester
+            Go to Programs to assign programs to this semester
           </button>
         </div>
       ) : (
@@ -208,7 +208,7 @@ const SemesterLevel = ({ batch, dept, spec, onSelect, onBack }) => {
         </div>
         <button onClick={() => navigate(ROUTES.ADMIN_COURSES)}
           className="text-xs font-semibold text-indigo-600 hover:underline">
-          Manage Courses &rarr;
+          Manage Programs &rarr;
         </button>
       </div>
 
@@ -235,7 +235,7 @@ const SemesterLevel = ({ batch, dept, spec, onSelect, onBack }) => {
                       }`}>
                       Semester {sem}
                       <span className={`block text-[10px] font-normal mt-0.5 ${cs ? 'text-indigo-400' : 'text-gray-300'}`}>
-                        {cs ? (cs.totalCourses != null ? `${cs.totalCourses} courses` : 'configured') : 'not set up'}
+                        {cs ? (cs.totalCourses != null ? `${cs.totalCourses} programs` : 'configured') : 'not set up'}
                       </span>
                     </button>
                   );
@@ -335,7 +335,7 @@ const BatchLevel = ({ onSelect }) => {
         </div>
         <button onClick={() => navigate(ROUTES.ADMIN_COURSES)}
           className="text-xs font-semibold text-indigo-600 hover:underline">
-          + Manage Courses
+          + Manage Programs
         </button>
       </div>
       {isLoading ? (
@@ -348,7 +348,7 @@ const BatchLevel = ({ onSelect }) => {
           <p className="text-sm font-semibold text-gray-700">No batches configured yet</p>
           <button onClick={() => navigate(ROUTES.ADMIN_COURSES)}
             className="text-xs text-indigo-600 hover:underline">
-            Go to Courses to add batches
+            Go to Programs to add batches
           </button>
         </div>
       ) : (
@@ -362,7 +362,7 @@ const BatchLevel = ({ onSelect }) => {
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                 <span><span className="font-bold text-gray-800">{b.totalDepartments ?? 0}</span> dept{b.totalDepartments !== 1 ? 's' : ''}</span>
-                <span><span className="font-bold text-gray-800">{b.totalCourses ?? 0}</span> courses</span>
+                <span><span className="font-bold text-gray-800">{b.totalCourses ?? 0}</span> programs</span>
                 {b.totalStudents != null && (
                   <span><span className="font-bold text-gray-800">{b.totalStudents}</span> students</span>
                 )}
@@ -378,7 +378,7 @@ const BatchLevel = ({ onSelect }) => {
 
 // -- Tab bar ------------------------------------------------------------------
 const TABS = [
-  { key: 'courses',  label: 'Courses'  },
+  { key: 'courses',  label: 'Programs'  },
   { key: 'faculty',  label: 'Faculty'  },
   { key: 'students', label: 'Students' },
 ];
@@ -576,7 +576,7 @@ const FacultyViewCard = ({ f, getName, initials }) => (
       {f.qualification && <span className="text-gray-400">{f.qualification}</span>}
       {f.experience != null && <span>{f.experience} yr{f.experience !== 1 ? 's' : ''} exp</span>}
       {f.facultyId && <span className="font-mono text-gray-400">{f.facultyId}</span>}
-      <span><span className="font-bold text-gray-700">{f.courseCount ?? 0}</span> course{f.courseCount !== 1 ? 's' : ''}</span>
+      <span><span className="font-bold text-gray-700">{f.courseCount ?? 0}</span> program{f.courseCount !== 1 ? 's' : ''}</span>
     </div>
     {f.subjects && (
       <p className="text-xs text-gray-400 mt-2 truncate">📚 {f.subjects}</p>

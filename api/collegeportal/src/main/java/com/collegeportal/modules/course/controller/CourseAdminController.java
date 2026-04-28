@@ -44,7 +44,7 @@ public class CourseAdminController {
 
     /** List courses assigned to a class structure (semester), excluding those already assigned to other faculty. */
     @GetMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_HOD')")
     @Transactional(readOnly = true)
     public ResponseEntity<List<CourseResponseDTO>> getByCsId(
             @RequestParam Long classStructureId,

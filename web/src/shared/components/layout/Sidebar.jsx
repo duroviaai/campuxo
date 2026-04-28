@@ -8,10 +8,11 @@ import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons
 import BrandLogo from '../ui/BrandLogo';
 
 const HOD_ITEMS = [
-  { to: ROUTES.HOD_DASHBOARD, label: 'Dashboard', icon: NavIcons.dashboard, end: true },
-  { to: ROUTES.HOD_FACULTY,   label: 'Faculty',   icon: NavIcons.faculty },
-  { to: ROUTES.HOD_STUDENTS,  label: 'Students',  icon: NavIcons.students },
-  { to: ROUTES.HOD_COURSES,   label: 'Courses',   icon: AcademicIcons.book },
+  { to: ROUTES.HOD_DASHBOARD,  label: 'Dashboard',          icon: NavIcons.dashboard,    end: true },
+  { to: ROUTES.HOD_FACULTY,    label: 'Faculty',             icon: NavIcons.faculty },
+  { to: ROUTES.HOD_STUDENTS,   label: 'Students',            icon: NavIcons.students },
+  { to: ROUTES.HOD_COURSES,    label: 'Programs',  icon: AcademicIcons.book },
+  { to: ROUTES.HOD_MY_COURSES, label: 'My Programs', icon: AcademicIcons.marks },
 ];
 
 const FACULTY_ITEMS = [
@@ -49,7 +50,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
     { to: ROUTES.ADMIN_DASHBOARD, label: 'Dashboard',          icon: NavIcons.dashboard,  end: true },
     { to: ROUTES.ADMIN_STUDENTS,  label: 'Students',           icon: NavIcons.students },
     { to: ROUTES.ADMIN_FACULTY,   label: 'Faculty',            icon: NavIcons.faculty },
-    { to: ROUTES.ADMIN_COURSES,   label: 'Courses',            icon: AcademicIcons.book },
+    { to: ROUTES.ADMIN_COURSES,   label: 'Programs',           icon: AcademicIcons.book },
     { to: ROUTES.ADMIN_OVERVIEW,  label: 'Overview',           icon: ActionIcons.filter },
     { to: ROUTES.ADMIN_ATTENDANCE,label: 'Attendance',         icon: NavIcons.attendance },
     { to: ROUTES.ADMIN_IA,        label: 'Internal Assessment',icon: AcademicIcons.marks },

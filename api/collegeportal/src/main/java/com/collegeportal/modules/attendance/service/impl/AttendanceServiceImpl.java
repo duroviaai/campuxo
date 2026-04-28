@@ -307,7 +307,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             double pct = total == 0 ? 0.0 : Math.round((attended * 100.0 / total) * 10.0) / 10.0;
             return AttendanceSummaryDTO.builder()
                     .studentId(student.getId())
-                    .studentName(student.getFirstName() + " " + student.getLastName())
+                    .studentName(student.getFirstName() + (student.getLastName() != null ? " " + student.getLastName() : ""))
                     .courseCode(course.getCode())
                     .courseName(course.getName())
                     .totalClasses(total)

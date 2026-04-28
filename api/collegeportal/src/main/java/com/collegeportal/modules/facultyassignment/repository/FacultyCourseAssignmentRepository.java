@@ -12,6 +12,14 @@ public interface FacultyCourseAssignmentRepository extends JpaRepository<Faculty
 
     List<FacultyCourseAssignment> findByFacultyId(Long facultyId);
 
+    @Query("SELECT a FROM FacultyCourseAssignment a " +
+           "LEFT JOIN FETCH a.course " +
+           "LEFT JOIN FETCH a.classStructure cs " +
+           "LEFT JOIN FETCH cs.batch " +
+           "LEFT JOIN FETCH cs.specialization " +
+           "WHERE a.faculty.id = :facultyId")
+    List<FacultyCourseAssignment> findByFacultyIdWithDetails(@Param("facultyId") Long facultyId);
+
     List<FacultyCourseAssignment> findByCourseId(Long courseId);
 
     boolean existsByFacultyIdAndCourseId(Long facultyId, Long courseId);
@@ -39,6 +47,6 @@ public interface FacultyCourseAssignmentRepository extends JpaRepository<Faculty
     List<Long> findCourseIdsAssignedToOtherFaculty(@Param("excludeFacultyId") Long excludeFacultyId);
 
     /** Returns [courseId, facultyFullName, facultyId] tuples for the given course IDs. */
-    @Query("SELECT a.course.id, CONCAT(a.faculty.firstName, ' ', a.faculty.lastName), a.faculty.id FROM FacultyCourseAssignment a WHERE a.course.id IN :courseIds")
+    @Query("SELECT a.course.id, a.faculty.firstName, a.faculty.id FROM FacultyCourseAssignment a WHERE a.course.id IN :courseIds")
     List<Object[]> findFacultyNamesByCourseIds(@Param("courseIds") List<Long> courseIds);
 }

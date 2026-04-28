@@ -52,10 +52,11 @@ const StudentAttendancePage = lazy(() => import('../features/student/pages/Stude
 const StudentProfilePage    = lazy(() => import('../features/student/pages/StudentProfilePage'));
 
 // ── HOD ──────────────────────────────────────────────────────────────────────
-const HodDashboardPage = lazy(() => import('../features/hod/pages/HodDashboardPage'));
-const HodFacultyPage   = lazy(() => import('../features/hod/pages/HodFacultyPage'));
-const HodStudentsPage  = lazy(() => import('../features/hod/pages/HodStudentsPage'));
-const HodCoursesPage   = lazy(() => import('../features/hod/pages/HodCoursesPage'));
+const HodDashboardPage  = lazy(() => import('../features/hod/pages/HodDashboardPage'));
+const HodFacultyPage    = lazy(() => import('../features/hod/pages/HodFacultyPage'));
+const HodStudentsPage   = lazy(() => import('../features/hod/pages/HodStudentsPage'));
+const HodCoursesPage    = lazy(() => import('../features/hod/pages/HodCoursesPage'));
+const HodMyCoursesPage  = lazy(() => import('../features/hod/pages/HodMyCoursesPage'));
 
 // ── Redirects ─────────────────────────────────────────────────────────────────
 const RoleRedirect = () => {
@@ -127,10 +128,15 @@ const App = () => (
 
               {/* ── HOD ── */}
               <Route element={<HodGuard />}>
-                <Route path={ROUTES.HOD_DASHBOARD} element={<HodDashboardPage />} />
-                <Route path={ROUTES.HOD_FACULTY}   element={<HodFacultyPage />} />
-                <Route path={ROUTES.HOD_STUDENTS}  element={<HodStudentsPage />} />
-                <Route path={ROUTES.HOD_COURSES}   element={<HodCoursesPage />} />
+                <Route path={ROUTES.HOD_DASHBOARD}  element={<HodDashboardPage />} />
+                <Route path={ROUTES.HOD_FACULTY}    element={<HodFacultyPage />} />
+                <Route path={ROUTES.HOD_STUDENTS}   element={<HodStudentsPage />} />
+                <Route path={ROUTES.HOD_COURSES}    element={<HodCoursesPage />} />
+                <Route path={ROUTES.HOD_MY_COURSES}      element={<HodMyCoursesPage />} />
+                <Route path={ROUTES.HOD_ATTENDANCE}       element={<Navigate to={ROUTES.HOD_MY_COURSES} replace />} />
+                <Route path={ROUTES.HOD_IA}               element={<Navigate to={ROUTES.HOD_MY_COURSES} replace />} />
+                <Route path={ROUTES.HOD_MARK_ATTENDANCE}  element={<Navigate to={ROUTES.HOD_MY_COURSES} replace />} />
+                <Route path={ROUTES.HOD_MY_IA}            element={<Navigate to={ROUTES.HOD_MY_COURSES} replace />} />
               </Route>
 
               {/* ── FACULTY ── */}

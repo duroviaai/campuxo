@@ -42,7 +42,7 @@ const SemesterGrid = ({ batch, dept, spec, existingStructures, onSelect, onBack 
           {dept.name}{spec ? ` · ${spec.name}` : ''}
         </span>
       </div>
-      <p className="text-xs text-gray-400">Click a semester to open its courses. Missing semesters are created automatically.</p>
+      <p className="text-xs text-gray-400">Click a semester to open its programs. Missing semesters are created automatically.</p>
 
       <div className="space-y-4">
         {YEAR_GROUPS.map(({ year, label, semesters }) => (

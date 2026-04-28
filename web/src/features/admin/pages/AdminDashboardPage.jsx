@@ -14,7 +14,7 @@ const TABS = [
 const STATS = [
   { key: 'students', label: 'Students' },
   { key: 'faculty',  label: 'Faculty'  },
-  { key: 'courses',  label: 'Courses'  },
+  { key: 'courses',  label: 'Programs'  },
   { key: 'pending',  label: 'Pending'  },
 ];
 
