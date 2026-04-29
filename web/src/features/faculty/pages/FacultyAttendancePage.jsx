@@ -453,12 +453,16 @@ const RangeTab = ({ assignments }) => {
   );
 };
 
+const LOW_PCT = 75;
+
 const OverviewTab = ({ assignments }) => {
   const navigate = useNavigate();
   const [selAssignment, setSelAssignment] = useState('');
   const [overview, setOverview] = useState(null);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState(null);
+  const [search, setSearch]     = useState('');
+  const [lowOnly, setLowOnly]   = useState(false);
   const assignment = assignments.find(a => String(a.id) === selAssignment);
 
   const handleLoad = useCallback(async () => {
@@ -469,45 +473,75 @@ const OverviewTab = ({ assignments }) => {
     finally { setLoading(false); }
   }, [assignment]);
 
+  const filtered = overview ? overview.filter(s => {
+    if (lowOnly && s.attendancePercentage >= LOW_PCT) return false;
+    if (search) { const q = search.toLowerCase(); return s.studentName?.toLowerCase().includes(q) || s.registrationNumber?.toLowerCase().includes(q); }
+    return true;
+  }) : [];
+
+  const lowCount = overview ? overview.filter(s => s.attendancePercentage < LOW_PCT).length : 0;
+
   return (
     <div className="space-y-4">
-      <AssignmentSelector assignments={assignments} value={selAssignment} onChange={v => { setSelAssignment(v); setOverview(null); }} />
+      <AssignmentSelector assignments={assignments} value={selAssignment} onChange={v => { setSelAssignment(v); setOverview(null); setSearch(''); setLowOnly(false); }} />
       <Btn onClick={handleLoad} disabled={!selAssignment || loading}>{loading ? 'Loading…' : 'Load Overview'}</Btn>
       {error && <p className="text-xs" style={{ color: '#dc2626' }}>{error}</p>}
       {overview !== null && (
         overview.length === 0
           ? <Card><p className="p-8 text-sm text-center" style={{ color: '#94a3b8' }}>No students found.</p></Card>
           : (
-            <Card>
-              <div className="px-5 py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <p className="text-xs font-semibold" style={{ color: '#334155' }}>{assignment?.courseName} — {assignment?.classDisplayName}</p>
+            <>
+              <div className="flex items-center gap-4 flex-wrap text-xs">
+                <span style={{ color: '#64748b' }}>Total: <span className="font-bold" style={{ color: '#0f172a' }}>{overview.length}</span></span>
+                <span style={{ color: '#64748b' }}>Below 75%: <span className="font-bold" style={{ color: '#dc2626' }}>{lowCount}</span></span>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr style={{ borderBottom: '1px solid #f1f5f9', background: '#fafafa' }}>
-                    {['#', 'Student', 'Reg No', 'Present', 'Total', 'Attendance', ''].map(h => <th key={h} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#94a3b8' }}>{h}</th>)}
-                  </tr></thead>
-                  <tbody>
-                    {overview.map((s, i) => (
-                      <tr key={s.studentId} style={{ borderBottom: '1px solid #f8fafc' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
-                        onMouseLeave={e => e.currentTarget.style.background = ''}>
-                        <td className="px-5 py-3 text-xs" style={{ color: '#94a3b8' }}>{i + 1}</td>
-                        <td className="px-5 py-3 font-medium" style={{ color: '#0f172a' }}>{s.studentName}</td>
-                        <td className="px-5 py-3 text-xs font-mono" style={{ color: '#94a3b8' }}>{s.registrationNumber || '—'}</td>
-                        <td className="px-5 py-3 text-xs font-semibold" style={{ color: '#059669' }}>{s.attendedClasses}</td>
-                        <td className="px-5 py-3 text-xs" style={{ color: '#64748b' }}>{s.totalClasses}</td>
-                        <td className="px-5 py-3"><PctBar pct={s.attendancePercentage} /></td>
-                        <td className="px-5 py-3">
-                          <button onClick={() => navigate(ROUTES.FACULTY_STUDENT_ATTENDANCE.replace(':studentId', s.studentId), { state: { studentName: s.studentName } })}
-                            className="text-xs font-semibold" style={{ color: '#7c3aed' }}>Summary</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="flex items-center gap-3 flex-wrap">
+                <input type="text" placeholder="Search by name or reg no…" value={search} onChange={e => setSearch(e.target.value)}
+                  className="text-sm rounded-lg px-3 py-1.5 outline-none w-56"
+                  style={{ border: '1px solid #e2e8f0', background: '#fff', color: '#334155' }} />
+                <button onClick={() => setLowOnly(v => !v)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                  style={lowOnly ? { background: '#dc2626', color: '#fff', border: '1px solid #dc2626' } : { background: '#fff', color: '#dc2626', border: '1px solid #fca5a5' }}>
+                  ⚠ Low Attendance{lowOnly && lowCount > 0 ? ` (${lowCount})` : ''}
+                </button>
+                {(search || lowOnly) && (
+                  <button onClick={() => { setSearch(''); setLowOnly(false); }} className="text-xs" style={{ color: '#94a3b8' }}>Clear</button>
+                )}
               </div>
-            </Card>
+              <Card>
+                <div className="px-5 py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <p className="text-xs font-semibold" style={{ color: '#334155' }}>{assignment?.courseName} — {assignment?.classDisplayName}</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr style={{ borderBottom: '1px solid #f1f5f9', background: '#fafafa' }}>
+                      {['#', 'Student', 'Reg No', 'Present', 'Total', 'Attendance', ''].map(h => <th key={h} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#94a3b8' }}>{h}</th>)}
+                    </tr></thead>
+                    <tbody>
+                      {filtered.map((s, i) => {
+                        const low = s.attendancePercentage < LOW_PCT;
+                        return (
+                          <tr key={s.studentId} style={{ borderBottom: '1px solid #f8fafc', background: low ? '#fef2f2' : '' }}
+                            onMouseEnter={e => e.currentTarget.style.background = low ? '#fee2e2' : '#fafafa'}
+                            onMouseLeave={e => e.currentTarget.style.background = low ? '#fef2f2' : ''}>
+                            <td className="px-5 py-3 text-xs" style={{ color: '#94a3b8' }}>{i + 1}</td>
+                            <td className="px-5 py-3 font-medium" style={{ color: low ? '#dc2626' : '#0f172a' }}>{s.studentName}</td>
+                            <td className="px-5 py-3 text-xs font-mono" style={{ color: '#94a3b8' }}>{s.registrationNumber || '—'}</td>
+                            <td className="px-5 py-3 text-xs font-semibold" style={{ color: '#059669' }}>{s.attendedClasses}</td>
+                            <td className="px-5 py-3 text-xs" style={{ color: '#64748b' }}>{s.totalClasses}</td>
+                            <td className="px-5 py-3"><PctBar pct={s.attendancePercentage} /></td>
+                            <td className="px-5 py-3">
+                              <button onClick={() => navigate(ROUTES.FACULTY_STUDENT_ATTENDANCE.replace(':studentId', s.studentId), { state: { studentName: s.studentName } })}
+                                className="text-xs font-semibold" style={{ color: '#7c3aed' }}>Summary</button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </>
           )
       )}
     </div>

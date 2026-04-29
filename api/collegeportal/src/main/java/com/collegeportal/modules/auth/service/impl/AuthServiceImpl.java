@@ -50,12 +50,14 @@ import com.collegeportal.modules.specialization.repository.SpecializationReposit
 import com.collegeportal.modules.student.entity.Student;
 import com.collegeportal.modules.student.repository.StudentRepository;
 import com.collegeportal.security.jwt.JwtTokenProvider;
+import com.collegeportal.modules.email.EmailService;
 import com.collegeportal.modules.notification.service.NotificationService;
 import com.collegeportal.shared.enums.NotificationType;
 import com.collegeportal.shared.enums.RoleType;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
@@ -77,13 +79,17 @@ public class AuthServiceImpl implements AuthService {
     private final BatchRepository batchRepository;
     private final RegistrationWindowService registrationWindowService;
     private final NotificationService notificationService;
+    private final EmailService emailService;
+
+    @Value("${jwt.refresh.expiration}")
+    private long refreshExpiration;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     private boolean isStudentProfileComplete(User user) {
         return studentRepository.findByUser(user)
                 .map(s -> s.getPhone() != null && s.getDepartment() != null
-                        && s.getDateOfBirth() != null && s.getYearOfStudy() != null
-                        && s.getCourseStartYear() != null && s.getCourseEndYear() != null)
+                        && s.getDateOfBirth() != null && s.getYearOfStudy() != null)
                 .orElse(false);
     }
 
@@ -242,6 +248,7 @@ public class AuthServiceImpl implements AuthService {
         user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
 
         userRepository.save(user);
+        emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName(), resetToken);
 
         return AuthResponseDTO.builder()
                 .message("Password reset link has been sent to your email")
@@ -431,12 +438,40 @@ public class AuthServiceImpl implements AuthService {
         return buildAuthResponse(user, token);
     }
 
+    @Override
+    @Transactional
+    public AuthResponseDTO refresh(String refreshToken) {
+        User user = userRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(() -> new BadRequestException("Invalid refresh token"));
+
+        if (user.getRefreshTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Refresh token expired");
+        }
+
+        String newAccessToken = jwtTokenProvider.generateTokenForEmail(user.getEmail());
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken();
+        user.setRefreshToken(newRefreshToken);
+        user.setRefreshTokenExpiry(LocalDateTime.now().plusSeconds(refreshExpiration / 1000));
+        userRepository.save(user);
+
+        return AuthResponseDTO.builder()
+                .accessToken(newAccessToken)
+                .tokenType("Bearer")
+                .refreshToken(newRefreshToken)
+                .build();
+    }
+
     private AuthResponseDTO buildAuthResponse(User user, String token) {
         Set<String> roles = user.getRoles().stream()
                 .map(role -> role.getName().name())
                 .collect(Collectors.toSet());
 
         boolean profileComplete = !roles.contains("ROLE_STUDENT") || isStudentProfileComplete(user);
+
+        String rt = jwtTokenProvider.generateRefreshToken();
+        user.setRefreshToken(rt);
+        user.setRefreshTokenExpiry(LocalDateTime.now().plusSeconds(refreshExpiration / 1000));
+        userRepository.save(user);
 
         return AuthResponseDTO.builder()
                 .accessToken(token)
@@ -446,6 +481,7 @@ public class AuthServiceImpl implements AuthService {
                 .roles(roles)
                 .message("Login successful")
                 .profileComplete(profileComplete)
+                .refreshToken(rt)
                 .build();
     }
 }

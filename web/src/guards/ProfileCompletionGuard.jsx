@@ -6,7 +6,7 @@ const ProfileCompletionGuard = () => {
   const { user } = useAuthContext();
 
   if (user?.profileComplete === false) {
-    return <Navigate to={ROUTES.REGISTER} replace />;
+    return <Navigate to={ROUTES.STUDENT_COMPLETE_PROFILE} replace />;
   }
 
   return <Outlet />;

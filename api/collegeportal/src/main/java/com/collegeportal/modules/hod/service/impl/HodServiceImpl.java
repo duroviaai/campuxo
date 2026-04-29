@@ -341,6 +341,19 @@ public class HodServiceImpl implements HodService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<FacultyResponseDTO> getFacultyForCourse(Long courseId) {
+        Faculty hod = resolveHod();
+        return assignmentRepository.findByCourseId(courseId).stream()
+                .filter(a -> hod.getDepartment().equals(a.getFaculty().getDepartment()))
+                .map(a -> a.getFaculty())
+                .distinct()
+                .map(f -> facultyMapper.toResponseDTO(f,
+                        (int) courseRepository.countAssignedCoursesByFacultyId(f.getId())))
+                .toList();
+    }
+
+    @Override
     @Transactional
     public void removeFacultyFromCourse(Long facultyId, Long courseId) {
         Faculty hod = resolveHod();

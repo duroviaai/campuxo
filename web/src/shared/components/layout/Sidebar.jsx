@@ -4,7 +4,8 @@ import ROLES from '../../constants/roles';
 import SidebarItem from './SidebarItem';
 import { useGetStatsQuery } from '../../../features/admin/state/adminApi';
 import { Icon, NavIcons, AcademicIcons, ActionIcons, StatusIcons, TimeIcons } from '../icons/IconLibrary';
-import { faChevronLeft, faChevronRight, faBullhorn } from '@fortawesome/free-solid-svg-icons';
+import { useGetUnreadCountQuery } from '../../../features/notifications/state/notificationApi';
+import { faChevronLeft, faChevronRight, faBullhorn, faBell } from '@fortawesome/free-solid-svg-icons';
 import BrandLogo from '../ui/BrandLogo';
 
 const HOD_ITEMS = [
@@ -13,24 +14,29 @@ const HOD_ITEMS = [
   { to: ROUTES.HOD_STUDENTS,   label: 'Students',      icon: NavIcons.students },
   { to: ROUTES.HOD_COURSES,    label: 'Programs',      icon: AcademicIcons.book },
   { to: ROUTES.HOD_MY_COURSES, label: 'My Programs',   icon: AcademicIcons.marks },
+  { to: ROUTES.HOD_TIMETABLE,  label: 'Timetable',     icon: TimeIcons.calendar },
   { to: ROUTES.HOD_PROFILE,    label: 'My Profile',    icon: NavIcons.users },
+  { to: ROUTES.NOTIFICATIONS,  label: 'Notifications', icon: faBell },
 ];
 
 const FACULTY_ITEMS = [
   { to: ROUTES.FACULTY_DASHBOARD,  label: 'Dashboard',  icon: NavIcons.dashboard, end: true },
   { to: ROUTES.FACULTY_COURSES,    label: 'My Courses', icon: AcademicIcons.book },
+  { to: ROUTES.FACULTY_TIMETABLE,  label: 'Timetable',  icon: NavIcons.schedule },
   { to: ROUTES.FACULTY_ATTENDANCE, label: 'Attendance', icon: NavIcons.attendance },
-  { to: ROUTES.FACULTY_COURSE_ATTENDANCE_SUMMARY, label: 'Attendance Summary', icon: AcademicIcons.marks },
   { to: ROUTES.FACULTY_IA,         label: 'IA Marks',   icon: AcademicIcons.marks },
   { to: ROUTES.FACULTY_PROFILE,    label: 'Profile',    icon: NavIcons.users },
+  { to: ROUTES.NOTIFICATIONS,      label: 'Notifications', icon: faBell },
 ];
 
 const STUDENT_ITEMS = [
   { to: ROUTES.STUDENT_DASHBOARD,  label: 'Dashboard',  icon: NavIcons.dashboard, end: true },
   { to: ROUTES.STUDENT_COURSES,    label: 'My Courses', icon: AcademicIcons.book },
+  { to: ROUTES.STUDENT_TIMETABLE,  label: 'Timetable',  icon: NavIcons.schedule },
   { to: ROUTES.STUDENT_ATTENDANCE, label: 'Attendance', icon: NavIcons.attendance },
   { to: ROUTES.STUDENT_IA,         label: 'IA Marks',   icon: AcademicIcons.marks },
   { to: ROUTES.STUDENT_PROFILE,    label: 'Profile',    icon: NavIcons.users },
+  { to: ROUTES.NOTIFICATIONS,      label: 'Notifications', icon: faBell },
 ];
 
 const ROLE_BADGE = {
@@ -49,6 +55,8 @@ const Sidebar = ({ collapsed, onToggle }) => {
 
   const { data: stats } = useGetStatsQuery(undefined, { skip: !isAdmin });
   const pendingCount = stats?.pendingApprovals ?? 0;
+  const { data: countData } = useGetUnreadCountQuery(undefined, { pollingInterval: 30000 });
+  const unreadCount = countData?.count ?? 0;
 
   const ADMIN_ITEMS = [
     { to: ROUTES.ADMIN_DASHBOARD, label: 'Dashboard',          icon: NavIcons.dashboard,  end: true },
@@ -60,7 +68,9 @@ const Sidebar = ({ collapsed, onToggle }) => {
     { to: ROUTES.ADMIN_IA,        label: 'Internal Assessment',icon: AcademicIcons.marks },
     { to: ROUTES.ADMIN_APPROVALS, label: 'Approvals',          icon: StatusIcons.check, badge: pendingCount },
     { to: ROUTES.ADMIN_REGISTRATION_WINDOWS, label: 'Reg. Windows', icon: TimeIcons.calendar },
+    { to: ROUTES.ADMIN_TIMETABLE,             label: 'Timetable',    icon: NavIcons.schedule },
     { to: ROUTES.ADMIN_ANNOUNCEMENTS,         label: 'Announcements', icon: faBullhorn },
+    { to: ROUTES.NOTIFICATIONS, label: 'Notifications', icon: faBell, badge: unreadCount },
   ];
 
   const items   = isAdmin ? ADMIN_ITEMS : isHod ? HOD_ITEMS : isFaculty ? FACULTY_ITEMS : STUDENT_ITEMS;

@@ -1,9 +1,6 @@
 package com.collegeportal.modules.ia.service.impl;
 
 import com.collegeportal.exception.custom.ResourceNotFoundException;
-import com.collegeportal.modules.batch.repository.BatchRepository;
-import com.collegeportal.modules.classstructure.repository.ClassStructureRepository;
-import com.collegeportal.modules.department.repository.DepartmentRepository;
 import com.collegeportal.modules.ia.dto.response.StudentAssignmentResponseDTO;
 import com.collegeportal.modules.ia.dto.response.StudentFinalMarksResponseDTO;
 import com.collegeportal.modules.ia.dto.response.StudentIAResponseDTO;
@@ -36,9 +33,6 @@ public class StudentIAServiceImpl implements StudentIAService {
     private final AssignmentRepository assignmentRepository;
     private final SeminarRepository seminarRepository;
     private final StudentRepository studentRepository;
-    private final ClassStructureRepository classStructureRepository;
-    private final BatchRepository batchRepository;
-    private final DepartmentRepository departmentRepository;
     private final SecurityUtils securityUtils;
 
     private Student currentStudent() {
@@ -50,29 +44,19 @@ public class StudentIAServiceImpl implements StudentIAService {
     @Transactional(readOnly = true)
     public Long getMyClassStructureId() {
         Student student = currentStudent();
-        var batch = student.getClassBatch();
-        if (batch == null) return null;
+        var cs = student.getClassStructure();
+        return cs != null ? cs.getId() : null;
+    }
 
-        var dept = departmentRepository.findByName(batch.getName()).orElse(null);
-        if (dept == null) return null;
-
-        var batchEntity = batchRepository
-                .findAll().stream()
-                .filter(b -> b.getStartYear().equals(batch.getStartYear())
-                          && b.getEndYear().equals(batch.getEndYear())
-                          && b.getScheme().equals(batch.getScheme()))
-                .findFirst().orElse(null);
-        if (batchEntity == null) return null;
-
-        Integer year     = batch.getYearOfStudy();
-        Integer semester = batch.getSemester();
-        if (year == null || semester == null) return null;
-
-        return classStructureRepository
-                .findByBatchIdAndDepartmentIdAndSpecializationIsNullAndYearOfStudyAndSemester(
-                        batchEntity.getId(), dept.getId(), year, semester)
-                .map(cs -> cs.getId())
-                .orElse(null);
+    @Override
+    @Transactional(readOnly = true)
+    public Long getMyClassStructureIdByCourse(Long courseId) {
+        Student student = currentStudent();
+        return iaRepository.findByStudentIdAndCourseId(student.getId(), courseId)
+                .stream()
+                .findFirst()
+                .map(ia -> ia.getClassStructure().getId())
+                .orElse(student.getClassStructure() != null ? student.getClassStructure().getId() : null);
     }
 
     @Override

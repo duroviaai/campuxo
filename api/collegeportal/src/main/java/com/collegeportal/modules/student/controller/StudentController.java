@@ -60,8 +60,7 @@ public class StudentController {
     public ResponseEntity<java.util.Map<String, Boolean>> getProfileStatus() {
         StudentResponseDTO profile = studentService.getMyProfile();
         boolean complete = profile.getPhone() != null && profile.getDepartment() != null
-                && profile.getDateOfBirth() != null && profile.getYearOfStudy() != null
-                && profile.getCourseStartYear() != null && profile.getCourseEndYear() != null;
+                && profile.getDateOfBirth() != null && profile.getYearOfStudy() != null;
         return ResponseEntity.ok(java.util.Map.of("profileComplete", complete));
     }
 

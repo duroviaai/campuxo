@@ -5,7 +5,6 @@ import com.collegeportal.exception.custom.ForbiddenException;
 import com.collegeportal.exception.custom.ResourceNotFoundException;
 import com.collegeportal.modules.attendance.dto.request.AttendanceBatchRequestDTO;
 import com.collegeportal.modules.attendance.dto.request.AttendanceRequestDTO;
-import com.collegeportal.modules.attendance.dto.request.AttendanceUpdateRequestDTO;
 import com.collegeportal.modules.attendance.dto.response.AttendanceResponseDTO;
 import com.collegeportal.modules.attendance.dto.response.AttendanceSummaryDTO;
 import com.collegeportal.modules.attendance.dto.response.StudentAttendanceOverviewDTO;
@@ -84,15 +83,19 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Transactional
-    public AttendanceResponseDTO updateAttendance(Long id, AttendanceUpdateRequestDTO request) {
+    public AttendanceResponseDTO updateAttendance(Long id, AttendanceStatus status) {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Attendance record not found: " + id));
-        Faculty faculty = facultyRepository.findByUser(securityUtils.getCurrentUser())
-                .orElseThrow(() -> new ResourceNotFoundException("Faculty profile not found"));
-        if (!assignmentRepository.existsByFacultyIdAndCourseId(faculty.getId(), attendance.getCourse().getId())) {
-            throw new ForbiddenException("You are not assigned to this course");
+        boolean isFaculty = securityUtils.getCurrentUser().getRoles().stream()
+                .anyMatch(r -> r.getName().name().equals("ROLE_FACULTY"));
+        if (isFaculty) {
+            Faculty faculty = facultyRepository.findByUser(securityUtils.getCurrentUser())
+                    .orElseThrow(() -> new ResourceNotFoundException("Faculty profile not found"));
+            if (!assignmentRepository.existsByFacultyIdAndCourseId(faculty.getId(), attendance.getCourse().getId())) {
+                throw new ForbiddenException("You cannot edit attendance for this course");
+            }
         }
-        attendance.setStatus(request.getStatus());
+        attendance.setStatus(status);
         return attendanceMapper.toResponseDTO(attendanceRepository.save(attendance));
     }
 

@@ -6,6 +6,20 @@ import StudentForm from '../components/StudentForm';
 import AttendanceSummaryView from '../../attendance/components/AttendanceSummaryView';
 import useDebounce from '../../../shared/hooks/useDebounce';
 import { getFullName } from '../utils/studentHelpers';
+import env from '../../../config/env';
+
+const downloadFile = async (url, filename) => {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${env.API_BASE_URL}${url}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const blob = await res.blob();
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+};
 
 // ── Shared ────────────────────────────────────────────────────────────────────
 const SchemeBadge = ({ scheme }) => scheme ? (
@@ -429,6 +443,14 @@ const StudentsPage = () => {
           <option value="">All Departments</option>
           {depts.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
         </select>
+        <button
+          onClick={() => downloadFile(
+            `/api/v1/reports/students/excel${department ? `?department=${encodeURIComponent(department)}` : ''}`,
+            `students${department ? `_${department}` : ''}.xlsx`
+          )}
+          className="px-3 py-2 text-xs font-semibold rounded-lg text-white bg-green-600 hover:bg-green-700">
+          ↓ Export Excel
+        </button>
       </div>
 
       {/* Table */}

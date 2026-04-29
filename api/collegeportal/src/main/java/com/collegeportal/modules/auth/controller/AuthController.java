@@ -3,6 +3,7 @@ package com.collegeportal.modules.auth.controller;
 import com.collegeportal.modules.auth.dto.request.CompleteProfileRequestDTO;
 import com.collegeportal.modules.auth.dto.request.GoogleRegisterRequestDTO;
 import com.collegeportal.modules.auth.dto.request.LoginRequestDTO;
+import com.collegeportal.modules.auth.dto.request.RefreshTokenRequestDTO;
 import com.collegeportal.modules.auth.dto.request.RegisterRequestDTO;
 import com.collegeportal.modules.auth.dto.request.ForgotPasswordRequestDTO;
 import com.collegeportal.modules.auth.dto.request.ResetPasswordRequestDTO;
@@ -45,6 +46,11 @@ public class AuthController {
     @PostMapping("/reset-password")
     public ResponseEntity<AuthResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO request) {
         return ResponseEntity.ok(authService.resetPassword(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponseDTO> refresh(@Valid @RequestBody RefreshTokenRequestDTO request) {
+        return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
     }
 
     @PostMapping("/google")

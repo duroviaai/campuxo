@@ -1,7 +1,12 @@
-import { useEffect, useState, useCallback } from 'react';
-import { getMyCourses, enrollCourse, unenrollCourse } from '../services/studentService';
-import axiosInstance from '../../../api/axiosInstance';
-import { useGetMyClassmatesQuery } from '../state/studentApi';
+import { useState } from 'react';
+import {
+  useGetMyCoursesQuery,
+  useGetMyClassCoursesQuery,
+  useGetMyProfileQuery,
+  useEnrollCourseMutation,
+  useUnenrollCourseMutation,
+  useGetMyClassmatesQuery,
+} from '../state/studentApi';
 import { Tabs, SearchInput, Badge, Btn } from '../../../shared/components/ui/PageShell';
 
 // ── Course panel (slide-out) ──────────────────────────────────────────────────
@@ -252,46 +257,36 @@ const CourseCard = ({ course, onEnroll, onUnenroll, loading, onClick }) => (
 
 const StudentCoursesPage = () => {
   const [tab, setTab]             = useState('enrolled');
-  const [courses, setCourses]     = useState([]);
-  const [enrolled, setEnrolled]   = useState([]);
   const [search, setSearch]       = useState('');
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [loadingCourses, setLoadingCourses] = useState(false);
   const [actionLoading, setActionLoading]   = useState(null);
   const [error, setError]         = useState(null);
 
-  useEffect(() => { refreshEnrolled(); loadClassCourses(); }, []);
+  const { data: enrolled = [], refetch: refetchEnrolled } = useGetMyCoursesQuery();
+  const { data: courses = [], isLoading: loadingCourses } = useGetMyClassCoursesQuery();
+  const { data: profile } = useGetMyProfileQuery();
+  const [enrollCourse]   = useEnrollCourseMutation();
+  const [unenrollCourse] = useUnenrollCourseMutation();
 
-  const refreshEnrolled = () => getMyCourses().then(setEnrolled).catch(() => {});
-  const loadClassCourses = () => {
-    setLoadingCourses(true);
-    axiosInstance.get('/api/v1/students/me/class/courses')
-      .then(res => setCourses(res.data))
-      .catch(() => setError('Failed to load courses.'))
-      .finally(() => setLoadingCourses(false));
+  const handleEnroll = async (courseId) => {
+    setActionLoading(courseId); setError(null);
+    try {
+      await enrollCourse(courseId).unwrap();
+      refetchEnrolled();
+      setSelectedCourse(prev => prev?.id === courseId ? { ...prev, enrolled: true, studentCount: (prev.studentCount || 0) + 1 } : prev);
+    } catch (err) { setError(err?.data?.message || 'Enrollment failed.'); }
+    finally { setActionLoading(null); }
   };
 
-  const handleEnroll = useCallback(async (courseId) => {
+  const handleUnenroll = async (courseId) => {
     setActionLoading(courseId); setError(null);
     try {
-      await enrollCourse(courseId);
-      setCourses(prev => prev.map(c => c.id === courseId ? { ...c, enrolled: true, studentCount: (c.studentCount || 0) + 1 } : c));
-      setSelectedCourse(prev => prev?.id === courseId ? { ...prev, enrolled: true, studentCount: (prev.studentCount || 0) + 1 } : prev);
-      refreshEnrolled();
-    } catch (err) { setError(err?.response?.data?.message || 'Enrollment failed.'); }
-    finally { setActionLoading(null); }
-  }, []);
-
-  const handleUnenroll = useCallback(async (courseId) => {
-    setActionLoading(courseId); setError(null);
-    try {
-      await unenrollCourse(courseId);
-      setCourses(prev => prev.map(c => c.id === courseId ? { ...c, enrolled: false, studentCount: Math.max(0, (c.studentCount || 1) - 1) } : c));
-      setEnrolled(prev => prev.filter(c => c.id !== courseId));
+      await unenrollCourse(courseId).unwrap();
+      refetchEnrolled();
       setSelectedCourse(prev => prev?.id === courseId ? { ...prev, enrolled: false, studentCount: Math.max(0, (prev.studentCount || 1) - 1) } : prev);
-    } catch (err) { setError(err?.response?.data?.message || 'Unenroll failed.'); }
+    } catch (err) { setError(err?.data?.message || 'Unenroll failed.'); }
     finally { setActionLoading(null); }
-  }, []);
+  };
 
   const TABS = [
     { key: 'enrolled', label: `My Courses${enrolled.length > 0 ? ` (${enrolled.length})` : ''}` },
@@ -327,6 +322,27 @@ const StudentCoursesPage = () => {
       {tab === 'all' && loadingCourses ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1,2,3,4,5,6].map(i => <div key={i} className="rounded-xl h-44 skeleton" />)}
+        </div>
+      ) : tab === 'all' && !loadingCourses && courses.length === 0 && !search ? (
+        <div className="py-16 text-center">
+          <div className="w-10 h-10 rounded-xl mx-auto mb-4 flex items-center justify-center" style={{ background: '#eff6ff' }}>
+            <svg className="w-5 h-5" style={{ color: '#2563eb' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          {!profile?.classBatchAssigned ? (
+            <>
+              <p className="text-sm font-semibold" style={{ color: '#334155' }}>Your class batch hasn't been assigned yet</p>
+              <p className="text-xs mt-1 max-w-xs mx-auto" style={{ color: '#94a3b8' }}>
+                This happens after admin approves your registration. Contact your administrator if this persists.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-semibold" style={{ color: '#334155' }}>No courses found for your class batch</p>
+              <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>Contact your administrator to assign courses.</p>
+            </>
+          )}
         </div>
       ) : filtered.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

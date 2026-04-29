@@ -637,10 +637,10 @@ const AdminIAPage = () => {
   const selectedCourse = courses.find(c => String(c.id) === courseId);
 
   const resetFrom = (level) => {
-    if (level <= 1) setDeptId('');
-    if (level <= 2) { setSpecId(''); setCsId(''); }
-    if (level <= 3) setCsId('');
-    if (level <= 4) setCourseId('');
+    if (level <= 1) { setDeptId(''); setSpecId(''); setCsId(''); setCourseId(''); }
+    else if (level <= 2) { setSpecId(''); setCsId(''); setCourseId(''); }
+    else if (level <= 3) { setCsId(''); setCourseId(''); }
+    else if (level <= 4) setCourseId('');
   };
 
   return (

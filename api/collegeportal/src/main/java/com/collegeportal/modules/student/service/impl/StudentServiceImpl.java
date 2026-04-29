@@ -12,6 +12,9 @@ import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.course.mapper.CourseMapper;
 import com.collegeportal.modules.course.repository.CourseRepository;
 import com.collegeportal.modules.facultyassignment.repository.FacultyCourseAssignmentRepository;
+import com.collegeportal.modules.classstructure.repository.ClassStructureCourseRepository;
+import com.collegeportal.modules.classstructure.repository.ClassStructureRepository;
+import com.collegeportal.modules.classstructure.entity.ClassStructure;
 import com.collegeportal.modules.ia.repository.InternalAssessmentRepository;
 import com.collegeportal.modules.specialization.repository.SpecializationRepository;
 import com.collegeportal.modules.student.dto.request.StudentRequestDTO;
@@ -55,6 +58,8 @@ public class StudentServiceImpl implements StudentService {
     private final FacultyCourseAssignmentRepository facultyAssignmentRepository;
     private final SpecializationRepository specializationRepository;
     private final InternalAssessmentRepository iaRepository;
+    private final ClassStructureCourseRepository classStructureCourseRepository;
+    private final ClassStructureRepository classStructureRepository;
 
     @Value("${app.upload.dir:uploads/photos}")
     private String uploadDir;
@@ -86,6 +91,9 @@ public class StudentServiceImpl implements StudentService {
         }
         // resolve classBatch: prefer classStructureId (new system) over classBatchId (old system)
         if (request.getClassStructureId() != null) {
+            ClassStructure cs = classStructureRepository.findById(request.getClassStructureId())
+                    .orElseThrow(() -> new ResourceNotFoundException("ClassStructure not found: " + request.getClassStructureId()));
+            student.setClassStructure(cs);
             com.collegeportal.modules.classbatch.dto.response.ClassBatchResponseDTO batchDTO =
                 classBatchService.resolveByClassStructure(request.getClassStructureId());
             ClassBatch batch = classBatchRepository.findById(batchDTO.getId())
@@ -95,6 +103,7 @@ public class StudentServiceImpl implements StudentService {
             student.setDepartment(batch.getName());
             if (batch.getYearOfStudy() != null) student.setYearOfStudy(batch.getYearOfStudy());
         } else if (request.getClassBatchId() != null) {
+            student.setClassStructure(null);
             ClassBatch batch = classBatchRepository.findById(request.getClassBatchId())
                     .orElseThrow(() -> new ResourceNotFoundException("ClassBatch not found with id: " + request.getClassBatchId()));
             student.setClassBatch(batch);
@@ -102,6 +111,7 @@ public class StudentServiceImpl implements StudentService {
             student.setDepartment(batch.getName());
             if (batch.getYearOfStudy() != null) student.setYearOfStudy(batch.getYearOfStudy());
         } else {
+            student.setClassStructure(null);
             student.setClassBatch(null);
         }
         return studentMapper.toResponseDTO(studentRepository.save(student));
@@ -127,6 +137,9 @@ public class StudentServiceImpl implements StudentService {
                     .ifPresent(student::setSpecialization);
         }
         if (request.getClassStructureId() != null) {
+            ClassStructure cs = classStructureRepository.findById(request.getClassStructureId())
+                    .orElseThrow(() -> new ResourceNotFoundException("ClassStructure not found: " + request.getClassStructureId()));
+            student.setClassStructure(cs);
             com.collegeportal.modules.classbatch.dto.response.ClassBatchResponseDTO batchDTO =
                 classBatchService.resolveByClassStructure(request.getClassStructureId());
             ClassBatch batch = classBatchRepository.findById(batchDTO.getId()).orElse(null);
@@ -137,6 +150,7 @@ public class StudentServiceImpl implements StudentService {
                 if (batch.getYearOfStudy() != null) student.setYearOfStudy(batch.getYearOfStudy());
             }
         } else if (request.getClassBatchId() != null) {
+            student.setClassStructure(null);
             ClassBatch batch = classBatchRepository.findById(request.getClassBatchId())
                     .orElseThrow(() -> new ResourceNotFoundException("ClassBatch not found: " + request.getClassBatchId()));
             student.setClassBatch(batch);
@@ -268,13 +282,28 @@ public class StudentServiceImpl implements StudentService {
         User currentUser = securityUtils.getCurrentUser();
         Student student = studentRepository.findByUser(currentUser)
                 .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
-        if (student.getClassBatch() == null) return List.of();
-        return courseRepository.findByClassBatchId(student.getClassBatch().getId())
-                .stream().map(c -> {
-                    boolean enrolled = courseRepository.countEnrollment(c.getId(), student.getId()) > 0;
-                    return courseMapper.toResponseDTO(c,
-                            (int) courseRepository.countStudentsByCourseId(c.getId()), enrolled);
-                }).toList();
+
+        List<com.collegeportal.modules.course.entity.Course> courses;
+
+        if (student.getClassStructure() != null) {
+            courses = classStructureCourseRepository
+                    .findByClassStructureId(student.getClassStructure().getId())
+                    .stream()
+                    .map(csc -> csc.getCourse())
+                    .toList();
+        } else if (student.getClassBatch() != null) {
+            courses = courseRepository.findByClassBatchId(student.getClassBatch().getId());
+        } else if (student.getDepartment() != null) {
+            courses = classStructureCourseRepository.findCoursesByDepartmentName(student.getDepartment());
+        } else {
+            return List.of();
+        }
+
+        return courses.stream().map(c -> {
+            boolean enrolled = courseRepository.countEnrollment(c.getId(), student.getId()) > 0;
+            return courseMapper.toResponseDTO(c,
+                    (int) courseRepository.countStudentsByCourseId(c.getId()), enrolled);
+        }).toList();
     }
 
     @Override
@@ -317,6 +346,7 @@ public class StudentServiceImpl implements StudentService {
                 .overallAttendancePercentage(overallPct)
                 .coursesAtRisk(coursesAtRisk)
                 .totalEnrolledCourses(enrolledCourseIds.size())
+                .yearOfStudy(student.getYearOfStudy())
                 .semester(semester)
                 .build();
     }

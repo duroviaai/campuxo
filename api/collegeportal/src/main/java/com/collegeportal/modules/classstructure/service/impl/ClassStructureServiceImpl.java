@@ -70,6 +70,15 @@ public class ClassStructureServiceImpl implements ClassStructureService {
         return toDTO(cs);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassStructureResponseDTO> getByDeptName(String deptName) {
+        return departmentRepository.findByName(deptName)
+                .map(dept -> classStructureRepository.findByDepartmentId(dept.getId())
+                        .stream().map(this::toDTO).toList())
+                .orElse(List.of());
+    }
+
     private ClassStructureResponseDTO toDTO(ClassStructure cs) {
         String spec = cs.getSpecialization() != null ? " (" + cs.getSpecialization().getName() + ")" : "";
         String display = cs.getDepartment().getName()

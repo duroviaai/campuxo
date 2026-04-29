@@ -23,4 +23,6 @@ public interface AuthService {
     AuthResponseDTO googleRegister(String accessToken, RegisterRequestDTO request);
 
     AuthResponseDTO completeProfile(String email, CompleteProfileRequestDTO request);
+
+    AuthResponseDTO refresh(String refreshToken);
 }

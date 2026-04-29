@@ -30,6 +30,13 @@ public class ClassStructureController {
         return ResponseEntity.ok(classStructureService.getByBatchDeptSpec(batchId, deptId, specId));
     }
 
+    @GetMapping("/by-dept")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_HOD')")
+    public ResponseEntity<List<ClassStructureResponseDTO>> getByDept(
+            @RequestParam String deptName) {
+        return ResponseEntity.ok(classStructureService.getByDeptName(deptName));
+    }
+
     @GetMapping("/public")
     public ResponseEntity<List<ClassStructureResponseDTO>> getPublic(
             @RequestParam Long batchId,

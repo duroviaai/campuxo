@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import authService from '../../services/authService';
 import {
   setToken, getToken, setUser, getUser,
-  clearAuth, isTokenExpired,
+  clearAuth, isTokenExpired, setRefreshToken,
 } from '../../shared/utils/tokenUtils';
 
 export const AuthContext = createContext(null);
@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }) => {
       profileComplete: res.profileComplete ?? true,
     };
     setToken(res.accessToken);
+    setRefreshToken(res.refreshToken);
     setUser(userData);
     setTokenState(res.accessToken);
     setUserState(userData);
@@ -64,6 +65,7 @@ export const AuthProvider = ({ children }) => {
       profileComplete: res.profileComplete ?? true,
     };
     setToken(res.accessToken);
+    setRefreshToken(res.refreshToken);
     setUser(userData);
     setTokenState(res.accessToken);
     setUserState(userData);

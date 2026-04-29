@@ -15,7 +15,7 @@ import java.util.Optional;
 
 public interface StudentRepository extends JpaRepository<Student, Long> {
 
-    @EntityGraph(attributePaths = {"user", "classBatch"})
+    @EntityGraph(attributePaths = {"user", "classBatch", "classStructure"})
     Optional<Student> findByUser(User user);
 
     boolean existsByUser(User user);

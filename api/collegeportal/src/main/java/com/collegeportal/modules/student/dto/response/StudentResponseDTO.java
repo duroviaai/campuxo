@@ -32,4 +32,6 @@ public class StudentResponseDTO {
     private Integer classBatchEndYear;
     private Long classStructureId;
     private String classStructureDisplay;
+    private Integer semester;
+    private boolean classBatchAssigned;
 }

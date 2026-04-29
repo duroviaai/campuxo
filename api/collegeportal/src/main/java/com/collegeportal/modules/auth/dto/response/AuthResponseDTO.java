@@ -23,4 +23,5 @@ public class AuthResponseDTO {
     private String message;
     private Boolean profileComplete;
     private Boolean newUser;
+    private String refreshToken;
 }

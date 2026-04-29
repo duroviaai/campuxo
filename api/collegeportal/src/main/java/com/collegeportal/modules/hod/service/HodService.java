@@ -27,4 +27,5 @@ public interface HodService {
     List<FacultyCourseAssignmentDTO> getFacultyAssignments(Long facultyId);
     FacultyResponseDTO getHodProfile();
     FacultyResponseDTO updateHodProfile(HodUpdateProfileRequestDTO request);
+    List<FacultyResponseDTO> getFacultyForCourse(Long courseId);
 }

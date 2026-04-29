@@ -107,6 +107,13 @@ public class HodController {
         return ResponseEntity.ok(hodService.getFacultyAssignments(facultyId));
     }
 
+    /** Faculty assigned to a course within the HOD's department. */
+    @GetMapping("/courses/{courseId}/faculty")
+    public ResponseEntity<List<FacultyResponseDTO>> getFacultyForCourse(
+            @PathVariable Long courseId) {
+        return ResponseEntity.ok(hodService.getFacultyForCourse(courseId));
+    }
+
     /** Remove a faculty from a course. */
     @DeleteMapping("/faculty/{facultyId}/courses/{courseId}")
     public ResponseEntity<Void> removeFacultyFromCourse(

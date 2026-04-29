@@ -220,7 +220,8 @@ const StudentIAPage = () => {
   const [tab, setTab]           = useState('ia');
 
   const { data: courses = [], isLoading: coursesLoading } = useGetMyCoursesQuery();
-  const { data: classStructureId }                        = useGetMyClassStructureIdQuery();
+  const { data: csData } = useGetMyClassStructureIdQuery(Number(courseId), { skip: !courseId });
+  const classStructureId = csData?.classStructureId || null;
 
   const selectedCourse = courses.find(c => String(c.id) === courseId);
   const ready = courseId && classStructureId;
@@ -251,7 +252,7 @@ const StudentIAPage = () => {
 
       {courseId && !classStructureId && (
         <p className="text-sm text-center py-10" style={{ color: '#94a3b8' }}>
-          No class structure found for your profile. Contact your administrator.
+          No class structure found for this course. Contact your administrator.
         </p>
       )}
 

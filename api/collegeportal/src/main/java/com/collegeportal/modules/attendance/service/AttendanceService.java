@@ -2,11 +2,11 @@ package com.collegeportal.modules.attendance.service;
 
 import com.collegeportal.modules.attendance.dto.request.AttendanceBatchRequestDTO;
 import com.collegeportal.modules.attendance.dto.request.AttendanceRequestDTO;
-import com.collegeportal.modules.attendance.dto.request.AttendanceUpdateRequestDTO;
 import com.collegeportal.modules.attendance.dto.response.AttendanceResponseDTO;
 import com.collegeportal.modules.attendance.dto.response.AttendanceSummaryDTO;
 import com.collegeportal.modules.attendance.dto.response.StudentAttendanceOverviewDTO;
 import com.collegeportal.shared.dto.PageResponseDTO;
+import com.collegeportal.shared.enums.AttendanceStatus;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
@@ -16,7 +16,7 @@ public interface AttendanceService {
 
     AttendanceResponseDTO markAttendance(AttendanceRequestDTO request);
 
-    AttendanceResponseDTO updateAttendance(Long id, AttendanceUpdateRequestDTO request);
+    AttendanceResponseDTO updateAttendance(Long id, AttendanceStatus status);
 
     List<AttendanceResponseDTO> markAttendanceBatch(List<AttendanceBatchRequestDTO> requests);
 

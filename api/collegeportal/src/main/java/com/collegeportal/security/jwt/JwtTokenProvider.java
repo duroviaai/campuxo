@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -19,11 +20,19 @@ public class JwtTokenProvider {
     private final SecretKey secretKey;
     private final long expiration;
 
+    @Value("${jwt.refresh.expiration}")
+    private long refreshExpiration;
+
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration}") long expiration) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expiration = expiration;
+    }
+
+    public String generateRefreshToken() {
+        return UUID.randomUUID().toString().replace("-", "") +
+               UUID.randomUUID().toString().replace("-", "");
     }
 
     public String generateToken(Authentication authentication) {

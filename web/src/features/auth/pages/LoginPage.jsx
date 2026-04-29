@@ -33,10 +33,11 @@ const LoginPage = () => {
 
   const redirectByRole = (res) => {
     const roles = res.roles ?? [];
-    if (roles.includes('ROLE_ADMIN')) navigate(ROUTES.ADMIN_DASHBOARD, { replace: true });
+    if (roles.includes('ROLE_ADMIN'))        navigate(ROUTES.ADMIN_DASHBOARD,   { replace: true });
+    else if (roles.includes('ROLE_HOD'))     navigate(ROUTES.HOD_DASHBOARD,     { replace: true });
     else if (roles.includes('ROLE_FACULTY')) navigate(ROUTES.FACULTY_DASHBOARD, { replace: true });
-    else if (res.profileComplete === false) navigate(ROUTES.REGISTER, { replace: true });
-    else navigate(ROUTES.STUDENT_DASHBOARD, { replace: true });
+    else if (res.profileComplete === false)  navigate(ROUTES.STUDENT_COMPLETE_PROFILE, { replace: true });
+    else                                     navigate(ROUTES.STUDENT_DASHBOARD, { replace: true });
   };
 
   const handleSubmit = async (e) => {

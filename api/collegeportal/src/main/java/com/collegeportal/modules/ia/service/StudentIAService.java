@@ -11,6 +11,8 @@ public interface StudentIAService {
 
     Long getMyClassStructureId();
 
+    Long getMyClassStructureIdByCourse(Long courseId);
+
     StudentIAResponseDTO getMyIAMarks(Long courseId, Long classStructureId);
 
     StudentAssignmentResponseDTO getMyAssignment(Long courseId, Long classStructureId);

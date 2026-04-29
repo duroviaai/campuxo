@@ -17,10 +17,16 @@ import { useGetStudentByIdQuery } from '../../student/state/studentApi';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const TABS = ['Pending', 'Approved', 'Rejected'];
+const ROLE_TABS = [
+  { key: '',             label: 'All' },
+  { key: 'ROLE_STUDENT', label: 'Students' },
+  { key: 'ROLE_FACULTY', label: 'Faculty' },
+  { key: 'ROLE_HOD',     label: 'HOD' },
+];
 
 const roleBadge = (roles) => {
   const role = [...(roles ?? [])][0]?.replace('ROLE_', '') ?? '—';
-  const colors = { STUDENT: 'bg-blue-50 text-blue-700', FACULTY: 'bg-purple-50 text-purple-700' };
+  const colors = { STUDENT: 'bg-blue-50 text-blue-700', FACULTY: 'bg-purple-50 text-purple-700', HOD: 'bg-emerald-50 text-emerald-700' };
   return (
     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${colors[role] ?? 'bg-gray-100 text-gray-600'}`}>
       {role}

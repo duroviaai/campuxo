@@ -41,4 +41,11 @@ public interface ClassStructureRepository extends JpaRepository<ClassStructure, 
 
     Optional<ClassStructure> findByBatchIdAndDepartmentIdAndSpecializationIsNullAndYearOfStudyAndSemester(
         Long batchId, Long departmentId, Integer yearOfStudy, Integer semester);
+
+    @Query("""
+        SELECT cs FROM ClassStructure cs
+        WHERE cs.department.id = :deptId
+        ORDER BY cs.batch.startYear DESC, cs.yearOfStudy ASC, cs.semester ASC
+        """)
+    List<ClassStructure> findByDepartmentId(@Param("deptId") Long deptId);
 }

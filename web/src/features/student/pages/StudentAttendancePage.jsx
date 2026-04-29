@@ -11,7 +11,7 @@ const filterDates = (dates, type, val1, val2) => {
     const s = toStr(d);
     if (type === 'day')   return s === val1;
     if (type === 'month') return s.startsWith(val1);
-    if (type === 'year')  return s.startsWith(val1);
+    if (type === 'year')  return s.startsWith(val1 + '-');
     if (type === 'range') return (!val1 || s >= val1) && (!val2 || s <= val2);
     return true;
   });
@@ -201,7 +201,15 @@ const StudentAttendancePage = () => {
           </SelectInput>
           {filterType === 'day'   && <input type="date"   value={val1} onChange={e => setVal1(e.target.value)} className={inputCls} style={inputStyle} />}
           {filterType === 'month' && <input type="month"  value={val1} onChange={e => setVal1(e.target.value)} className={inputCls} style={inputStyle} />}
-          {filterType === 'year'  && <input type="number" placeholder="YYYY" min="2000" max="2100" value={val1} onChange={e => setVal1(e.target.value)} className={inputCls} style={{ ...inputStyle, width: 90 }} />}
+          {filterType === 'year'  && (
+            <input type="number" placeholder="YYYY" min="2000" max="2100"
+              value={val1}
+              onChange={e => {
+                const v = e.target.value;
+                if (v.length === 4 || v === '') setVal1(v);
+              }}
+              className={inputCls} style={{ ...inputStyle, width: 90 }} />
+          )}
           {filterType === 'range' && (
             <>
               <input type="month" value={val1} onChange={e => setVal1(e.target.value)} className={inputCls} style={inputStyle} />

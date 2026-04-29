@@ -13,6 +13,20 @@ import {
 } from '../courses/coursesAdminApi';
 import toast from 'react-hot-toast';
 import ROUTES from '../../../app/routes/routeConstants';
+import env from '../../../config/env';
+
+const downloadFile = async (url, filename) => {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${env.API_BASE_URL}${url}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const blob = await res.blob();
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+};
 
 // ─── Faculty link ─────────────────────────────────────────────────────────────
 const FacultyLink = ({ facultyId, facultyName }) => {
@@ -219,6 +233,26 @@ const OverviewTab = ({ course, classStructure }) => {
         className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50">
         {loading ? 'Loading…' : rows === null ? 'Load Overview' : 'Refresh'}
       </button>
+      {rows !== null && rows.length > 0 && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => downloadFile(
+              `/api/v1/reports/attendance/excel?classStructureId=${classStructure.id}&courseId=${course.id}`,
+              `attendance_${course.name}.xlsx`
+            )}
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-green-600 hover:bg-green-700">
+            ↓ Download Excel
+          </button>
+          <button
+            onClick={() => downloadFile(
+              `/api/v1/reports/attendance/pdf?classStructureId=${classStructure.id}&courseId=${course.id}`,
+              `attendance_${course.name}.pdf`
+            )}
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-red-600 hover:bg-red-700">
+            ↓ Download PDF
+          </button>
+        </div>
+      )}
       {error && <p className="text-sm text-red-500">{error}</p>}
       {rows !== null && (
         <div className="space-y-3">

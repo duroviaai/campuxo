@@ -51,7 +51,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
             @Param("endDate") LocalDate endDate);
 
     /** Present count / total count across all courses in the given list. Returns [presentCount, totalCount]. */
-    @Query("SELECT SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END), COUNT(a) FROM Attendance a WHERE a.course.id IN :courseIds")
+    @Query("SELECT SUM(CASE WHEN a.status = com.collegeportal.shared.enums.AttendanceStatus.PRESENT THEN 1 ELSE 0 END), COUNT(a) FROM Attendance a WHERE a.course.id IN :courseIds")
     Object[] findAttendanceRateByCourseIds(@Param("courseIds") List<Long> courseIds);
 
     long countByStudentIdAndCourseId(Long studentId, Long courseId);

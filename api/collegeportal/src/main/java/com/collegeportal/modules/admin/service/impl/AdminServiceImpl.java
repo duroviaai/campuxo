@@ -15,6 +15,7 @@ import com.collegeportal.modules.faculty.repository.FacultyRepository;
 import com.collegeportal.modules.facultyassignment.repository.FacultyCourseAssignmentRepository;
 import com.collegeportal.modules.student.entity.Student;
 import com.collegeportal.modules.student.repository.StudentRepository;
+import com.collegeportal.modules.email.EmailService;
 import com.collegeportal.modules.notification.service.NotificationService;
 import com.collegeportal.shared.enums.FacultyRole;
 import com.collegeportal.shared.enums.NotificationType;
@@ -40,6 +41,7 @@ public class AdminServiceImpl implements AdminService {
     private final CourseRepository courseRepository;
     private final RoleRepository roleRepository;
     private final NotificationService notificationService;
+    private final EmailService emailService;
 
     // ── User approval lifecycle ───────────────────────────────────────────────
 
@@ -92,6 +94,7 @@ public class AdminServiceImpl implements AdminService {
         notificationService.send(user.getId(), NotificationType.ACCOUNT_APPROVED,
                 "Account Approved", "Your account has been approved. You can now log in.",
                 "/login", null, null);
+        emailService.sendAccountApprovedEmail(user.getEmail(), user.getFullName());
         AdminResponseDTO dto = toDTO(user);
         dto.setMessage("User approved successfully");
         return dto;
@@ -106,6 +109,7 @@ public class AdminServiceImpl implements AdminService {
         user.setRejected(true);
         user.setRejectionReason(reason);
         userRepository.save(user);
+        emailService.sendAccountRejectedEmail(user.getEmail(), user.getFullName(), reason);
         notificationService.send(user.getId(), NotificationType.ACCOUNT_REJECTED,
                 "Account Not Approved",
                 reason != null ? "Your account was not approved: " + reason

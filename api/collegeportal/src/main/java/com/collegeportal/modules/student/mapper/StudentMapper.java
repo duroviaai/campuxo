@@ -47,7 +47,9 @@ public class StudentMapper {
                 .email(student.getUser().getEmail())
                 .registrationNumber(student.getUser().getRegistrationNumber())
                 .dateOfBirth(student.getDateOfBirth())
-                .yearOfStudy(student.getYearOfStudy())
+                .yearOfStudy(student.getYearOfStudy() != null ? student.getYearOfStudy()
+                        : student.getClassStructure() != null ? student.getClassStructure().getYearOfStudy()
+                        : student.getClassBatch() != null ? student.getClassBatch().getYearOfStudy() : null)
                 .courseStartYear(student.getCourseStartYear())
                 .courseEndYear(student.getCourseEndYear())
                 .photoUrl(student.getPhotoUrl())
@@ -72,6 +74,9 @@ public class StudentMapper {
                             + " · Year " + student.getClassStructure().getYearOfStudy()
                             + " Sem " + student.getClassStructure().getSemester()
                         : null)
+                .semester(student.getClassStructure() != null ? student.getClassStructure().getSemester()
+                        : student.getClassBatch() != null ? student.getClassBatch().getSemester() : null)
+                .classBatchAssigned(student.getClassBatch() != null)
                 .build();
     }
 }

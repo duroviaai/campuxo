@@ -47,8 +47,13 @@ public class User extends BaseEntity {
     private String rejectionReason;
 
     private String resetToken;
-    
+
     private LocalDateTime resetTokenExpiry;
+
+    @Column(length = 500)
+    private String refreshToken;
+
+    private LocalDateTime refreshTokenExpiry;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

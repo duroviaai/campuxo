@@ -245,6 +245,7 @@ const StudentProfilePage = () => {
           <Field label="Course Start Year"  value={profile?.courseStartYear} />
           <Field label="Course End Year"    value={profile?.courseEndYear} />
           <Field label="Class Batch"        value={profile?.classBatchDisplayName || profile?.classBatchName} />
+          <Field label="Semester"            value={profile?.semester != null ? `Semester ${profile.semester}` : null} />
           <Field label="Specialization"     value={profile?.specializationName} />
         </div>
       ) : (
@@ -298,6 +299,7 @@ const StudentProfilePage = () => {
               <ReadOnlyField label="Course Start Year" value={profile?.courseStartYear} />
               <ReadOnlyField label="Course End Year"   value={profile?.courseEndYear} />
               <ReadOnlyField label="Class Batch"       value={profile?.classBatchDisplayName || profile?.classBatchName} />
+              <ReadOnlyField label="Semester"           value={profile?.semester != null ? `Semester ${profile.semester}` : null} />
             </div>
           </div>
 

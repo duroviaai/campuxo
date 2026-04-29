@@ -7,6 +7,20 @@ import {
 import { PctBar } from '../../../shared/components/ui/PageShell';
 import HodMarkAttendancePage from './HodMarkAttendancePage';
 import HodMyIAPage from './HodMyIAPage';
+import env from '../../../config/env';
+
+const downloadFile = async (url, filename) => {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${env.API_BASE_URL}${url}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const blob = await res.blob();
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+};
 
 const PAGE_TABS = [
   { key: 'courses',    label: 'My Programs' },
@@ -102,7 +116,31 @@ const CourseDetail = ({ assignment }) => {
             <option value="ok">75% and above</option>
           </select>
         </div>
-        <p className="text-xs" style={{ color: '#94a3b8' }}>{filtered.length} student{filtered.length !== 1 ? 's' : ''}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs" style={{ color: '#94a3b8' }}>{filtered.length} student{filtered.length !== 1 ? 's' : ''}</p>
+          {assignment.classStructureId && (
+            <>
+              <button
+                onClick={() => downloadFile(
+                  `/api/v1/reports/attendance/excel?classStructureId=${assignment.classStructureId}&courseId=${assignment.courseId}`,
+                  `attendance_${assignment.courseName}.xlsx`
+                )}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg text-white"
+                style={{ background: '#059669' }}>
+                ↓ Excel
+              </button>
+              <button
+                onClick={() => downloadFile(
+                  `/api/v1/reports/attendance/pdf?classStructureId=${assignment.classStructureId}&courseId=${assignment.courseId}`,
+                  `attendance_${assignment.courseName}.pdf`
+                )}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg text-white"
+                style={{ background: '#dc2626' }}>
+                ↓ PDF
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Table */}

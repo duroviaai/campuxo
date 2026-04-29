@@ -10,6 +10,15 @@ const Field = ({ label, value }) => (
   </div>
 );
 
+const ReadOnlyField = ({ label, value }) => (
+  <div className="flex flex-col gap-0.5">
+    <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#94a3b8' }}>{label}</span>
+    <span className="text-sm font-medium px-2 py-1 rounded-md" style={{ color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+      {value || '—'}
+    </span>
+  </div>
+);
+
 const inputCls = 'w-full px-3.5 py-2.5 text-sm rounded-lg outline-none transition-all';
 const inputStyle = { border: '1.5px solid #e2e8f0', background: '#fff', color: '#0f172a' };
 const focusHandlers = {
@@ -61,8 +70,8 @@ const FacultyProfilePage = () => {
       }).unwrap();
       setEditing(false);
       toast.success('Profile updated successfully');
-    } catch {
-      toast.error('Failed to update profile');
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to update profile');
     }
   };
 
@@ -114,24 +123,41 @@ const FacultyProfilePage = () => {
           </div>
         </Card>
       ) : (
-        <form onSubmit={handleSave} className="bg-white rounded-xl p-6 space-y-4" style={{ border: '1px solid #e8edf2' }}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {FIELDS.map(({ name, label, type }) => (
-              <div key={name} className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold" style={{ color: '#64748b' }}>{label}</label>
-                <input
-                  type={type}
-                  name={name}
-                  value={form[name]}
-                  onChange={handleChange}
-                  className={inputCls}
-                  style={inputStyle}
-                  {...focusHandlers}
-                />
-              </div>
-            ))}
+        <form onSubmit={handleSave} className="bg-white rounded-xl p-6 space-y-5" style={{ border: '1px solid #e8edf2' }}>
+          <div>
+            <p className="text-xs font-semibold mb-3" style={{ color: '#64748b' }}>Professional Information</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {FIELDS.map(({ name, label, type }) => (
+                <div key={name} className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold" style={{ color: '#64748b' }}>{label}</label>
+                  <input
+                    type={type}
+                    name={name}
+                    value={form[name]}
+                    onChange={handleChange}
+                    className={inputCls}
+                    style={inputStyle}
+                    {...focusHandlers}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-2 pt-2">
+
+          <div>
+            <p className="text-xs font-semibold mb-3" style={{ color: '#94a3b8' }}>
+              Identity Details <span className="font-normal">(managed by admin)</span>
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ReadOnlyField label="Email"      value={profile?.email} />
+              <ReadOnlyField label="Faculty ID" value={profile?.facultyId} />
+              <ReadOnlyField label="Department" value={profile?.department} />
+              <ReadOnlyField label="First Name" value={profile?.firstName} />
+              <ReadOnlyField label="Last Name"  value={profile?.lastName} />
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-1">
             <button type="button" onClick={handleCancel}
               className="px-4 py-2 text-xs font-semibold rounded-lg transition-colors"
               style={{ background: '#f8fafc', color: '#334155', border: '1px solid #e2e8f0' }}>

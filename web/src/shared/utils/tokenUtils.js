@@ -9,6 +9,11 @@ export const setUser    = (u) => localStorage.setItem(USER_KEY, JSON.stringify(u
 export const getUser    = ()  => { const u = localStorage.getItem(USER_KEY); return u ? JSON.parse(u) : null; };
 export const removeUser  = () => localStorage.removeItem(USER_KEY);
 
+const REFRESH_TOKEN_KEY = 'refreshToken';
+export const setRefreshToken   = (t) => localStorage.setItem(REFRESH_TOKEN_KEY, t);
+export const getRefreshToken   = ()  => localStorage.getItem(REFRESH_TOKEN_KEY);
+export const clearRefreshToken = ()  => localStorage.removeItem(REFRESH_TOKEN_KEY);
+
 /** Returns true if the JWT stored in localStorage is missing or expired. */
 export const isTokenExpired = () => {
   const token = getToken();
@@ -22,4 +27,4 @@ export const isTokenExpired = () => {
   }
 };
 
-export const clearAuth = () => { removeToken(); removeUser(); };
+export const clearAuth = () => { removeToken(); removeUser(); clearRefreshToken(); };

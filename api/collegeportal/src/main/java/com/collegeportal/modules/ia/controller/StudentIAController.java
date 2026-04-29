@@ -19,8 +19,14 @@ public class StudentIAController {
     private final StudentIAService studentIAService;
 
     @GetMapping("/class-structure-id")
-    public ResponseEntity<Long> getMyClassStructureId() {
-        return ResponseEntity.ok(studentIAService.getMyClassStructureId());
+    public ResponseEntity<java.util.Map<String, Long>> getMyClassStructureId(
+            @RequestParam(required = false) Long courseId) {
+        Long id = courseId != null
+                ? studentIAService.getMyClassStructureIdByCourse(courseId)
+                : studentIAService.getMyClassStructureId();
+        java.util.Map<String, Long> body = new java.util.HashMap<>();
+        body.put("classStructureId", id);
+        return ResponseEntity.ok(body);
     }
 
     @GetMapping

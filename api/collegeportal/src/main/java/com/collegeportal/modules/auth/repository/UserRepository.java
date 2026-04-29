@@ -44,4 +44,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u WHERE u.resetToken = ?1")
     Optional<User> findByResetToken(String resetToken);
+
+    @Query("SELECT u FROM User u WHERE u.refreshToken = ?1")
+    Optional<User> findByRefreshToken(String refreshToken);
 }

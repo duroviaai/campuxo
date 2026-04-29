@@ -1,5 +1,6 @@
 package com.collegeportal.modules.classstructure.repository;
 
+import com.collegeportal.modules.course.entity.Course;
 import com.collegeportal.modules.classstructure.entity.ClassStructureCourse;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -25,6 +26,9 @@ public interface ClassStructureCourseRepository extends JpaRepository<ClassStruc
 
     @Query("SELECT COUNT(DISTINCT csc.classStructure.id) FROM ClassStructureCourse csc WHERE csc.course.id = :courseId")
     long countUsagesByCourseId(@Param("courseId") Long courseId);
+
+    @Query("SELECT DISTINCT csc.course FROM ClassStructureCourse csc WHERE csc.classStructure.department.name = :departmentName")
+    List<Course> findCoursesByDepartmentName(@Param("departmentName") String departmentName);
 
     @Modifying
     @Query("DELETE FROM ClassStructureCourse csc WHERE csc.course.id = :courseId")

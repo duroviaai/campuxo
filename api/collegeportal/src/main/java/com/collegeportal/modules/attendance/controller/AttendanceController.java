@@ -29,11 +29,11 @@ public class AttendanceController {
     private final AttendanceService attendanceService;
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_FACULTY')")
+    @PreAuthorize("hasAnyRole('ROLE_FACULTY', 'ROLE_ADMIN', 'ROLE_HOD')")
     public ResponseEntity<AttendanceResponseDTO> updateAttendance(
             @PathVariable Long id,
             @Valid @RequestBody AttendanceUpdateRequestDTO request) {
-        return ResponseEntity.ok(attendanceService.updateAttendance(id, request));
+        return ResponseEntity.ok(attendanceService.updateAttendance(id, request.getStatus()));
     }
 
     @PostMapping("/mark")

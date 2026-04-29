@@ -9,4 +9,5 @@ public interface ClassStructureService {
     List<ClassStructureResponseDTO> getAll();
     List<ClassStructureResponseDTO> getByBatchDeptSpec(Long batchId, Long deptId, Long specId);
     ClassStructureResponseDTO getOrCreate(ClassStructureRequestDTO request);
+    List<ClassStructureResponseDTO> getByDeptName(String deptName);
 }
