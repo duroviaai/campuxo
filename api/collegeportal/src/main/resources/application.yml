@@ -15,3 +15,17 @@ spring:
         jdbc.batch_size: 20
         order_inserts: true
         order_updates: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+app:
+  upload:
+    dir: uploads/photos
+    base-url: /uploads/photos
+
+vapid:
+  public-key: ${VAPID_PUBLIC_KEY}
+  private-key: ${VAPID_PRIVATE_KEY}
+  subject: ${VAPID_SUBJECT:mailto:admin@campuxo.com}

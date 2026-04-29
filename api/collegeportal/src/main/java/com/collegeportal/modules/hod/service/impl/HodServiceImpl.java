@@ -23,12 +23,15 @@ import com.collegeportal.modules.facultyassignment.repository.FacultyCourseAssig
 import com.collegeportal.modules.classstructure.repository.ClassStructureCourseRepository;
 import com.collegeportal.modules.department.repository.DepartmentRepository;
 import com.collegeportal.modules.hod.dto.response.HodStatsDTO;
+import com.collegeportal.modules.hod.dto.request.HodUpdateProfileRequestDTO;
 import com.collegeportal.modules.hod.service.HodService;
 import com.collegeportal.modules.student.dto.response.StudentResponseDTO;
 import com.collegeportal.modules.student.entity.Student;
 import com.collegeportal.modules.student.mapper.StudentMapper;
 import com.collegeportal.modules.student.repository.StudentRepository;
+import com.collegeportal.modules.notification.service.NotificationService;
 import com.collegeportal.shared.enums.FacultyRole;
+import com.collegeportal.shared.enums.NotificationType;
 import com.collegeportal.shared.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -54,6 +57,7 @@ public class HodServiceImpl implements HodService {
     private final FacultyCourseAssignmentRepository assignmentRepository;
     private final ClassStructureCourseRepository cscRepository;
     private final DepartmentRepository departmentRepository;
+    private final NotificationService notificationService;
 
     /**
      * Resolves the HOD by looking up the faculty profile of the current user
@@ -220,6 +224,12 @@ public class HodServiceImpl implements HodService {
                         .faculty(faculty).course(course).classStructure(null).build());
             }
         }
+        if (faculty.getUser() != null) {
+            notificationService.send(faculty.getUser().getId(), NotificationType.COURSE_ASSIGNED,
+                    "Course Assigned",
+                    "You have been assigned to teach " + course.getName() + ".",
+                    "/faculty/courses", course.getId(), "COURSE");
+        }
     }
 
     @Override
@@ -231,7 +241,8 @@ public class HodServiceImpl implements HodService {
         if (!hod.getDepartment().equals(newFaculty.getDepartment())) {
             throw new BadRequestException("Faculty does not belong to your department");
         }
-        // Remove all existing assignments for this course
+        // Capture old assignments before deleting
+        List<FacultyCourseAssignment> oldAssignments = assignmentRepository.findByCourseId(courseId);
         assignmentRepository.deleteByCourseId(courseId);
         // Assign new faculty
         Course course = courseRepository.findById(courseId)
@@ -242,6 +253,21 @@ public class HodServiceImpl implements HodService {
                 : null;
         assignmentRepository.save(FacultyCourseAssignment.builder()
                 .faculty(newFaculty).course(course).classStructure(cs).build());
+        oldAssignments.forEach(a -> {
+            Faculty old = a.getFaculty();
+            if (old.getUser() != null && !old.getId().equals(newFaculty.getId())) {
+                notificationService.send(old.getUser().getId(), NotificationType.COURSE_REMOVED,
+                        "Course Unassigned",
+                        "You have been removed from " + course.getName() + ".",
+                        "/faculty/courses", course.getId(), "COURSE");
+            }
+        });
+        if (newFaculty.getUser() != null) {
+            notificationService.send(newFaculty.getUser().getId(), NotificationType.COURSE_ASSIGNED,
+                    "Course Assigned",
+                    "You have been assigned to teach " + course.getName() + ".",
+                    "/faculty/courses", course.getId(), "COURSE");
+        }
     }
 
     @Override
@@ -258,6 +284,21 @@ public class HodServiceImpl implements HodService {
         Faculty hod = resolveHod();
         return facultyMapper.toResponseDTO(hod,
                 (int) courseRepository.countAssignedCoursesByFacultyId(hod.getId()));
+    }
+
+    @Override
+    @Transactional
+    public FacultyResponseDTO updateHodProfile(HodUpdateProfileRequestDTO request) {
+        Faculty hod = resolveHod();
+        if (request.getPhone()         != null) hod.setPhone(request.getPhone());
+        if (request.getDesignation()   != null) hod.setDesignation(request.getDesignation());
+        if (request.getQualification() != null) hod.setQualification(request.getQualification());
+        if (request.getExperience()    != null) hod.setExperience(request.getExperience());
+        if (request.getSubjects()      != null) hod.setSubjects(request.getSubjects());
+        if (request.getJoiningDate()   != null) hod.setJoiningDate(request.getJoiningDate());
+        Faculty saved = facultyRepository.save(hod);
+        return facultyMapper.toResponseDTO(saved,
+                (int) courseRepository.countAssignedCoursesByFacultyId(saved.getId()));
     }
 
     @Override
@@ -310,6 +351,14 @@ public class HodServiceImpl implements HodService {
         }
         if (!assignmentRepository.existsByFacultyIdAndCourseId(facultyId, courseId)) {
             throw new BadRequestException("Course is not assigned to this faculty");
+        }
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
+        if (faculty.getUser() != null) {
+            notificationService.send(faculty.getUser().getId(), NotificationType.COURSE_REMOVED,
+                    "Course Unassigned",
+                    "You have been removed from " + course.getName() + ".",
+                    "/faculty/courses", course.getId(), "COURSE");
         }
         assignmentRepository.deleteByFacultyIdAndCourseId(facultyId, courseId);
     }

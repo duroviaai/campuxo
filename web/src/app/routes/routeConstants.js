@@ -15,17 +15,24 @@ const ROUTES = {
   ADMIN_ATTENDANCE:  '/admin/attendance',
   ADMIN_IA:          '/admin/ia',
   ADMIN_APPROVALS:   '/admin/approvals',
+  ADMIN_REGISTRATION_WINDOWS: '/admin/registration-windows',
 
   // Faculty
   FACULTY_DASHBOARD:  '/faculty/dashboard',
   FACULTY_COURSES:    '/faculty/courses',
   FACULTY_ATTENDANCE: '/faculty/attendance',
+  FACULTY_IA:         '/faculty/ia',
+  FACULTY_COURSE_STUDENTS: '/faculty/courses/:courseId/students',
+
+  // Faculty — attendance summary per course
+  FACULTY_COURSE_ATTENDANCE_SUMMARY: '/faculty/attendance/summary',
 
   // Student
   STUDENT_DASHBOARD:  '/student/dashboard',
   STUDENT_COURSES:    '/student/courses',
   STUDENT_ATTENDANCE: '/student/attendance',
   STUDENT_PROFILE:    '/student/profile',
+  STUDENT_IA:         '/student/ia',
   STUDENT_COMPLETE_PROFILE: '/student/complete-profile',
 
   // Faculty profile
@@ -43,10 +50,13 @@ const ROUTES = {
   HOD_STUDENTS:         '/hod/students',
   HOD_COURSES:          '/hod/courses',
   HOD_MY_COURSES:       '/hod/my-courses',
+  HOD_PROFILE:          '/hod/profile',
   HOD_ATTENDANCE:       '/hod/attendance',
   HOD_MARK_ATTENDANCE:  '/hod/my-attendance',
   HOD_IA:               '/hod/ia',
   HOD_MY_IA:            '/hod/my-ia',
+  NOTIFICATIONS: '/notifications',
+  ADMIN_ANNOUNCEMENTS: '/admin/announcements',
 };
 
 export default ROUTES;

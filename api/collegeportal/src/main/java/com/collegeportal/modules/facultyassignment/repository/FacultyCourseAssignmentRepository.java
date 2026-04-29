@@ -49,4 +49,16 @@ public interface FacultyCourseAssignmentRepository extends JpaRepository<Faculty
     /** Returns [courseId, facultyFullName, facultyId] tuples for the given course IDs. */
     @Query("SELECT a.course.id, a.faculty.firstName, a.faculty.id FROM FacultyCourseAssignment a WHERE a.course.id IN :courseIds")
     List<Object[]> findFacultyNamesByCourseIds(@Param("courseIds") List<Long> courseIds);
+
+    /** Returns [courseId, facultyId, firstName, lastName, designation] tuples for the given course IDs. */
+    @Query("SELECT a.course.id, a.faculty.id, a.faculty.firstName, a.faculty.lastName, a.faculty.designation FROM FacultyCourseAssignment a WHERE a.course.id IN :courseIds")
+    List<Object[]> findFacultyDetailsByCourseIds(@Param("courseIds") List<Long> courseIds);
+
+    /** Distinct student count across all courses assigned to a faculty. */
+    @Query("SELECT COUNT(DISTINCT s.id) FROM FacultyCourseAssignment a JOIN a.course c JOIN c.students s WHERE a.faculty.id = :facultyId")
+    long countDistinctStudentsByFacultyId(@Param("facultyId") Long facultyId);
+
+    /** Distinct class structure count for a faculty (excluding null). */
+    @Query("SELECT COUNT(DISTINCT a.classStructure.id) FROM FacultyCourseAssignment a WHERE a.faculty.id = :facultyId AND a.classStructure IS NOT NULL")
+    long countDistinctClassStructuresByFacultyId(@Param("facultyId") Long facultyId);
 }

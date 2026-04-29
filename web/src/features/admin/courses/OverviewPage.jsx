@@ -398,49 +398,110 @@ const TabBar = ({ active, onChange }) => (
   </div>
 );
 
-// -- Courses tab (existing drill-down) ----------------------------------------
-const LEVEL = { BATCH: 'batch', DEPT: 'dept', SEMESTER: 'semester', COURSES: 'courses' };
+// -- Programs tab (dropdown) -------------------------------------------------
+const sel = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:opacity-50 disabled:bg-gray-50';
 
 const CoursesTab = () => {
-  const [level, setLevel] = useState(LEVEL.BATCH);
-  const [batch, setBatch] = useState(null);
-  const [dept, setDept] = useState(null);
-  const [spec, setSpec] = useState(null);
-  const [classStructure, setClassStructure] = useState(null);
+  const navigate = useNavigate();
+  const [batchId, setBatchId]   = useState('');
+  const [deptId, setDeptId]     = useState('');
+  const [specId, setSpecId]     = useState('');
+  const [csId, setCsId]         = useState('');
 
-  const handleBack = (to) => {
-    if (to === 'batch')    { setBatch(null); setDept(null); setSpec(null); setClassStructure(null); setLevel(LEVEL.BATCH); }
-    if (to === 'dept')     { setDept(null); setSpec(null); setClassStructure(null); setLevel(LEVEL.DEPT); }
-    if (to === 'semester') { setClassStructure(null); setLevel(LEVEL.SEMESTER); }
+  const { data: batches = [], isLoading: batchLoading } = useGetBatchesQuery();
+  const { data: depts = [],   isLoading: deptLoading }  = useGetDepartmentsQuery();
+  const selectedBatch = batches.find(b => String(b.id) === batchId);
+  const { data: specs = [] } = useGetSpecializationsByDeptQuery(
+    { deptId: Number(deptId), scheme: selectedBatch?.scheme },
+    { skip: !deptId || !selectedBatch }
+  );
+  const { data: structures = [], isLoading: csLoading } = useGetClassStructureQuery(
+    { batchId: Number(batchId), deptId: Number(deptId), specId: specId ? Number(specId) : undefined },
+    { skip: !batchId || !deptId }
+  );
+  const { data: courses = [], isLoading: courseLoading } = useGetAdminCoursesQuery(
+    { classStructureId: Number(csId) },
+    { skip: !csId }
+  );
+
+  const selectedCs   = structures.find(s => String(s.id) === csId);
+  const selectedDept = depts.find(d => String(d.id) === deptId);
+  const getFaculty   = (c) => c.facultyId ? [{ id: c.facultyId, fullName: c.facultyName }] : [];
+
+  const resetFrom = (level) => {
+    if (level <= 1) setDeptId('');
+    if (level <= 2) { setSpecId(''); setCsId(''); }
+    if (level <= 3) setCsId('');
   };
 
   return (
-    <>
-      {level === LEVEL.BATCH && (
-        <BatchLevel onSelect={(b) => { setBatch(b); setLevel(LEVEL.DEPT); }} />
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div>
+          <label className="text-xs font-semibold text-gray-500 block mb-1">Batch</label>
+          <select value={batchId} onChange={e => { setBatchId(e.target.value); resetFrom(1); }} className={sel} disabled={batchLoading}>
+            <option value="">{batchLoading ? 'Loading…' : 'Select batch'}</option>
+            {batches.map(b => <option key={b.id} value={b.id}>{b.startYear}–{b.endYear} ({b.scheme})</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-gray-500 block mb-1">Department</label>
+          <select value={deptId} onChange={e => { setDeptId(e.target.value); resetFrom(2); }} className={sel} disabled={!batchId || deptLoading}>
+            <option value="">{deptLoading ? 'Loading…' : 'Select department'}</option>
+            {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+        {specs.length > 0 && (
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">Specialization</label>
+            <select value={specId} onChange={e => { setSpecId(e.target.value); resetFrom(3); }} className={sel}>
+              <option value="">All</option>
+              {specs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className="text-xs font-semibold text-gray-500 block mb-1">Semester</label>
+          <select value={csId} onChange={e => setCsId(e.target.value)} className={sel} disabled={!deptId || csLoading}>
+            <option value="">{csLoading ? 'Loading…' : 'Select semester'}</option>
+            {structures.map(cs => <option key={cs.id} value={cs.id}>Sem {cs.semester} · Year {cs.yearOfStudy}</option>)}
+          </select>
+        </div>
+      </div>
+      {selectedCs && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-sm font-medium text-gray-600">
+              {selectedDept?.name} · Sem {selectedCs.semester} — {courses.length} Program{courses.length !== 1 ? 's' : ''}
+            </p>
+            <div className="flex gap-2">
+              {!courseLoading && courses.filter(c => !c.facultyId).length > 0 && (
+                <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-2.5 py-1 rounded-full font-semibold">
+                  {courses.filter(c => !c.facultyId).length} without faculty
+                </span>
+              )}
+              <button onClick={() => navigate(ROUTES.ADMIN_COURSES)} className="text-xs font-semibold text-indigo-600 hover:underline">Manage Programs →</button>
+            </div>
+          </div>
+          {courseLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />)}
+            </div>
+          ) : courses.length === 0 ? (
+            <div className="py-12 text-center space-y-2">
+              <p className="text-sm font-semibold text-gray-700">No programs assigned yet</p>
+              <button onClick={() => navigate(ROUTES.ADMIN_COURSES)} className="text-xs text-indigo-600 hover:underline">Go to Programs to assign programs to this semester</button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {courses.map(course => (
+                <CourseCard key={course.id} course={course} faculty={getFaculty(course)} onAssignFaculty={() => navigate(ROUTES.ADMIN_FACULTY)} />
+              ))}
+            </div>
+          )}
+        </div>
       )}
-      {level === LEVEL.DEPT && batch && (
-        <DeptLevel
-          batch={batch}
-          onSelect={(d, s) => { setDept(d); setSpec(s); setLevel(LEVEL.SEMESTER); }}
-          onBack={() => handleBack('batch')}
-        />
-      )}
-      {level === LEVEL.SEMESTER && batch && dept && (
-        <SemesterLevel
-          batch={batch} dept={dept} spec={spec}
-          onSelect={(cs) => { setClassStructure(cs); setLevel(LEVEL.COURSES); }}
-          onBack={handleBack}
-        />
-      )}
-      {level === LEVEL.COURSES && batch && dept && classStructure && (
-        <SemesterCourses
-          batch={batch} dept={dept} spec={spec}
-          classStructure={classStructure}
-          onBack={handleBack}
-        />
-      )}
-    </>
+    </div>
   );
 };
 

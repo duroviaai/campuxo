@@ -2,6 +2,7 @@ package com.collegeportal.modules.attendance.controller;
 
 import com.collegeportal.modules.attendance.dto.request.AttendanceBatchRequestDTO;
 import com.collegeportal.modules.attendance.dto.request.AttendanceRequestDTO;
+import com.collegeportal.modules.attendance.dto.request.AttendanceUpdateRequestDTO;
 import com.collegeportal.modules.attendance.dto.response.AttendanceResponseDTO;
 import com.collegeportal.modules.attendance.dto.response.AttendanceSummaryDTO;
 import com.collegeportal.modules.attendance.dto.response.StudentAttendanceOverviewDTO;
@@ -27,6 +28,14 @@ public class AttendanceController {
 
     private final AttendanceService attendanceService;
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_FACULTY')")
+    public ResponseEntity<AttendanceResponseDTO> updateAttendance(
+            @PathVariable Long id,
+            @Valid @RequestBody AttendanceUpdateRequestDTO request) {
+        return ResponseEntity.ok(attendanceService.updateAttendance(id, request));
+    }
+
     @PostMapping("/mark")
     @PreAuthorize("hasRole('ROLE_FACULTY')")
     public ResponseEntity<AttendanceResponseDTO> markAttendance(@Valid @RequestBody AttendanceRequestDTO request) {
@@ -38,6 +47,15 @@ public class AttendanceController {
     public ResponseEntity<List<AttendanceResponseDTO>> markAttendanceBatch(
             @Valid @RequestBody List<AttendanceBatchRequestDTO> requests) {
         return ResponseEntity.status(HttpStatus.CREATED).body(attendanceService.markAttendanceBatch(requests));
+    }
+
+    @GetMapping("/course/{courseId}/range")
+    @PreAuthorize("hasAnyRole('ROLE_FACULTY', 'ROLE_ADMIN')")
+    public ResponseEntity<List<AttendanceResponseDTO>> getAttendanceByDateRange(
+            @PathVariable Long courseId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(attendanceService.getAttendanceByCourseAndDateRange(courseId, startDate, endDate));
     }
 
     @GetMapping("/course/{courseId}")

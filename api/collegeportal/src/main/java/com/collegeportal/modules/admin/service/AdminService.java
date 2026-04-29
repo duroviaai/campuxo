@@ -12,6 +12,7 @@ public interface AdminService {
     List<AdminResponseDTO> getApprovedUsers(RoleType role);
     List<AdminResponseDTO> getRejectedUsers();
     Map<String, Long> getDepartmentPendingCounts();
+    Map<String, Long> getStudentCountByDepartment();
     AdminResponseDTO approveUser(Long userId);
     void rejectUser(Long userId, String reason);
     void revokeUser(Long userId);

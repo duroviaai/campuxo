@@ -5,6 +5,8 @@ import {
   useGetPendingUsersQuery,
   useApproveUserMutation,
   useRejectUserMutation,
+  useGetStudentsByDepartmentQuery,
+  useGetRegistrationWindowsQuery,
 } from '../../admin/state/adminApi';
 import {
   useGetDepartmentsQuery,
@@ -134,10 +136,130 @@ const CoursesByDept = () => {
   return <CoursesByDeptInner depts={visible} />;
 };
 
-const AdminDashboardPage = () => {
-  const navigate = useNavigate();
+const StudentsByDept = () => {
+  const { data: raw = {}, isLoading } = useGetStudentsByDepartmentQuery();
+  const entries = Object.entries(raw).sort((a, b) => b[1] - a[1]);
+  const max = entries.length ? entries[0][1] : 1;
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+      <h2 className="text-sm font-bold text-slate-900 mb-3">Students by Department</h2>
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => <div key={i} className="h-7 rounded-lg bg-gray-100 animate-pulse" />)}
+        </div>
+      ) : entries.length === 0 ? (
+        <p className="text-xs text-gray-400 py-4 text-center">No data</p>
+      ) : (
+        <div className="space-y-2.5">
+          {entries.map(([dept, count]) => (
+            <div key={dept}>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-gray-600 font-medium truncate max-w-[140px]">{dept}</span>
+                <span className="text-gray-400 font-semibold shrink-0 ml-2">{count}</span>
+              </div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-violet-400 rounded-full transition-all duration-500"
+                  style={{ width: `${(count / max) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const winStatus = (w) => {
+  if (!w.active)       return { label: 'Disabled',  cls: 'bg-red-50 text-red-600 border-red-200' };
+  if (w.currentlyOpen) return { label: 'Open',       cls: 'bg-green-50 text-green-700 border-green-200' };
+  const today = new Date().toISOString().split('T')[0];
+  if (w.openDate > today) return { label: 'Scheduled', cls: 'bg-blue-50 text-blue-700 border-blue-200' };
+  return                         { label: 'Closed',    cls: 'bg-gray-100 text-gray-500 border-gray-200' };
+};
+
+const fmtDate = (d) =>
+  d ? new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+const WindowRow = ({ w, navigate }) => {
+  const { label, cls } = winStatus(w);
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0 gap-3">
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-gray-800 truncate">
+          {w.batchStartYear}–{w.batchEndYear}
+          <span className="ml-1 font-normal text-gray-400">{w.batchScheme}</span>
+          {w.allowedYearOfStudy && <span className="ml-1.5 text-indigo-500">· Yr {w.allowedYearOfStudy}</span>}
+        </p>
+        <p className="text-[10px] text-gray-400 mt-0.5">{fmtDate(w.openDate)} – {fmtDate(w.closeDate)}</p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cls}`}>{label}</span>
+        <button
+          onClick={() => navigate(ROUTES.ADMIN_REGISTRATION_WINDOWS)}
+          className="text-[10px] font-semibold text-indigo-600 hover:text-indigo-700"
+        >
+          Manage →
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const RegistrationStatus = ({ windows, navigate }) => {
+  const students = windows.filter((w) => w.role === 'ROLE_STUDENT');
+  const faculty  = windows.filter((w) => w.role === 'ROLE_FACULTY');
+
+  return (
+    <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #e8edf2' }}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-bold text-gray-900">Registration Status</h2>
+        <button
+          onClick={() => navigate(ROUTES.ADMIN_REGISTRATION_WINDOWS)}
+          className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold"
+        >
+          Manage →
+        </button>
+      </div>
+
+      {windows.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-6 text-center">
+          <p className="text-sm text-gray-500">No registration windows configured.</p>
+          <button
+            onClick={() => navigate(ROUTES.ADMIN_REGISTRATION_WINDOWS)}
+            className="px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+          >
+            Set up registration
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Student</p>
+            {students.length === 0
+              ? <p className="text-xs text-gray-400 py-2">No student windows.</p>
+              : students.map((w) => <WindowRow key={w.id} w={w} navigate={navigate} />)
+            }
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Faculty</p>
+            {faculty.length === 0
+              ? <p className="text-xs text-gray-400 py-2">No faculty windows.</p>
+              : faculty.map((w) => <WindowRow key={w.id} w={w} navigate={navigate} />)
+            }
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AdminDashboardPage = () => {  const navigate = useNavigate();
   const { data: stats, isLoading: statsLoading } = useGetStatsQuery();
   const { data: pending = [], isLoading: pendingLoading } = useGetPendingUsersQuery({});
+  const { data: openWindows = [] } = useGetRegistrationWindowsQuery();
   const [approveUser] = useApproveUserMutation();
   const [rejectUser] = useRejectUserMutation();
 
@@ -185,6 +307,9 @@ const AdminDashboardPage = () => {
           />
         ))}
       </div>
+
+      {/* Registration Status */}
+      <RegistrationStatus windows={openWindows} navigate={navigate} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -279,8 +404,8 @@ const AdminDashboardPage = () => {
               <QuickAction label="Attendance"        icon={<FaClipboardList />} onClick={() => navigate(ROUTES.ADMIN_ATTENDANCE)} />
             </div>
           </div>
+          <StudentsByDept />
           <CoursesByDept />
-
         </div>
       </div>
     </div>

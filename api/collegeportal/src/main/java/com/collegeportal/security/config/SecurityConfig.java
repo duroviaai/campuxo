@@ -37,7 +37,11 @@ public class SecurityConfig {
                         "/api/v1/auth/google", "/api/v1/auth/google/register",
                         "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                 .requestMatchers("/api/v1/departments").permitAll()
+                .requestMatchers("/api/v1/specializations").permitAll()
+                .requestMatchers("/api/v1/batches").permitAll()
+                .requestMatchers("/api/v1/class-structure/public").permitAll()
                 .requestMatchers("/api/v1/classes/public").permitAll()
+                .requestMatchers("/api/v1/registration-windows/open").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated()
             )

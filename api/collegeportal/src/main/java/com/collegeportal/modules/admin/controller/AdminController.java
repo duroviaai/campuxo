@@ -1,11 +1,15 @@
 package com.collegeportal.modules.admin.controller;
 
+import com.collegeportal.modules.admin.dto.request.AnnouncementRequestDTO;
 import com.collegeportal.modules.admin.dto.request.BulkUserRequestDTO;
 import com.collegeportal.modules.admin.dto.request.RejectUserRequestDTO;
 import com.collegeportal.modules.admin.dto.response.AdminResponseDTO;
 import com.collegeportal.modules.admin.dto.response.AdminStatsDTO;
 import com.collegeportal.modules.admin.service.AdminService;
+import com.collegeportal.modules.notification.service.NotificationService;
+import com.collegeportal.shared.enums.NotificationType;
 import com.collegeportal.shared.enums.RoleType;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +25,7 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
+    private final NotificationService notificationService;
 
     @GetMapping("/stats")
     public ResponseEntity<AdminStatsDTO> getStats() {
@@ -30,6 +35,11 @@ public class AdminController {
     @GetMapping("/departments-summary")
     public ResponseEntity<Map<String, Long>> getDepartmentsSummary() {
         return ResponseEntity.ok(adminService.getDepartmentPendingCounts());
+    }
+
+    @GetMapping("/students-by-department")
+    public ResponseEntity<Map<String, Long>> getStudentsByDepartment() {
+        return ResponseEntity.ok(adminService.getStudentCountByDepartment());
     }
 
     @GetMapping("/pending-users")
@@ -110,6 +120,25 @@ public class AdminController {
     @PutMapping("/users/{userId}/remove-hod")
     public ResponseEntity<Void> removeHod(@PathVariable Long userId) {
         adminService.removeHodRole(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/announcements")
+    public ResponseEntity<Void> sendAnnouncement(@Valid @RequestBody AnnouncementRequestDTO body) {
+        if (body.getTargetRole() != null) {
+            notificationService.sendToRole(
+                    RoleType.from(body.getTargetRole()),
+                    NotificationType.ANNOUNCEMENT,
+                    body.getTitle(),
+                    body.getMessage(),
+                    null);
+        } else {
+            notificationService.sendToAll(
+                    NotificationType.ANNOUNCEMENT,
+                    body.getTitle(),
+                    body.getMessage(),
+                    null);
+        }
         return ResponseEntity.noContent().build();
     }
 }

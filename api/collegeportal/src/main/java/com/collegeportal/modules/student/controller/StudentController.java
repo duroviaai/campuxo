@@ -2,7 +2,10 @@ package com.collegeportal.modules.student.controller;
 
 import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.student.dto.request.StudentRequestDTO;
+import com.collegeportal.modules.student.dto.response.ClassmateResponseDTO;
+import com.collegeportal.modules.student.dto.response.StudentAlertDTO;
 import com.collegeportal.modules.student.dto.response.StudentResponseDTO;
+import com.collegeportal.modules.student.dto.response.StudentStatsDTO;
 import com.collegeportal.modules.student.service.StudentService;
 import com.collegeportal.shared.dto.PageResponseDTO;
 import jakarta.validation.Valid;
@@ -13,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -61,6 +65,12 @@ public class StudentController {
         return ResponseEntity.ok(java.util.Map.of("profileComplete", complete));
     }
 
+    @PostMapping(value = "/me/photo", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    public ResponseEntity<StudentResponseDTO> uploadPhoto(@RequestParam("photo") MultipartFile photo) {
+        return ResponseEntity.ok(studentService.uploadPhoto(photo));
+    }
+
     @PutMapping("/me")
     @PreAuthorize("hasRole('ROLE_STUDENT')")
     public ResponseEntity<StudentResponseDTO> updateMyProfile(@Valid @RequestBody StudentRequestDTO request) {
@@ -77,6 +87,24 @@ public class StudentController {
     @PreAuthorize("hasRole('ROLE_STUDENT')")
     public ResponseEntity<List<CourseResponseDTO>> getMyClassCourses() {
         return ResponseEntity.ok(studentService.getMyClassCourses());
+    }
+
+    @GetMapping("/me/stats")
+    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    public ResponseEntity<StudentStatsDTO> getMyStats() {
+        return ResponseEntity.ok(studentService.getMyStats());
+    }
+
+    @GetMapping("/me/alerts")
+    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    public ResponseEntity<List<StudentAlertDTO>> getMyAlerts() {
+        return ResponseEntity.ok(studentService.getMyAlerts());
+    }
+
+    @GetMapping("/me/courses/{courseId}/classmates")
+    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    public ResponseEntity<List<ClassmateResponseDTO>> getMyClassmates(@PathVariable Long courseId) {
+        return ResponseEntity.ok(studentService.getMyClassmates(courseId));
     }
 
     @GetMapping("/{id}")

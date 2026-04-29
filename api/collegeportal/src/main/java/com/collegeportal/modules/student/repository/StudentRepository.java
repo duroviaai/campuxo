@@ -34,6 +34,17 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> findByCourseId(@Param("courseId") Long courseId);
 
     @EntityGraph(attributePaths = {"user", "classBatch"})
+    @Query("SELECT s FROM Student s JOIN Course c ON s MEMBER OF c.students WHERE c.id = :courseId " +
+           "AND (COALESCE(:search, '') = '' " +
+           "OR LOWER(s.firstName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(s.lastName)  LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(s.user.registrationNumber) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<Student> findByCourseIdWithSearch(
+            @Param("courseId") Long courseId,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {"user", "classBatch"})
     @Query("SELECT s FROM Student s JOIN Course c ON s MEMBER OF c.students WHERE s.classBatch.id = :classId AND c.id = :courseId")
     List<Student> findByClassBatchIdAndCourseId(@Param("classId") Long classId, @Param("courseId") Long courseId);
 

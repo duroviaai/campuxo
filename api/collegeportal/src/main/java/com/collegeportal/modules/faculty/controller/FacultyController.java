@@ -1,9 +1,12 @@
 package com.collegeportal.modules.faculty.controller;
 
 import com.collegeportal.modules.attendance.dto.response.AttendanceResponseDTO;
+import com.collegeportal.modules.attendance.dto.response.StudentAttendanceOverviewDTO;
 import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.faculty.dto.request.FacultyRequestDTO;
 import com.collegeportal.modules.faculty.dto.response.FacultyResponseDTO;
+import com.collegeportal.modules.faculty.dto.request.FacultyUpdateProfileRequestDTO;
+import com.collegeportal.modules.faculty.dto.response.FacultyStatsDTO;
 import com.collegeportal.modules.faculty.service.FacultyService;
 import com.collegeportal.modules.facultyassignment.dto.response.FacultyCourseAssignmentResponseDTO;
 import com.collegeportal.modules.student.dto.response.StudentResponseDTO;
@@ -11,8 +14,7 @@ import com.collegeportal.shared.dto.PageResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.web.PageableDefault;import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -110,6 +112,18 @@ public class FacultyController {
 
     // ── Faculty self-service ──────────────────────────────────────────────────
 
+    @GetMapping("/me/stats")
+    @PreAuthorize("hasRole('ROLE_FACULTY')")
+    public ResponseEntity<FacultyStatsDTO> getMyStats() {
+        return ResponseEntity.ok(facultyService.getMyStats());
+    }
+
+    @GetMapping("/me/courses/{courseId}/attendance-summary")
+    @PreAuthorize("hasRole('ROLE_FACULTY')")
+    public ResponseEntity<List<StudentAttendanceOverviewDTO>> getCourseSummary(@PathVariable Long courseId) {
+        return ResponseEntity.ok(facultyService.getCourseSummary(courseId));
+    }
+
     @GetMapping("/me/courses")
     @PreAuthorize("hasRole('ROLE_FACULTY')")
     public ResponseEntity<List<CourseResponseDTO>> getMyCourses() {
@@ -124,14 +138,24 @@ public class FacultyController {
 
     @GetMapping("/me/courses/{courseId}/students")
     @PreAuthorize("hasRole('ROLE_FACULTY')")
-    public ResponseEntity<List<StudentResponseDTO>> getCourseStudents(@PathVariable Long courseId) {
-        return ResponseEntity.ok(facultyService.getCourseStudents(courseId));
+    public ResponseEntity<PageResponseDTO<StudentResponseDTO>> getCourseStudents(
+            @PathVariable Long courseId,
+            @RequestParam(required = false, defaultValue = "") String search,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(facultyService.getCourseStudents(courseId, search, pageable));
     }
 
     @GetMapping("/me/assignments")
     @PreAuthorize("hasRole('ROLE_FACULTY')")
     public ResponseEntity<List<FacultyCourseAssignmentResponseDTO>> getMyAssignments() {
         return ResponseEntity.ok(facultyService.getMyAssignments());
+    }
+
+    @PutMapping("/me/profile")
+    @PreAuthorize("hasRole('ROLE_FACULTY')")
+    public ResponseEntity<FacultyResponseDTO> updateMyProfile(
+            @RequestBody FacultyUpdateProfileRequestDTO request) {
+        return ResponseEntity.ok(facultyService.updateMyProfile(request));
     }
 
     @GetMapping("/me/profile")

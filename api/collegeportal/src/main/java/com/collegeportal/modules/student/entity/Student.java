@@ -2,6 +2,8 @@ package com.collegeportal.modules.student.entity;
 
 import com.collegeportal.modules.auth.entity.User;
 import com.collegeportal.modules.classbatch.entity.ClassBatch;
+import com.collegeportal.modules.classstructure.entity.ClassStructure;
+import com.collegeportal.modules.specialization.entity.Specialization;
 import com.collegeportal.shared.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -44,8 +46,16 @@ public class Student extends BaseEntity {
     private String scheme; // NEP or SEP
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "specialization_id")
+    private Specialization specialization;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_batch_id")
     private ClassBatch classBatch;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_structure_id")
+    private ClassStructure classStructure;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false, unique = true)

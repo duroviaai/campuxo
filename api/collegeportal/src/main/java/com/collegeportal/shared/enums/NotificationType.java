@@ -1,0 +1,16 @@
+package com.collegeportal.shared.enums;
+
+public enum NotificationType {
+    NEW_REGISTRATION,
+    ACCOUNT_APPROVED,
+    ACCOUNT_REJECTED,
+    ACCOUNT_REVOKED,
+    ATTENDANCE_MARKED,
+    ATTENDANCE_LOW,
+    IA_MARKS_UPDATED,
+    COURSE_ASSIGNED,
+    COURSE_REMOVED,
+    HOD_ASSIGNED,
+    REGISTRATION_OPEN,
+    ANNOUNCEMENT
+}

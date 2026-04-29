@@ -11,6 +11,7 @@ import {
   useGetBatchesQuery,
   useGetAdminCoursesQuery,
   useGetClassStructureQuery,
+  useGetSpecializationsByDeptQuery,
 } from '../../admin/courses/coursesAdminApi';
 import { getFullName } from '../utils/facultyHelpers';
 import Loader from '../../../shared/components/feedback/Loader';
@@ -178,7 +179,7 @@ const ClassStructurePicker = ({ deptId, deptName, assignedIds, saving, onAssign 
 // ── Resolve classStructureId then load courses ────────────────────────────────
 const SemesterCoursesResolver = ({ selCs, deptId, facultyId, assignedIds, saving, onAssign, onBack }) => {
   const { data: list = [], isLoading, isError } = useGetClassStructureQuery(
-    { batchId: selCs.batchId, deptId: deptId ?? undefined },
+    { batchId: selCs.batchId, deptId: deptId ?? undefined, specId: selCs.specId ?? undefined },
     { skip: !selCs.batchId }
   );
 
@@ -212,14 +213,56 @@ const SemesterCoursesResolver = ({ selCs, deptId, facultyId, assignedIds, saving
   );
 };
 
+// ── Specialization picker step ────────────────────────────────────────────────
+const SpecializationPicker = ({ deptId, batch, onSelect, onBack }) => {
+  const { data: specs = [], isLoading } = useGetSpecializationsByDeptQuery(
+    { deptId, scheme: batch.scheme },
+    { skip: !deptId }
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <button onClick={onBack} className="text-xs text-indigo-600 hover:underline">← Batches</button>
+        <span className="text-xs text-gray-500 font-semibold font-mono">
+          {batch.startYear}–{batch.endYear}
+          <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-bold ${
+            batch.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+          }`}>{batch.scheme}</span>
+        </span>
+      </div>
+      <p className="text-xs text-gray-400">Select a specialization (or General).</p>
+      {isLoading ? (
+        [1, 2].map((i) => <div key={i} className="h-12 rounded-xl bg-gray-100 animate-pulse" />)
+      ) : (
+        <>
+          <button
+            onClick={() => onSelect(null)}
+            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-all text-left">
+            General (No Specialization)
+          </button>
+          {specs.map((s) => (
+            <button key={s.id} onClick={() => onSelect(s)}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 transition-all text-left">
+              {s.name}
+            </button>
+          ))}
+        </>
+      )}
+    </div>
+  );
+};
+
 // ── Smarter picker that resolves class structure id ───────────────────────────
 const AvailablePanel = ({ deptId, deptName, facultyId, assignedIds, saving, onAssign }) => {
   const [selBatch, setSelBatch] = useState(null);
-  const [selSem, setSelSem]     = useState(null);   // { semester, yearOfStudy, batchId }
+  const [selSpec, setSelSpec]   = useState(undefined); // undefined = not chosen yet, null = general
+  const [selSem, setSelSem]     = useState(null);   // { semester, yearOfStudy, batchId, specId }
 
   const { data: batches = [], isLoading: batchLoading } = useGetBatchesQuery();
 
-  const resetToBatch = () => { setSelBatch(null); setSelSem(null); };
+  const resetToBatch = () => { setSelBatch(null); setSelSpec(undefined); setSelSem(null); };
+  const resetToSpec  = () => { setSelSpec(undefined); setSelSem(null); };
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
@@ -239,15 +282,20 @@ const AvailablePanel = ({ deptId, deptName, facultyId, assignedIds, saving, onAs
           onAssign={onAssign}
           onBack={() => setSelSem(null)}
         />
-      ) : selBatch ? (
+      ) : selBatch && selSpec === undefined ? (
+        <SpecializationPicker
+          deptId={deptId}
+          batch={selBatch}
+          onSelect={(s) => setSelSpec(s)}
+          onBack={resetToBatch}
+        />
+      ) : selBatch && selSpec !== undefined ? (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <button onClick={resetToBatch} className="text-xs text-indigo-600 hover:underline">← Batches</button>
+            <button onClick={resetToSpec} className="text-xs text-indigo-600 hover:underline">← Specialization</button>
             <span className="text-xs text-gray-500 font-semibold font-mono">
               {selBatch.startYear}–{selBatch.endYear}
-              <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                selBatch.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
-              }`}>{selBatch.scheme}</span>
+              {selSpec && <span className="ml-1 text-indigo-600">· {selSpec.name}</span>}
             </span>
           </div>
           {YEAR_GROUPS.map(({ year, semesters }) => (
@@ -256,7 +304,7 @@ const AvailablePanel = ({ deptId, deptName, facultyId, assignedIds, saving, onAs
               <div className="grid grid-cols-2 gap-2">
                 {semesters.map((sem) => (
                   <button key={sem}
-                    onClick={() => setSelSem({ semester: sem, yearOfStudy: year, batchId: selBatch.id })}
+                    onClick={() => setSelSem({ semester: sem, yearOfStudy: year, batchId: selBatch.id, specId: selSpec?.id ?? null })}
                     className="py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 transition-all">
                     Semester {sem}
                   </button>

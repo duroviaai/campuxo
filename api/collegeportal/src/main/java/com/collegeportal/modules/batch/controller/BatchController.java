@@ -20,7 +20,6 @@ public class BatchController {
     private final BatchService batchService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_HOD')")
     public ResponseEntity<List<BatchResponseDTO>> getAll() {
         return ResponseEntity.ok(batchService.getAll());
     }

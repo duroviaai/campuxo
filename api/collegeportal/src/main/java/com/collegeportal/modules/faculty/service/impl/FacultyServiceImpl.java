@@ -3,8 +3,10 @@ package com.collegeportal.modules.faculty.service.impl;
 import com.collegeportal.exception.custom.BadRequestException;
 import com.collegeportal.exception.custom.ResourceNotFoundException;
 import com.collegeportal.modules.attendance.dto.response.AttendanceResponseDTO;
+import com.collegeportal.modules.attendance.dto.response.StudentAttendanceOverviewDTO;
 import com.collegeportal.modules.attendance.mapper.AttendanceMapper;
 import com.collegeportal.modules.attendance.repository.AttendanceRepository;
+import com.collegeportal.modules.attendance.service.AttendanceService;
 import com.collegeportal.modules.auth.entity.Role;
 import com.collegeportal.modules.auth.entity.User;
 import com.collegeportal.modules.auth.repository.RoleRepository;
@@ -23,11 +25,14 @@ import com.collegeportal.modules.faculty.entity.Faculty;
 import com.collegeportal.modules.faculty.mapper.FacultyMapper;
 import com.collegeportal.modules.faculty.repository.FacultyRepository;
 import com.collegeportal.modules.faculty.service.FacultyService;
+import com.collegeportal.modules.faculty.dto.request.FacultyUpdateProfileRequestDTO;
+import com.collegeportal.modules.faculty.dto.response.FacultyStatsDTO;
 import com.collegeportal.modules.facultyassignment.dto.response.FacultyCourseAssignmentResponseDTO;
 import com.collegeportal.modules.facultyassignment.entity.FacultyCourseAssignment;
 import com.collegeportal.modules.facultyassignment.repository.FacultyCourseAssignmentRepository;
 import com.collegeportal.modules.student.dto.response.StudentResponseDTO;
 import com.collegeportal.modules.student.mapper.StudentMapper;
+import com.collegeportal.modules.student.repository.StudentRepository;
 import com.collegeportal.shared.dto.PageResponseDTO;
 import com.collegeportal.shared.enums.FacultyStatus;
 import com.collegeportal.shared.enums.RoleType;
@@ -50,6 +55,7 @@ public class FacultyServiceImpl implements FacultyService {
     private final CourseMapper courseMapper;
     private final AttendanceRepository attendanceRepository;
     private final AttendanceMapper attendanceMapper;
+    private final AttendanceService attendanceService;
     private final SecurityUtils securityUtils;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -57,6 +63,7 @@ public class FacultyServiceImpl implements FacultyService {
     private final FacultyCourseAssignmentRepository assignmentRepository;
     private final ClassStructureCourseRepository cscRepository;
     private final StudentMapper studentMapper;
+    private final StudentRepository studentRepository;
     private final DepartmentRepository departmentRepository;
 
     // ── Admin: CRUD ───────────────────────────────────────────────────────────
@@ -273,6 +280,48 @@ public class FacultyServiceImpl implements FacultyService {
 
     @Override
     @Transactional(readOnly = true)
+    public FacultyStatsDTO getMyStats() {
+        Faculty faculty = resolveCurrentFaculty();
+        Long facultyId = faculty.getId();
+        List<Long> courseIds = assignmentRepository.findDistinctCourseIdsByFacultyId(facultyId);
+        long totalCourses = courseIds.size();
+        long totalStudents = assignmentRepository.countDistinctStudentsByFacultyId(facultyId);
+        long totalClassStructures = assignmentRepository.countDistinctClassStructuresByFacultyId(facultyId);
+        double rate = 0.0;
+        if (!courseIds.isEmpty()) {
+            Object[] row = attendanceRepository.findAttendanceRateByCourseIds(courseIds);
+            if (row != null && row[1] != null) {
+                long total = ((Number) row[1]).longValue();
+                if (total > 0) {
+                    long present = row[0] != null ? ((Number) row[0]).longValue() : 0;
+                    rate = (present * 100.0) / total;
+                }
+            }
+        }
+        return FacultyStatsDTO.builder()
+                .totalCourses(totalCourses)
+                .totalStudents(totalStudents)
+                .totalClassStructures(totalClassStructures)
+                .overallAttendanceRate(Math.round(rate * 10.0) / 10.0)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public FacultyResponseDTO updateMyProfile(FacultyUpdateProfileRequestDTO request) {
+        Faculty faculty = resolveCurrentFaculty();
+        if (request.getPhone()         != null) faculty.setPhone(request.getPhone());
+        if (request.getDesignation()   != null) faculty.setDesignation(request.getDesignation());
+        if (request.getQualification() != null) faculty.setQualification(request.getQualification());
+        if (request.getExperience()    != null) faculty.setExperience(request.getExperience());
+        if (request.getSubjects()      != null) faculty.setSubjects(request.getSubjects());
+        if (request.getJoiningDate()   != null) faculty.setJoiningDate(request.getJoiningDate());
+        return facultyMapper.toResponseDTO(facultyRepository.save(faculty),
+                (int) courseRepository.countAssignedCoursesByFacultyId(faculty.getId()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public FacultyResponseDTO getMyProfile() {
         Faculty f = resolveCurrentFaculty();
         return facultyMapper.toResponseDTO(f,
@@ -304,14 +353,35 @@ public class FacultyServiceImpl implements FacultyService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<StudentResponseDTO> getCourseStudents(Long courseId) {
+    public PageResponseDTO<StudentResponseDTO> getCourseStudents(Long courseId, String search, Pageable pageable) {
         Faculty faculty = resolveCurrentFaculty();
         if (!assignmentRepository.existsByFacultyIdAndCourseId(faculty.getId(), courseId)) {
             throw new BadRequestException("Course is not assigned to you");
         }
-        Course course = courseRepository.findById(courseId)
+        courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found: " + courseId));
-        return course.getStudents().stream().map(studentMapper::toResponseDTO).toList();
+        String q = (search != null) ? search.trim() : "";
+        return PageResponseDTO.from(
+                studentRepository.findByCourseIdWithSearch(courseId, q, pageable)
+                        .map(studentMapper::toResponseDTO)
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentAttendanceOverviewDTO> getCourseSummary(Long courseId) {
+        Faculty faculty = resolveCurrentFaculty();
+        if (!assignmentRepository.existsByFacultyIdAndCourseId(faculty.getId(), courseId)) {
+            throw new BadRequestException("Course is not assigned to you");
+        }
+        // Use the first class structure assigned to this faculty for this course
+        Long classStructureId = assignmentRepository.findByFacultyId(faculty.getId()).stream()
+                .filter(a -> a.getCourse().getId().equals(courseId) && a.getClassStructure() != null)
+                .map(a -> a.getClassStructure().getId())
+                .findFirst()
+                .orElse(null);
+        if (classStructureId == null) return List.of();
+        return attendanceService.getOverviewByClassStructure(classStructureId, courseId);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

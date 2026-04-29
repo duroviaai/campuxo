@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import {
   useGetBatchesQuery,
-  useGetSpecializationsByDeptQuery,
   useGetClassStructureQuery,
   useGetAdminCoursesQuery,
 } from '../../admin/courses/coursesAdminApi';
 import { useGetIAMarksQuery, useGetAssignmentsQuery, useGetSeminarsQuery } from '../../admin/ia/iaApi';
 import { useGetHodDeptQuery } from '../state/hodApi';
 
-// ── IA business logic (same as admin) ────────────────────────────────────────
+// ── IA business logic ─────────────────────────────────────────────────────────
 const scaleToTen = (raw) => Math.ceil(Number(raw) / 2);
 
 const needsIA3 = (r) => {
@@ -27,148 +26,21 @@ const computeFinal = (r) => {
   return { total: best.reduce((s, c) => s + c.scaled, 0), used: best.map(c => c.n) };
 };
 
-// ── Breadcrumb ────────────────────────────────────────────────────────────────
-const Crumb = ({ items, onNav }) => (
-  <div className="flex items-center gap-1 text-xs flex-wrap" style={{ color: '#64748b' }}>
-    {items.map((item, i) => (
-      <span key={i} className="flex items-center gap-1">
-        {i > 0 && <span style={{ color: '#cbd5e1' }}>›</span>}
-        {i < items.length - 1
-          ? <button onClick={() => onNav(i)} className="font-medium hover:underline" style={{ color: '#7c3aed' }}>{item}</button>
-          : <span className="font-semibold" style={{ color: '#334155' }}>{item}</span>}
-      </span>
-    ))}
-  </div>
-);
-
-const L = { BATCH: 0, SEMESTER: 1, COURSE: 2, IA: 3 };
-
-// ── Step 0: Batch ─────────────────────────────────────────────────────────────
-const BatchStep = ({ onSelect }) => {
-  const { data: batches = [], isLoading } = useGetBatchesQuery();
-  if (isLoading) return <p className="text-sm" style={{ color: '#94a3b8' }}>Loading batches…</p>;
-  return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium" style={{ color: '#64748b' }}>Select Batch</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {batches.map(b => (
-          <button key={b.id} onClick={() => onSelect(b)}
-            className="p-4 rounded-xl text-left transition-all"
-            style={{ border: '2px solid #e2e8f0' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.background = '#f5f3ff'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = ''; }}>
-            <p className="text-base font-bold font-mono" style={{ color: '#0f172a' }}>{b.startYear}–{b.endYear}</p>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${b.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>{b.scheme}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ── Step 1: Semester (dept auto-selected, spec optional) ─────────────────────
-const YEAR_GROUPS = [{ year: 1, label: 'Year 1', sems: [1, 2] }, { year: 2, label: 'Year 2', sems: [3, 4] }, { year: 3, label: 'Year 3', sems: [5, 6] }];
-
-const SemesterStep = ({ batch, dept, onSelect }) => {
-  const [spec, setSpec] = useState(null);
-  const { data: specs = [] } = useGetSpecializationsByDeptQuery({ deptId: dept.id, scheme: batch.scheme }, { skip: !dept.id });
-  const { data: structures = [], isLoading } = useGetClassStructureQuery(
-    { batchId: batch.id, deptId: dept.id, specId: spec?.id ?? undefined }, { skip: !batch.id || !dept.id }
-  );
-  const existingMap = Object.fromEntries(structures.map(cs => [`${cs.yearOfStudy}-${cs.semester}`, cs]));
-
-  if (isLoading) return <p className="text-sm" style={{ color: '#94a3b8' }}>Loading semesters…</p>;
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-sm font-medium" style={{ color: '#64748b' }}>{dept.name} — Select Semester</p>
-        {specs.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            <button onClick={() => setSpec(null)} className="px-3 py-1 rounded-full text-xs font-semibold"
-              style={!spec ? { background: '#7c3aed', color: '#fff' } : { border: '1px solid #e2e8f0', color: '#64748b' }}>All</button>
-            {specs.map(s => (
-              <button key={s.id} onClick={() => setSpec(s)} className="px-3 py-1 rounded-full text-xs font-semibold"
-                style={spec?.id === s.id ? { background: '#7c3aed', color: '#fff' } : { border: '1px solid #e2e8f0', color: '#64748b' }}>{s.name}</button>
-            ))}
-          </div>
-        )}
-      </div>
-      {!structures.length
-        ? <p className="text-sm" style={{ color: '#94a3b8' }}>No semesters configured yet.</p>
-        : YEAR_GROUPS.map(({ year, label, sems }) => (
-          <div key={year}>
-            <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#94a3b8' }}>{label}</p>
-            <div className="grid grid-cols-2 gap-3">
-              {sems.map(sem => {
-                const cs = existingMap[`${year}-${sem}`];
-                return (
-                  <button key={sem} onClick={() => cs && onSelect(cs, spec)} disabled={!cs}
-                    className="py-5 rounded-xl text-sm font-bold transition-all disabled:opacity-30"
-                    style={{ border: cs ? '2px solid #7c3aed' : '2px dashed #e2e8f0', background: cs ? '#f5f3ff' : '', color: cs ? '#7c3aed' : '#94a3b8', cursor: cs ? 'pointer' : 'not-allowed' }}>
-                    Semester {sem}
-                    {cs && <span className="block text-xs font-normal mt-0.5" style={{ color: '#a78bfa' }}>configured</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))
-      }
-    </div>
-  );
-};
-
-// ── Step 3: Course ────────────────────────────────────────────────────────────
-const CourseStep = ({ classStructure, onSelect }) => {
-  const { data: courses = [], isLoading } = useGetAdminCoursesQuery({ classStructureId: classStructure.id });
-  if (isLoading) return <p className="text-sm" style={{ color: '#94a3b8' }}>Loading programs…</p>;
-  if (!courses.length) return <p className="text-sm" style={{ color: '#94a3b8' }}>No programs in this semester.</p>;
-  return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium" style={{ color: '#64748b' }}>Select Program</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {courses.map(c => (
-          <button key={c.id} onClick={() => onSelect(c)}
-            className="p-4 rounded-xl text-left transition-all"
-            style={{ border: '2px solid #e2e8f0' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.background = '#f5f3ff'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = ''; }}>
-            <p className="text-sm font-bold" style={{ color: '#0f172a' }}>{c.name}</p>
-            <p className="text-xs font-mono mt-0.5" style={{ color: '#94a3b8' }}>{c.code}</p>
-            {c.facultyName && <p className="text-xs mt-1 truncate" style={{ color: '#7c3aed' }}>{c.facultyName}</p>}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 // ── IA View Panel ─────────────────────────────────────────────────────────────
 const IAViewPanel = ({ course, classStructure }) => {
   const [activeIA, setActiveIA] = useState(1);
   const [search, setSearch]     = useState('');
   const [tab, setTab]           = useState('ia');
 
-  const { data: iaRows = [], isLoading: iaLoading }     = useGetIAMarksQuery({ classStructureId: classStructure.id, courseId: course.id });
-  const { data: asgRows = [], isLoading: asgLoading }   = useGetAssignmentsQuery({ classStructureId: classStructure.id, courseId: course.id });
-  const { data: semRows = [], isLoading: semLoading }   = useGetSeminarsQuery({ classStructureId: classStructure.id, courseId: course.id });
+  const { data: iaRows = [], isLoading: iaLoading }   = useGetIAMarksQuery({ classStructureId: classStructure.id, courseId: course.id });
+  const { data: asgRows = [], isLoading: asgLoading } = useGetAssignmentsQuery({ classStructureId: classStructure.id, courseId: course.id });
+  const { data: semRows = [], isLoading: semLoading } = useGetSeminarsQuery({ classStructureId: classStructure.id, courseId: course.id });
 
   const ia3EligibleCount = iaRows.filter(needsIA3).length;
 
-  const displayIA = iaRows.filter(r => {
-    const q = search.toLowerCase();
-    return !q || r.studentName?.toLowerCase().includes(q) || r.registrationNumber?.toLowerCase().includes(q);
-  });
-
-  const displayAsg = asgRows.filter(r => {
-    const q = search.toLowerCase();
-    return !q || r.studentName?.toLowerCase().includes(q) || r.registrationNumber?.toLowerCase().includes(q);
-  });
-
-  const displaySem = semRows.filter(r => {
-    const q = search.toLowerCase();
-    return !q || r.studentName?.toLowerCase().includes(q) || r.registrationNumber?.toLowerCase().includes(q);
-  });
+  const displayIA  = iaRows.filter(r => { const q = search.toLowerCase(); return !q || r.studentName?.toLowerCase().includes(q) || r.registrationNumber?.toLowerCase().includes(q); });
+  const displayAsg = asgRows.filter(r => { const q = search.toLowerCase(); return !q || r.studentName?.toLowerCase().includes(q) || r.registrationNumber?.toLowerCase().includes(q); });
+  const displaySem = semRows.filter(r => { const q = search.toLowerCase(); return !q || r.studentName?.toLowerCase().includes(q) || r.registrationNumber?.toLowerCase().includes(q); });
 
   const iaAvg = (() => {
     const finals = iaRows.map(computeFinal).filter(Boolean);
@@ -379,43 +251,67 @@ const IAViewPanel = ({ course, classStructure }) => {
 const HodIAPage = () => {
   const { data: dept, isLoading: deptLoading } = useGetHodDeptQuery();
 
-  const [level, setLevel]           = useState(L.BATCH);
-  const [batch, setBatch]           = useState(null);
-  const [spec, setSpec]             = useState(null);
-  const [classStructure, setClassStructure] = useState(null);
-  const [course, setCourse]         = useState(null);
+  const [batchId, setBatchId]   = useState('');
+  const [csId, setCsId]         = useState('');
+  const [courseId, setCourseId] = useState('');
 
-  const goTo = (lv) => {
-    if (lv <= L.BATCH)    { setBatch(null); setSpec(null); setClassStructure(null); setCourse(null); }
-    if (lv <= L.SEMESTER) { setClassStructure(null); setCourse(null); }
-    if (lv <= L.COURSE)   { setCourse(null); }
-    setLevel(lv);
-  };
+  const { data: batches = [] }    = useGetBatchesQuery();
+  const { data: structures = [] } = useGetClassStructureQuery(
+    { batchId, deptId: dept?.id ?? 0 }, { skip: !batchId || !dept?.id }
+  );
+  const { data: courses = [] } = useGetAdminCoursesQuery(
+    { classStructureId: csId }, { skip: !csId }
+  );
 
-  const crumbs = [
-    'Internal Assessment',
-    ...(batch          ? [`${batch.startYear}–${batch.endYear} (${batch.scheme})`] : []),
-    ...(classStructure ? [`Sem ${classStructure.semester}${spec ? ` · ${spec.name}` : ''}`] : []),
-    ...(course         ? [course.name] : []),
-  ];
+  const selectedCourse    = courses.find(c => c.id === Number(courseId));
+  const selectedStructure = structures.find(cs => cs.id === Number(csId));
 
   if (deptLoading) return <p className="text-sm" style={{ color: '#94a3b8' }}>Loading…</p>;
 
   return (
     <div className="space-y-5 max-w-5xl">
-      <Crumb items={crumbs} onNav={i => {
-        if (i === 0) goTo(L.BATCH);
-        else if (i === 1) goTo(L.SEMESTER);
-        else if (i === 2) goTo(L.COURSE);
-      }} />
-      <div className="bg-white rounded-xl p-6" style={{ border: '1px solid #e2e8f0' }}>
-        {level === L.BATCH    && <BatchStep onSelect={b => { setBatch(b); setLevel(L.SEMESTER); }} />}
-        {level === L.SEMESTER && batch && dept && (
-          <SemesterStep batch={batch} dept={dept} onSelect={(cs, s) => { setClassStructure(cs); setSpec(s ?? null); setLevel(L.COURSE); }} />
+      {/* Cascading dropdowns */}
+      <div className="rounded-xl p-4 space-y-4" style={{ border: '1px solid #e2e8f0', background: '#fff' }}>
+        <div>
+          <label className="text-xs font-semibold block mb-1.5" style={{ color: '#64748b' }}>Batch</label>
+          <select value={batchId} onChange={e => { setBatchId(e.target.value); setCsId(''); setCourseId(''); }}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            style={{ border: '1px solid #e2e8f0' }}>
+            <option value="">Select batch</option>
+            {batches.map(b => <option key={b.id} value={b.id}>{b.startYear}–{b.endYear} ({b.scheme})</option>)}
+          </select>
+        </div>
+        {batchId && (
+          <div>
+            <label className="text-xs font-semibold block mb-1.5" style={{ color: '#64748b' }}>Semester</label>
+            <select value={csId} onChange={e => { setCsId(e.target.value); setCourseId(''); }}
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              style={{ border: '1px solid #e2e8f0' }}>
+              <option value="">Select semester</option>
+              {structures.map(cs => (
+                <option key={cs.id} value={cs.id}>Year {cs.yearOfStudy} · Sem {cs.semester}</option>
+              ))}
+            </select>
+          </div>
         )}
-        {level === L.COURSE   && classStructure && <CourseStep classStructure={classStructure} onSelect={c => { setCourse(c); setLevel(L.IA); }} />}
-        {level === L.IA       && course && classStructure && <IAViewPanel course={course} classStructure={classStructure} />}
+        {csId && (
+          <div>
+            <label className="text-xs font-semibold block mb-1.5" style={{ color: '#64748b' }}>Program</label>
+            <select value={courseId} onChange={e => setCourseId(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              style={{ border: '1px solid #e2e8f0' }}>
+              <option value="">Select program</option>
+              {courses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+            </select>
+          </div>
+        )}
       </div>
+
+      {selectedCourse && selectedStructure && (
+        <div className="bg-white rounded-xl p-6" style={{ border: '1px solid #e2e8f0' }}>
+          <IAViewPanel key={courseId} course={selectedCourse} classStructure={selectedStructure} />
+        </div>
+      )}
     </div>
   );
 };

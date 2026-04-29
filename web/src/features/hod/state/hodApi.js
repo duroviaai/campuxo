@@ -66,6 +66,10 @@ export const hodApi = apiSlice.injectEndpoints({
       query: () => `${BASE}/me`,
       providesTags: ['HodFaculty'],
     }),
+    updateHodProfile: b.mutation({
+      query: (data) => ({ url: `${BASE}/me`, method: 'PUT', body: data }),
+      invalidatesTags: ['HodFaculty'],
+    }),
     removeFacultyFromCourse: b.mutation({
       query: ({ facultyId, courseId }) => ({
         url: `${BASE}/faculty/${facultyId}/courses/${courseId}`,
@@ -94,6 +98,7 @@ export const {
   useGetHodStudentPerformanceQuery,
   useGetHodFacultyAssignmentsQuery,
   useGetHodMeQuery,
+  useUpdateHodProfileMutation,
   useAssignFacultyToCourseMutation,
   useChangeFacultyForCourseMutation,
   useRemoveFacultyFromCourseMutation,

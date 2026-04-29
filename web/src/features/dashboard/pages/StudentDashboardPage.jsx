@@ -1,49 +1,134 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useAuth from '../../auth/hooks/useAuth';
-import { useGetMyCoursesQuery, useGetMyProfileQuery, useGetMyAttendanceQuery } from '../../student/state/studentApi';
+import {
+  useGetMyStatsQuery,
+  useGetMyCoursesQuery,
+  useGetMyAttendanceQuery,
+  useGetMyAlertsQuery,
+} from '../../student/state/studentApi';
 import ROUTES from '../../../app/routes/routeConstants';
-import { FaBook, FaCalendarCheck, FaGraduationCap, FaLayerGroup } from 'react-icons/fa';
+import { FaBook, FaCalendarCheck, FaGraduationCap, FaExclamationTriangle } from 'react-icons/fa';
 
 const pct = (a, b) => (b === 0 ? 0 : Math.round((a / b) * 100));
 
-const ICON_STYLES = [
-  { bg: '#f5f3ff', color: '#7c3aed' },
-  { bg: '#ecfdf5', color: '#059669' },
-  { bg: '#eff6ff', color: '#2563eb' },
-  { bg: '#fffbeb', color: '#d97706' },
+const attendanceAccent = (p) =>
+  p >= 75 ? { bg: '#ecfdf5', color: '#059669' }
+  : p >= 50 ? { bg: '#fffbeb', color: '#d97706' }
+  : { bg: '#fef2f2', color: '#dc2626' };
+
+const STATS_CFG = (stats) => [
+  { label: 'Enrolled Courses',  value: stats?.totalEnrolledCourses ?? '—',  icon: FaBook,              accent: { bg: '#f5f3ff', color: '#7c3aed' }, route: ROUTES.STUDENT_COURSES },
+  { label: 'Overall Attendance', value: stats ? `${stats.overallAttendancePercentage}%` : '—', icon: FaCalendarCheck, accent: stats ? attendanceAccent(stats.overallAttendancePercentage) : { bg: '#ecfdf5', color: '#059669' }, route: ROUTES.STUDENT_ATTENDANCE },
+  { label: 'Year of Study',     value: stats?.yearOfStudy ? `Year ${stats.yearOfStudy}` : '—', icon: FaGraduationCap, accent: { bg: '#eff6ff', color: '#2563eb' }, route: null },
+  { label: 'Courses at Risk',   value: stats?.coursesAtRisk ?? '—', icon: FaExclamationTriangle, accent: (stats?.coursesAtRisk ?? 0) > 0 ? { bg: '#fef2f2', color: '#dc2626' } : { bg: '#ecfdf5', color: '#059669' }, route: ROUTES.STUDENT_ATTENDANCE },
 ];
 
-const StatCard = ({ label, value, sub, icon, styleIdx = 0, onClick }) => {
-  const s = ICON_STYLES[styleIdx];
+const StatCard = ({ label, value, Icon, accent, onClick }) => (
+  <button
+    onClick={onClick ?? undefined}
+    className="group bg-white rounded-xl p-5 flex flex-col gap-3 text-left w-full transition-all"
+    style={{ border: '1px solid #e8edf2', cursor: onClick ? 'pointer' : 'default' }}
+    onMouseEnter={onClick ? e => { e.currentTarget.style.borderColor = accent.color + '40'; e.currentTarget.style.boxShadow = `0 4px 16px ${accent.color}15`; } : undefined}
+    onMouseLeave={onClick ? e => { e.currentTarget.style.borderColor = '#e8edf2'; e.currentTarget.style.boxShadow = ''; } : undefined}
+  >
+    <div className="flex items-center justify-between">
+      <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: accent.bg, color: accent.color }}>
+        <Icon size={14} />
+      </div>
+      {onClick && (
+        <svg className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: accent.color }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 17L17 7M17 7H7M17 7v10" />
+        </svg>
+      )}
+    </div>
+    <div>
+      <p className="text-2xl font-bold tracking-tight" style={{ color: '#0f172a' }}>{value}</p>
+      <p className="text-xs font-medium mt-0.5" style={{ color: '#64748b' }}>{label}</p>
+    </div>
+  </button>
+);
+
+// ── Alert styles by severity ──────────────────────────────────────────────────
+const SEVERITY_STYLE = {
+  HIGH:   { bg: '#fef2f2', border: '#fecaca', icon: '🚨', color: '#dc2626', label: 'Critical' },
+  MEDIUM: { bg: '#fffbeb', border: '#fde68a', icon: '⚠️', color: '#d97706', label: 'Warning'  },
+  LOW:    { bg: '#eff6ff', border: '#bfdbfe', icon: 'ℹ️', color: '#2563eb', label: 'Info'     },
+};
+
+const ALERT_ACTION = {
+  ATTENDANCE_LOW:    { label: 'View Attendance', route: ROUTES.STUDENT_ATTENDANCE },
+  PROFILE_INCOMPLETE:{ label: 'Complete Profile', route: ROUTES.STUDENT_PROFILE   },
+  IA_PENDING:        { label: 'View IA',          route: ROUTES.STUDENT_IA         },
+};
+
+const AlertsSection = ({ alerts, loading }) => {
+  const navigate = useNavigate();
+  const [showAll, setShowAll] = useState(false);
+
+  if (loading) return <div className="h-16 skeleton rounded-xl" />;
+
+  if (!alerts || alerts.length === 0) {
+    return (
+      <div className="flex items-center gap-3 rounded-xl px-4 py-3"
+        style={{ background: '#ecfdf5', border: '1px solid #a7f3d0' }}>
+        <span className="text-lg">✅</span>
+        <p className="text-sm font-medium" style={{ color: '#065f46' }}>All good! No issues to report.</p>
+      </div>
+    );
+  }
+
+  const MAX = 5;
+  const visible = showAll ? alerts : alerts.slice(0, MAX);
+  const hidden  = alerts.length - MAX;
+
   return (
-    <div
-      onClick={onClick}
-      className={`bg-white rounded-xl p-5 flex flex-col gap-3 transition-all duration-200 ${onClick ? 'cursor-pointer' : ''}`}
-      style={{ border: '1px solid #e8edf2' }}
-      onMouseEnter={onClick ? e => { e.currentTarget.style.borderColor = s.color + '40'; e.currentTarget.style.boxShadow = `0 4px 16px ${s.color}15`; } : undefined}
-      onMouseLeave={onClick ? e => { e.currentTarget.style.borderColor = '#e8edf2'; e.currentTarget.style.boxShadow = ''; } : undefined}
-    >
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0" style={{ background: s.bg, color: s.color }}>
-        {icon}
-      </div>
-      <div>
-        <p className="text-2xl font-bold tracking-tight" style={{ color: '#0f172a' }}>{value}</p>
-        <p className="text-xs font-medium mt-0.5" style={{ color: '#64748b' }}>{label}</p>
-        {sub && <p className="text-[11px] mt-1" style={{ color: s.color }}>{sub}</p>}
-      </div>
+    <div className="space-y-2">
+      {visible.map((alert, i) => {
+        const s      = SEVERITY_STYLE[alert.severity] ?? SEVERITY_STYLE.LOW;
+        const action = ALERT_ACTION[alert.type];
+        return (
+          <div key={i} className="flex items-center gap-3 rounded-xl px-4 py-3"
+            style={{ background: s.bg, border: `1px solid ${s.border}` }}>
+            <span className="text-base shrink-0">{s.icon}</span>
+            <p className="text-xs font-medium flex-1 min-w-0 truncate" style={{ color: s.color }}>
+              {alert.message}
+            </p>
+            {action && (
+              <button
+                onClick={() => navigate(action.route)}
+                className="text-xs font-semibold shrink-0 px-2.5 py-1 rounded-lg transition-opacity"
+                style={{ background: s.color + '18', color: s.color }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+              >
+                {action.label}
+              </button>
+            )}
+          </div>
+        );
+      })}
+      {!showAll && hidden > 0 && (
+        <button onClick={() => setShowAll(true)}
+          className="text-xs font-semibold w-full text-center py-1.5 rounded-lg transition-colors"
+          style={{ color: '#7c3aed', background: '#f5f3ff' }}>
+          +{hidden} more alert{hidden > 1 ? 's' : ''} — View all
+        </button>
+      )}
     </div>
   );
 };
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 const StudentDashboardPage = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: courses   = [], isLoading: coursesLoading   } = useGetMyCoursesQuery();
-  const { data: profile,        isLoading: profileLoading   } = useGetMyProfileQuery();
-  const { data: attendance,     isLoading: attendanceLoading } = useGetMyAttendanceQuery();
+  const { data: stats,       isLoading: statsLoading      } = useGetMyStatsQuery();
+  const { data: courses = [], isLoading: coursesLoading   } = useGetMyCoursesQuery();
+  const { data: attendance,  isLoading: attendanceLoading } = useGetMyAttendanceQuery();
+  const { data: alerts,      isLoading: alertsLoading     } = useGetMyAlertsQuery();
 
-  const loading = coursesLoading || profileLoading || attendanceLoading;
+  const loading = statsLoading || coursesLoading || attendanceLoading;
 
   const summary = (() => {
     if (!attendance?.content && !Array.isArray(attendance)) return [];
@@ -57,50 +142,21 @@ const StudentDashboardPage = () => {
     return Object.values(map).map(s => ({ ...s, percentage: pct(s.present, s.total) }));
   })();
 
-  const avgAttendance = summary.length
-    ? Math.round(summary.reduce((a, s) => a + s.percentage, 0) / summary.length)
-    : null;
-
-  const lowAttendance = summary.filter(s => s.percentage < 75);
-
   return (
     <div className="space-y-6 animate-fade-up">
       {/* Stat cards */}
-      {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[1,2,3,4].map(i => <div key={i} className="rounded-2xl h-24 skeleton" />)}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Enrolled Courses" value={courses.length} icon={<FaBook />} styleIdx={0} onClick={() => navigate(ROUTES.STUDENT_COURSES)} />
-          <StatCard
-            label="Avg Attendance" value={avgAttendance !== null ? `${avgAttendance}%` : '—'}
-            sub={avgAttendance !== null ? (avgAttendance >= 75 ? 'Good standing' : 'Needs attention') : undefined}
-            icon={<FaCalendarCheck />}
-            styleIdx={avgAttendance !== null && avgAttendance < 75 ? 3 : 1}
-            onClick={() => navigate(ROUTES.STUDENT_ATTENDANCE)}
-          />
-          <StatCard label="Year of Study" value={profile?.yearOfStudy ? `Year ${profile.yearOfStudy}` : '—'} icon={<FaGraduationCap />} styleIdx={2} />
-          <StatCard label="Semester" value={profile?.semester ?? '—'} icon={<FaLayerGroup />} styleIdx={3} />
-        </div>
-      )}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {statsLoading
+          ? [1,2,3,4].map(i => <div key={i} className="rounded-xl h-28 skeleton" />)
+          : STATS_CFG(stats).map(({ label, value, icon: Icon, accent, route }) => (
+              <StatCard key={label} label={label} value={value} Icon={Icon} accent={accent}
+                onClick={route ? () => navigate(route) : null} />
+            ))
+        }
+      </div>
 
-      {/* Low attendance alert */}
-      {!loading && lowAttendance.length > 0 && (
-        <div className="flex items-start gap-3 rounded-2xl p-4"
-          style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-          <span className="text-xl mt-0.5">⚠️</span>
-          <div>
-            <p className="text-sm font-semibold text-amber-800">Attendance Alert</p>
-            <p className="text-xs text-amber-700 mt-0.5">
-              {lowAttendance.length} course{lowAttendance.length > 1 ? 's' : ''} below 75%.{' '}
-              <button onClick={() => navigate(ROUTES.STUDENT_ATTENDANCE)} className="underline font-semibold">
-                View details
-              </button>
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Alerts */}
+      <AlertsSection alerts={alerts} loading={alertsLoading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Courses */}
@@ -109,9 +165,7 @@ const StudentDashboardPage = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold" style={{ color: '#0f172a' }}>My Courses</h2>
               <button onClick={() => navigate(ROUTES.STUDENT_COURSES)}
-                className="text-xs font-semibold transition-colors" style={{ color: '#7c3aed' }}>
-                View all
-              </button>
+                className="text-xs font-semibold" style={{ color: '#7c3aed' }}>View all</button>
             </div>
             <div className="space-y-1">
               {courses.slice(0, 5).map((c) => (
@@ -138,27 +192,21 @@ const StudentDashboardPage = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold" style={{ color: '#0f172a' }}>Attendance</h2>
               <button onClick={() => navigate(ROUTES.STUDENT_ATTENDANCE)}
-                className="text-xs font-semibold" style={{ color: '#7c3aed' }}>
-                View details
-              </button>
+                className="text-xs font-semibold" style={{ color: '#7c3aed' }}>View details</button>
             </div>
             <div className="space-y-4">
               {summary.slice(0, 5).map((s) => (
                 <div key={s.courseCode}>
                   <div className="flex items-center justify-between mb-1.5">
                     <p className="text-xs font-medium truncate" style={{ color: '#334155' }}>{s.courseName}</p>
-                    <span className="text-xs font-bold ml-2 shrink-0" style={{ color: s.percentage >= 75 ? '#059669' : s.percentage >= 50 ? '#d97706' : '#dc2626' }}>
+                    <span className="text-xs font-bold ml-2 shrink-0"
+                      style={{ color: s.percentage >= 75 ? '#059669' : s.percentage >= 50 ? '#d97706' : '#dc2626' }}>
                       {s.percentage}%
                     </span>
                   </div>
                   <div className="w-full rounded-full h-1" style={{ background: '#f1f5f9' }}>
-                    <div
-                      className="h-1 rounded-full transition-all"
-                      style={{
-                        width: `${s.percentage}%`,
-                        background: s.percentage >= 75 ? '#10b981' : s.percentage >= 50 ? '#f59e0b' : '#ef4444',
-                      }}
-                    />
+                    <div className="h-1 rounded-full transition-all"
+                      style={{ width: `${s.percentage}%`, background: s.percentage >= 75 ? '#10b981' : s.percentage >= 50 ? '#f59e0b' : '#ef4444' }} />
                   </div>
                   <p className="text-[10px] mt-1" style={{ color: '#94a3b8' }}>{s.present}/{s.total} classes attended</p>
                 </div>

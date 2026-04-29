@@ -1,0 +1,21 @@
+package com.collegeportal.modules.push.repository;
+
+import com.collegeportal.modules.push.entity.PushSubscription;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface PushSubscriptionRepository extends JpaRepository<PushSubscription, Long> {
+
+    List<PushSubscription> findByUserId(Long userId);
+
+    Optional<PushSubscription> findByEndpoint(String endpoint);
+
+    @Modifying
+    @Query("DELETE FROM PushSubscription p WHERE p.endpoint = :endpoint")
+    void deleteByEndpoint(@Param("endpoint") String endpoint);
+}

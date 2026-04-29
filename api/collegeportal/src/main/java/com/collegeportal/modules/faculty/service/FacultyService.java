@@ -1,17 +1,23 @@
 package com.collegeportal.modules.faculty.service;
 
 import com.collegeportal.modules.attendance.dto.response.AttendanceResponseDTO;
+import com.collegeportal.modules.attendance.dto.response.StudentAttendanceOverviewDTO;
 import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.faculty.dto.request.FacultyRequestDTO;
 import com.collegeportal.modules.faculty.dto.response.FacultyResponseDTO;
+import com.collegeportal.modules.faculty.dto.request.FacultyUpdateProfileRequestDTO;
+import com.collegeportal.modules.faculty.dto.response.FacultyStatsDTO;
 import com.collegeportal.modules.facultyassignment.dto.response.FacultyCourseAssignmentResponseDTO;
 import com.collegeportal.modules.student.dto.response.StudentResponseDTO;
 import com.collegeportal.shared.dto.PageResponseDTO;
 import org.springframework.data.domain.Pageable;
-
 import java.util.List;
 
 public interface FacultyService {
+
+    FacultyStatsDTO getMyStats();
+
+    FacultyResponseDTO updateMyProfile(FacultyUpdateProfileRequestDTO request);
 
     PageResponseDTO<FacultyResponseDTO> getAllFaculty(Pageable pageable);
 
@@ -43,5 +49,7 @@ public interface FacultyService {
 
     void assignClassesToCourse(Long facultyId, Long courseId, List<Long> classStructureIds);
 
-    List<StudentResponseDTO> getCourseStudents(Long courseId);
+    PageResponseDTO<StudentResponseDTO> getCourseStudents(Long courseId, String search, Pageable pageable);
+
+    List<StudentAttendanceOverviewDTO> getCourseSummary(Long courseId);
 }

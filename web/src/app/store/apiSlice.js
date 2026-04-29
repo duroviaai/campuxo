@@ -25,6 +25,6 @@ export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
   keepUnusedDataFor: 0,
-  tagTypes: ['Student', 'Faculty', 'Course', 'Class', 'Department', 'Specialization', 'Batch', 'ClassStructure', 'AdminCourse', 'AdminStats', 'PendingUsers', 'ApprovedUsers', 'RejectedUsers', 'DeptSummary', 'IA', 'Attendance', 'HodFaculty', 'HodCourse'],
+  tagTypes: ['Student', 'Faculty', 'Course', 'Class', 'Department', 'Specialization', 'Batch', 'ClassStructure', 'AdminCourse', 'AdminStats', 'PendingUsers', 'ApprovedUsers', 'RejectedUsers', 'DeptSummary', 'IA', 'Attendance', 'HodFaculty', 'HodCourse', 'Notification'],
   endpoints: () => ({}),
 });

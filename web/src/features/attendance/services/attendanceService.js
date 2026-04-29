@@ -22,3 +22,6 @@ export const getOverviewByClassStructure = (classStructureId, courseId) =>
 
 export const getAttendanceByCourseAndClassStructure = (courseId, classStructureId, date) =>
   axiosInstance.get(`${BASE}/course/${courseId}/class-structure/${classStructureId}`, { params: { date } }).then((r) => r.data);
+
+export const getAttendanceByDateRange = (courseId, startDate, endDate) =>
+  axiosInstance.get(`${BASE}/course/${courseId}/range`, { params: { startDate, endDate } }).then((r) => r.data);

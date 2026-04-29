@@ -1,15 +1,19 @@
 package com.collegeportal.modules.attendance.service.impl;
 
 import com.collegeportal.exception.custom.BadRequestException;
+import com.collegeportal.exception.custom.ForbiddenException;
 import com.collegeportal.exception.custom.ResourceNotFoundException;
 import com.collegeportal.modules.attendance.dto.request.AttendanceBatchRequestDTO;
 import com.collegeportal.modules.attendance.dto.request.AttendanceRequestDTO;
+import com.collegeportal.modules.attendance.dto.request.AttendanceUpdateRequestDTO;
 import com.collegeportal.modules.attendance.dto.response.AttendanceResponseDTO;
 import com.collegeportal.modules.attendance.dto.response.AttendanceSummaryDTO;
 import com.collegeportal.modules.attendance.dto.response.StudentAttendanceOverviewDTO;
 import com.collegeportal.modules.attendance.entity.Attendance;
 import com.collegeportal.modules.course.entity.Course;
+import com.collegeportal.modules.notification.service.NotificationService;
 import com.collegeportal.shared.enums.AttendanceStatus;
+import com.collegeportal.shared.enums.NotificationType;
 import com.collegeportal.modules.attendance.mapper.AttendanceMapper;
 import com.collegeportal.modules.attendance.repository.AttendanceRepository;
 import com.collegeportal.modules.attendance.service.AttendanceService;
@@ -19,6 +23,9 @@ import com.collegeportal.modules.classbatch.repository.ClassBatchRepository;
 import com.collegeportal.modules.classstructure.entity.ClassStructure;
 import com.collegeportal.modules.classstructure.repository.ClassStructureRepository;
 import com.collegeportal.modules.course.repository.CourseRepository;
+import com.collegeportal.modules.faculty.entity.Faculty;
+import com.collegeportal.modules.faculty.repository.FacultyRepository;
+import com.collegeportal.modules.facultyassignment.repository.FacultyCourseAssignmentRepository;
 import com.collegeportal.modules.student.entity.Student;
 import com.collegeportal.modules.student.repository.StudentRepository;
 import com.collegeportal.shared.dto.PageResponseDTO;
@@ -43,6 +50,9 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final ClassStructureRepository classStructureRepository;
     private final AttendanceMapper attendanceMapper;
     private final SecurityUtils securityUtils;
+    private final FacultyRepository facultyRepository;
+    private final FacultyCourseAssignmentRepository assignmentRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -69,6 +79,20 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .classBatch(classBatch)
                 .build();
 
+        return attendanceMapper.toResponseDTO(attendanceRepository.save(attendance));
+    }
+
+    @Override
+    @Transactional
+    public AttendanceResponseDTO updateAttendance(Long id, AttendanceUpdateRequestDTO request) {
+        Attendance attendance = attendanceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Attendance record not found: " + id));
+        Faculty faculty = facultyRepository.findByUser(securityUtils.getCurrentUser())
+                .orElseThrow(() -> new ResourceNotFoundException("Faculty profile not found"));
+        if (!assignmentRepository.existsByFacultyIdAndCourseId(faculty.getId(), attendance.getCourse().getId())) {
+            throw new ForbiddenException("You are not assigned to this course");
+        }
+        attendance.setStatus(request.getStatus());
         return attendanceMapper.toResponseDTO(attendanceRepository.save(attendance));
     }
 
@@ -121,8 +145,37 @@ public class AttendanceServiceImpl implements AttendanceService {
             return attendance;
         }).toList();
 
-        return attendanceRepository.saveAll(toSave)
-                .stream().map(attendanceMapper::toResponseDTO).toList();
+        List<Attendance> saved = attendanceRepository.saveAll(toSave);
+
+        // Notify each student once per course
+        saved.stream()
+                .collect(java.util.stream.Collectors.groupingBy(a -> a.getStudent().getId()))
+                .forEach((studentId, records) -> {
+                    Attendance first = records.get(0);
+                    Student s = first.getStudent();
+                    if (s.getUser() == null) return;
+                    Course c = first.getCourse();
+                    notificationService.send(s.getUser().getId(), NotificationType.ATTENDANCE_MARKED,
+                            "Attendance Recorded",
+                            "Your attendance for " + c.getName() + " on " + first.getDate()
+                                    + " has been marked as " + first.getStatus() + ".",
+                            "/student/attendance", c.getId(), "COURSE");
+                    long total   = attendanceRepository.countByStudentIdAndCourseId(studentId, c.getId());
+                    long present = attendanceRepository.countByStudentIdAndCourseIdAndStatus(
+                            studentId, c.getId(), AttendanceStatus.PRESENT);
+                    if (total > 0) {
+                        double pct = Math.round((present * 100.0 / total) * 10.0) / 10.0;
+                        if (pct < 75) {
+                            notificationService.send(s.getUser().getId(), NotificationType.ATTENDANCE_LOW,
+                                    "Attendance Warning",
+                                    "Your attendance in " + c.getName() + " is now " + pct
+                                            + "%. Minimum required is 75%.",
+                                    "/student/attendance", c.getId(), "COURSE");
+                        }
+                    }
+                });
+
+        return saved.stream().map(attendanceMapper::toResponseDTO).toList();
     }
 
     @Override
@@ -286,6 +339,19 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .flatMap(bid -> attendanceRepository.findByCourseIdAndClassBatchIdAndDate(courseId, bid, date).stream())
                 .map(attendanceMapper::toResponseDTO)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceResponseDTO> getAttendanceByCourseAndDateRange(
+            Long courseId, LocalDate startDate, LocalDate endDate) {
+        Faculty faculty = facultyRepository.findByUser(securityUtils.getCurrentUser())
+                .orElseThrow(() -> new ResourceNotFoundException("Faculty profile not found"));
+        if (!assignmentRepository.existsByFacultyIdAndCourseId(faculty.getId(), courseId)) {
+            throw new ForbiddenException("You are not assigned to this course");
+        }
+        return attendanceRepository.findByCourseIdAndDateBetween(courseId, startDate, endDate)
+                .stream().map(attendanceMapper::toResponseDTO).toList();
     }
 
     private List<AttendanceSummaryDTO> buildSummary(Student student) {

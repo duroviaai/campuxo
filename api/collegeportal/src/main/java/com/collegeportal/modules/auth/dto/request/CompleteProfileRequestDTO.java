@@ -24,6 +24,9 @@ public class CompleteProfileRequestDTO {
     private Integer yearOfStudy;
     private Integer courseStartYear;
     private Integer courseEndYear;
+    private Long specializationId;
+    private String scheme;
+    private Long classStructureId;
 
     // Faculty fields
     private String facultyId;

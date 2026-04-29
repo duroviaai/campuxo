@@ -7,12 +7,10 @@ import {
   useGetSpecializationsByDeptQuery,
   useGetClassStructureQuery,
   useGetAdminCoursesQuery,
-  useGetOrCreateClassStructureMutation,
 } from '../courses/coursesAdminApi';
 import { useGetIAMarksQuery, useSaveIAMarksMutation, useGetAssignmentsQuery, useSaveAssignmentsMutation, useGetSeminarsQuery, useSaveSeminarsMutation } from './iaApi';
 import ROUTES from '../../../app/routes/routeConstants';
 
-const L = { BATCH: 0, DEPT: 1, SEMESTER: 2, COURSE: 3, IA: 4 };
 
 // ─── IA business logic ────────────────────────────────────────────────────────
 // IA1 & IA2 are out of 20. Student needs IA3 if absent OR scored < 35% in either.
@@ -42,20 +40,6 @@ const computeFinal = (r) => {
 };
 
 // ─── Breadcrumb ───────────────────────────────────────────────────────────────
-const Crumb = ({ items, onNav }) => (
-  <div className="flex items-center gap-1 text-xs text-gray-500 flex-wrap">
-    {items.map((item, i) => (
-      <span key={i} className="flex items-center gap-1">
-        {i > 0 && <span className="text-gray-300">›</span>}
-        {i < items.length - 1
-          ? <button onClick={() => onNav(i)} className="text-indigo-600 hover:underline font-medium">{item}</button>
-          : <span className="text-gray-700 font-semibold">{item}</span>}
-      </span>
-    ))}
-  </div>
-);
-
-// ─── Shared faculty link ─────────────────────────────────────────────────────
 const FacultyLink = ({ facultyId, facultyName }) => {
   const navigate = useNavigate();
   if (!facultyName) return null;
@@ -72,142 +56,6 @@ const FacultyLink = ({ facultyId, facultyName }) => {
 };
 
 // ─── Step 0: Batch ────────────────────────────────────────────────────────────
-const BatchStep = ({ onSelect }) => {
-  const { data: batches = [], isLoading } = useGetBatchesQuery();
-  if (isLoading) return <p className="text-sm text-gray-400">Loading batches…</p>;
-  return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium text-gray-600">Select Batch</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {batches.map((b) => (
-          <button key={b.id} onClick={() => onSelect(b)}
-            className="p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 text-left transition-all">
-            <p className="text-base font-bold text-gray-900 font-mono">{b.startYear}–{b.endYear}</p>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${b.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>
-              {b.scheme}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ─── Step 1: Dept + Spec ──────────────────────────────────────────────────────
-const SpecChips = ({ dept, batch, onSelect }) => {
-  const { data: specs = [], isLoading } = useGetSpecializationsByDeptQuery(
-    { deptId: dept.id, scheme: batch.scheme }, { skip: !dept.id }
-  );
-  return (
-    <div className="mt-2 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-      <button onClick={() => onSelect(dept, null)}
-        className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700">All</button>
-      {isLoading ? <span className="text-xs text-gray-400">Loading…</span> : specs.map((s) => (
-        <button key={s.id} onClick={() => onSelect(dept, s)}
-          className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-200 bg-gray-50 text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700">
-          {s.name}
-        </button>
-      ))}
-    </div>
-  );
-};
-
-const DeptStep = ({ batch, onSelect }) => {
-  const { data: depts = [], isLoading } = useGetDepartmentsQuery();
-  if (isLoading) return <p className="text-sm text-gray-400">Loading departments…</p>;
-  return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium text-gray-600">Select Department</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {depts.map((d) => (
-          <div key={d.id} className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-300 transition-colors">
-            <p className="text-sm font-bold text-gray-900">{d.name}</p>
-            <SpecChips dept={d} batch={batch} onSelect={onSelect} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ─── Step 2: Semester ─────────────────────────────────────────────────────────
-const YEAR_GROUPS = [
-  { year: 1, label: 'Year 1', sems: [1, 2] },
-  { year: 2, label: 'Year 2', sems: [3, 4] },
-  { year: 3, label: 'Year 3', sems: [5, 6] },
-];
-
-const SemesterStep = ({ batch, dept, spec, onSelect }) => {
-  const { data: structures = [], isLoading } = useGetClassStructureQuery(
-    { batchId: batch.id, deptId: dept.id, specId: spec?.id ?? undefined },
-    { skip: !batch.id || !dept.id }
-  );
-  const [getOrCreate, { isLoading: creating }] = useGetOrCreateClassStructureMutation();
-  const existingMap = Object.fromEntries(structures.map((cs) => [`${cs.yearOfStudy}-${cs.semester}`, cs]));
-
-  const handleClick = async (yearOfStudy, semester) => {
-    const key = `${yearOfStudy}-${semester}`;
-    if (existingMap[key]) { onSelect(existingMap[key]); return; }
-    try {
-      const cs = await getOrCreate({
-        batchId: batch.id, departmentId: dept.id,
-        specializationId: spec?.id ?? null, yearOfStudy, semester,
-      }).unwrap();
-      onSelect(cs);
-    } catch { toast.error('Failed to open semester.'); }
-  };
-
-  if (isLoading) return <p className="text-sm text-gray-400">Loading semesters…</p>;
-  return (
-    <div className="space-y-4">
-      <p className="text-sm font-medium text-gray-600">Select Semester</p>
-      {YEAR_GROUPS.map(({ year, label, sems }) => (
-        <div key={year}>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">{label}</p>
-          <div className="grid grid-cols-2 gap-3">
-            {sems.map((sem) => {
-              const exists = !!existingMap[`${year}-${sem}`];
-              return (
-                <button key={sem} onClick={() => handleClick(year, sem)} disabled={creating}
-                  className={`py-5 rounded-xl border-2 text-sm font-bold transition-all disabled:opacity-50 ${
-                    exists
-                      ? 'border-indigo-400 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                      : 'border-dashed border-gray-200 text-gray-400 hover:border-indigo-300 hover:text-indigo-600'
-                  }`}>
-                  Semester {sem}
-                  {exists && <span className="block text-xs font-normal text-indigo-400 mt-0.5">configured</span>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-// ─── Step 3: Course ───────────────────────────────────────────────────────────
-const CourseStep = ({ classStructure, onSelect }) => {
-  const { data: courses = [], isLoading } = useGetAdminCoursesQuery({ classStructureId: classStructure.id });
-  if (isLoading) return <p className="text-sm text-gray-400">Loading courses…</p>;
-  if (!courses.length) return <p className="text-sm text-gray-400">No courses assigned to this semester.</p>;
-  return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium text-gray-600">Select Course</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {courses.map((c) => (
-          <button key={c.id} onClick={() => onSelect(c)}
-            className="p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 text-left transition-all">
-            <p className="text-sm font-bold text-gray-800">{c.name}</p>
-            <p className="text-xs text-gray-400 font-mono mt-0.5">{c.code}{c.credits ? ` · ${c.credits} cr` : ''}</p>
-            {c.facultyName && <FacultyLink facultyId={c.facultyId} facultyName={c.facultyName} />}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 // ─── Step 4: IA Panel ─────────────────────────────────────────────────────────
 const IAPanel = ({ course, classStructure }) => {
   const [activeIA, setActiveIA] = useState(1);
@@ -760,40 +608,87 @@ const CoursePanel = ({ course, classStructure }) => {
 };
 
 // ─── Main page ────────────────────────────────────────────────────────────────
+const sel = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:opacity-50 disabled:bg-gray-50';
+
 const AdminIAPage = () => {
-  const [level, setLevel]                   = useState(L.BATCH);
-  const [batch, setBatch]                   = useState(null);
-  const [dept, setDept]                     = useState(null);
-  const [spec, setSpec]                     = useState(null);
-  const [classStructure, setClassStructure] = useState(null);
-  const [course, setCourse]                 = useState(null);
+  const [batchId, setBatchId]   = useState('');
+  const [deptId, setDeptId]     = useState('');
+  const [specId, setSpecId]     = useState('');
+  const [csId, setCsId]         = useState('');
+  const [courseId, setCourseId] = useState('');
 
-  const goTo = (lv) => {
-    if (lv <= L.BATCH)    { setBatch(null); setDept(null); setSpec(null); setClassStructure(null); setCourse(null); }
-    if (lv <= L.DEPT)     { setDept(null); setSpec(null); setClassStructure(null); setCourse(null); }
-    if (lv <= L.SEMESTER) { setClassStructure(null); setCourse(null); }
-    if (lv <= L.COURSE)   { setCourse(null); }
-    setLevel(lv);
+  const { data: batches = [], isLoading: batchLoading } = useGetBatchesQuery();
+  const { data: depts = [],   isLoading: deptLoading }  = useGetDepartmentsQuery();
+  const selectedBatch = batches.find(b => String(b.id) === batchId);
+  const { data: specs = [] } = useGetSpecializationsByDeptQuery(
+    { deptId: Number(deptId), scheme: selectedBatch?.scheme },
+    { skip: !deptId || !selectedBatch }
+  );
+  const { data: structures = [], isLoading: csLoading } = useGetClassStructureQuery(
+    { batchId: Number(batchId), deptId: Number(deptId), specId: specId ? Number(specId) : undefined },
+    { skip: !batchId || !deptId }
+  );
+  const { data: courses = [], isLoading: courseLoading } = useGetAdminCoursesQuery(
+    { classStructureId: Number(csId) },
+    { skip: !csId }
+  );
+
+  const selectedCs     = structures.find(s => String(s.id) === csId);
+  const selectedCourse = courses.find(c => String(c.id) === courseId);
+
+  const resetFrom = (level) => {
+    if (level <= 1) setDeptId('');
+    if (level <= 2) { setSpecId(''); setCsId(''); }
+    if (level <= 3) setCsId('');
+    if (level <= 4) setCourseId('');
   };
-
-  const crumbs = [
-    'Internal Assessment',
-    ...(batch          ? [`${batch.startYear}–${batch.endYear} (${batch.scheme})`] : []),
-    ...(dept           ? [dept.name + (spec ? ` · ${spec.name}` : '')] : []),
-    ...(classStructure ? [`Sem ${classStructure.semester}`] : []),
-    ...(course         ? [course.name] : []),
-  ];
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
-      <Crumb items={crumbs} onNav={(i) => goTo(i)} />
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        {level === L.BATCH && <BatchStep onSelect={(b) => { setBatch(b); setLevel(L.DEPT); }} />}
-        {level === L.DEPT && batch && <DeptStep batch={batch} onSelect={(d, s) => { setDept(d); setSpec(s); setLevel(L.SEMESTER); }} />}
-        {level === L.SEMESTER && batch && dept && <SemesterStep batch={batch} dept={dept} spec={spec} onSelect={(cs) => { setClassStructure(cs); setLevel(L.COURSE); }} />}
-        {level === L.COURSE && classStructure && <CourseStep classStructure={classStructure} onSelect={(c) => { setCourse(c); setLevel(L.IA); }} />}
-        {level === L.IA && course && classStructure && <CoursePanel course={course} classStructure={classStructure} />}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div>
+          <label className="text-xs font-semibold text-gray-500 block mb-1">Batch</label>
+          <select value={batchId} onChange={e => { setBatchId(e.target.value); resetFrom(1); }} className={sel} disabled={batchLoading}>
+            <option value="">{batchLoading ? 'Loading…' : 'Select batch'}</option>
+            {batches.map(b => <option key={b.id} value={b.id}>{b.startYear}–{b.endYear} ({b.scheme})</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-gray-500 block mb-1">Department</label>
+          <select value={deptId} onChange={e => { setDeptId(e.target.value); resetFrom(2); }} className={sel} disabled={!batchId || deptLoading}>
+            <option value="">{deptLoading ? 'Loading…' : 'Select department'}</option>
+            {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+        {specs.length > 0 && (
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">Specialization</label>
+            <select value={specId} onChange={e => { setSpecId(e.target.value); resetFrom(3); }} className={sel}>
+              <option value="">All</option>
+              {specs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className="text-xs font-semibold text-gray-500 block mb-1">Semester</label>
+          <select value={csId} onChange={e => { setCsId(e.target.value); resetFrom(4); }} className={sel} disabled={!deptId || csLoading}>
+            <option value="">{csLoading ? 'Loading…' : 'Select semester'}</option>
+            {structures.map(cs => <option key={cs.id} value={cs.id}>Sem {cs.semester} · Year {cs.yearOfStudy}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-gray-500 block mb-1">Program</label>
+          <select value={courseId} onChange={e => setCourseId(e.target.value)} className={sel} disabled={!csId || courseLoading}>
+            <option value="">{courseLoading ? 'Loading…' : 'Select program'}</option>
+            {courses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+          </select>
+        </div>
       </div>
+      {selectedCs && selectedCourse && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <CoursePanel key={`${selectedCs.id}-${selectedCourse.id}`} course={selectedCourse} classStructure={selectedCs} />
+        </div>
+      )}
     </div>
   );
 };

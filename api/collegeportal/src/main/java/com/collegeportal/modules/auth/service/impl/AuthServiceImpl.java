@@ -1,6 +1,7 @@
 package com.collegeportal.modules.auth.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -18,7 +19,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import com.collegeportal.modules.classbatch.dto.response.ClassBatchResponseDTO;
+import com.collegeportal.modules.classbatch.repository.ClassBatchRepository;
+import com.collegeportal.modules.classbatch.service.ClassBatchService;
+import com.collegeportal.modules.classstructure.repository.ClassStructureRepository;
 import com.collegeportal.exception.custom.BadRequestException;
+import com.collegeportal.modules.batch.entity.Batch;
+import com.collegeportal.modules.batch.repository.BatchRepository;
+import com.collegeportal.modules.registrationwindow.service.RegistrationWindowService;
+import java.time.LocalDate;
 import com.collegeportal.exception.custom.ResourceNotFoundException;
 import com.collegeportal.modules.auth.dto.request.CompleteProfileRequestDTO;
 import com.collegeportal.modules.auth.dto.request.ForgotPasswordRequestDTO;
@@ -36,9 +45,13 @@ import com.collegeportal.modules.department.entity.Department;
 import com.collegeportal.modules.department.repository.DepartmentRepository;
 import com.collegeportal.modules.faculty.entity.Faculty;
 import com.collegeportal.modules.faculty.repository.FacultyRepository;
+import com.collegeportal.modules.specialization.entity.Specialization;
+import com.collegeportal.modules.specialization.repository.SpecializationRepository;
 import com.collegeportal.modules.student.entity.Student;
 import com.collegeportal.modules.student.repository.StudentRepository;
 import com.collegeportal.security.jwt.JwtTokenProvider;
+import com.collegeportal.modules.notification.service.NotificationService;
+import com.collegeportal.shared.enums.NotificationType;
 import com.collegeportal.shared.enums.RoleType;
 
 import lombok.RequiredArgsConstructor;
@@ -57,6 +70,13 @@ public class AuthServiceImpl implements AuthService {
     private final FacultyRepository facultyRepository;
     private final StudentRepository studentRepository;
     private final DepartmentRepository departmentRepository;
+    private final SpecializationRepository specializationRepository;
+    private final ClassBatchService classBatchService;
+    private final ClassBatchRepository classBatchRepository;
+    private final ClassStructureRepository classStructureRepository;
+    private final BatchRepository batchRepository;
+    private final RegistrationWindowService registrationWindowService;
+    private final NotificationService notificationService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     private boolean isStudentProfileComplete(User user) {
@@ -71,12 +91,11 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResponseDTO register(RegisterRequestDTO request) {
         log.info("Registration attempt for email: {}", request.getEmail());
-        
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new BadRequestException("Email is already registered");
         }
 
-        // Validate role-specific fields
         validateRoleSpecificFields(request);
 
         Role requestedRole = roleRepository.findByName(request.getRole())
@@ -89,14 +108,22 @@ public class AuthServiceImpl implements AuthService {
                 .registrationNumber(request.getRegistrationNumber())
                 .facultyId(request.getFacultyId())
                 .roles(Set.of(requestedRole))
-                .enabled(false) // Requires admin approval
+                .enabled(false)
                 .approved(false)
                 .build();
 
         User savedUser = userRepository.save(user);
         log.info("User registered successfully: {}", savedUser.getEmail());
 
-        // Create role-specific profile
+        List<User> admins = userRepository.findApprovedUsersByRole(RoleType.ROLE_ADMIN);
+        for (User admin : admins) {
+            notificationService.send(admin.getId(), NotificationType.NEW_REGISTRATION,
+                    "New Registration",
+                    request.getFullName() + " has registered as "
+                            + request.getRole().name().replace("ROLE_", "") + ". Review pending approvals.",
+                    "/admin/approvals", savedUser.getId(), "USER");
+        }
+
         if (request.getRole() == RoleType.ROLE_FACULTY) {
             String[] parts = request.getFullName().trim().split(" ", 2);
             Department deptEntity = request.getDepartment() != null
@@ -115,7 +142,7 @@ public class AuthServiceImpl implements AuthService {
                     .build());
         } else if (request.getRole() == RoleType.ROLE_STUDENT) {
             String[] parts = request.getFullName().trim().split(" ", 2);
-            studentRepository.save(Student.builder()
+            Student.StudentBuilder builder = Student.builder()
                     .firstName(parts[0])
                     .lastName(parts.length > 1 ? parts[1] : "")
                     .phone(request.getPhone())
@@ -124,8 +151,27 @@ public class AuthServiceImpl implements AuthService {
                     .yearOfStudy(request.getYearOfStudy())
                     .courseStartYear(request.getCourseStartYear())
                     .courseEndYear(request.getCourseEndYear())
-                    .user(savedUser)
-                    .build());
+                    .scheme(request.getScheme())
+                    .user(savedUser);
+            if (request.getSpecializationId() != null) {
+                Specialization spec = specializationRepository.findById(request.getSpecializationId()).orElse(null);
+                builder.specialization(spec);
+            }
+            if (request.getClassStructureId() != null) {
+                classStructureRepository.findById(request.getClassStructureId())
+                        .ifPresent(builder::classStructure);
+                try {
+                    ClassBatchResponseDTO batchDTO =
+                        classBatchService.resolveByClassStructure(request.getClassStructureId());
+                    classBatchRepository.findById(batchDTO.getId()).ifPresent(batch -> {
+                        builder.classBatch(batch);
+                        if (request.getScheme() == null) builder.scheme(batch.getScheme());
+                        builder.courseStartYear(batch.getStartYear());
+                        builder.courseEndYear(batch.getEndYear());
+                    });
+                } catch (Exception ignored) {}
+            }
+            studentRepository.save(builder.build());
         }
 
         return AuthResponseDTO.builder()
@@ -138,7 +184,7 @@ public class AuthServiceImpl implements AuthService {
         if (request.getRole() == null) {
             throw new BadRequestException("Role is required");
         }
-        
+
         switch (request.getRole()) {
             case ROLE_STUDENT -> {
                 if (request.getRegistrationNumber() == null || request.getRegistrationNumber().trim().isEmpty()) {
@@ -147,6 +193,25 @@ public class AuthServiceImpl implements AuthService {
                 if (userRepository.findByRegistrationNumber(request.getRegistrationNumber()).isPresent()) {
                     throw new BadRequestException("Registration number already exists");
                 }
+                if (request.getBatchId() != null && request.getYearOfStudy() != null) {
+                    Batch batch = batchRepository.findById(request.getBatchId())
+                            .orElseThrow(() -> new BadRequestException("Batch not found: " + request.getBatchId()));
+                    int batchDuration = batch.getEndYear() - batch.getStartYear();
+                    int currentYear = LocalDate.now().getYear();
+                    int expectedYear = currentYear - batch.getStartYear() + 1;
+                    expectedYear = Math.max(1, Math.min(batchDuration, expectedYear));
+                    if (!request.getYearOfStudy().equals(expectedYear)) {
+                        throw new BadRequestException(
+                                "For batch " + batch.getStartYear() + "-" + batch.getEndYear() +
+                                ", you must register as Year " + expectedYear);
+                    }
+                    boolean open = registrationWindowService.isRegistrationOpen(
+                            request.getBatchId(), "ROLE_STUDENT", request.getYearOfStudy());
+                    if (!open) {
+                        throw new BadRequestException(
+                                "Registration is not currently open for this batch and year of study");
+                    }
+                }
             }
             case ROLE_FACULTY -> {
                 if (request.getFacultyId() == null || request.getFacultyId().trim().isEmpty()) {
@@ -154,6 +219,11 @@ public class AuthServiceImpl implements AuthService {
                 }
                 if (userRepository.findByFacultyId(request.getFacultyId()).isPresent()) {
                     throw new BadRequestException("Faculty ID already exists");
+                }
+                boolean anyOpen = registrationWindowService.getActiveForRole("ROLE_FACULTY")
+                        .stream().anyMatch(w -> w.getCurrentlyOpen());
+                if (!anyOpen) {
+                    throw new BadRequestException("Faculty registration is not currently open");
                 }
             }
             case ROLE_ADMIN -> throw new BadRequestException("Admin registration is not allowed");
@@ -167,15 +237,12 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + request.getEmail()));
 
-        // Generate reset token
         String resetToken = UUID.randomUUID().toString();
         user.setResetToken(resetToken);
-        user.setResetTokenExpiry(LocalDateTime.now().plusHours(1)); // Token expires in 1 hour
-        
+        user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
+
         userRepository.save(user);
 
-        // TODO: Send email with reset link
-        // For now, we'll return the token in the response (in production, this should be sent via email)
         return AuthResponseDTO.builder()
                 .message("Password reset link has been sent to your email")
                 .build();
@@ -187,16 +254,14 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByResetToken(request.getToken())
                 .orElseThrow(() -> new BadRequestException("Invalid or expired reset token"));
 
-        // Check if token is expired
         if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Reset token has expired");
         }
 
-        // Update password
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setResetToken(null);
         user.setResetTokenExpiry(null);
-        
+
         userRepository.save(user);
 
         return AuthResponseDTO.builder()
@@ -207,7 +272,6 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponseDTO login(LoginRequestDTO request) {
         try {
-            // Find user by email (since we removed username)
             User user = userRepository.findByEmail(request.getUsername())
                     .orElseThrow(() -> new BadRequestException("Invalid credentials"));
 
@@ -251,7 +315,6 @@ public class AuthServiceImpl implements AuthService {
         String email = (String) payload.get("email");
         String name  = (String) payload.get("name");
         if (email == null) throw new BadRequestException("Google token missing email");
-        // Override with verified Google email/name
         request.setEmail(email);
         if (name != null && (request.getFullName() == null || request.getFullName().isBlank()))
             request.setFullName(name);
@@ -266,7 +329,6 @@ public class AuthServiceImpl implements AuthService {
         String name  = (String) payload.get("name");
         if (email == null) throw new BadRequestException("Google token missing email");
 
-        // Check if user exists
         boolean isNew = userRepository.findByEmail(email).isEmpty();
         if (isNew) {
             return AuthResponseDTO.builder()
@@ -303,8 +365,6 @@ public class AuthServiceImpl implements AuthService {
                 throw new BadRequestException("Date of birth is required");
             if (req.getYearOfStudy() == null)
                 throw new BadRequestException("Year of study is required");
-            if (req.getCourseStartYear() == null || req.getCourseEndYear() == null)
-                throw new BadRequestException("Course start and end year are required");
             Student student = studentRepository.findByUser(user)
                     .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
             student.setPhone(req.getPhone());
@@ -313,9 +373,27 @@ public class AuthServiceImpl implements AuthService {
             student.setYearOfStudy(req.getYearOfStudy());
             student.setCourseStartYear(req.getCourseStartYear());
             student.setCourseEndYear(req.getCourseEndYear());
+            if (req.getScheme() != null) student.setScheme(req.getScheme());
+            if (req.getSpecializationId() != null) {
+                specializationRepository.findById(req.getSpecializationId())
+                        .ifPresent(student::setSpecialization);
+            }
             if (req.getRegistrationNumber() != null && !req.getRegistrationNumber().isBlank()) {
                 user.setRegistrationNumber(req.getRegistrationNumber());
                 userRepository.save(user);
+            }
+            if (req.getClassStructureId() != null) {
+                classStructureRepository.findById(req.getClassStructureId())
+                        .ifPresent(student::setClassStructure);
+                try {
+                    ClassBatchResponseDTO batchDTO =
+                        classBatchService.resolveByClassStructure(req.getClassStructureId());
+                    classBatchRepository.findById(batchDTO.getId()).ifPresent(batch -> {
+                        student.setClassBatch(batch);
+                        student.setCourseStartYear(batch.getStartYear());
+                        student.setCourseEndYear(batch.getEndYear());
+                    });
+                } catch (Exception ignored) {}
             }
             studentRepository.save(student);
         } else if (roles.contains("ROLE_FACULTY")) {

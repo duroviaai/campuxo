@@ -1,10 +1,14 @@
 package com.collegeportal.modules.ia.service.impl;
 
+import com.collegeportal.exception.custom.ForbiddenException;
 import com.collegeportal.exception.custom.ResourceNotFoundException;
 import com.collegeportal.modules.classstructure.entity.ClassStructure;
 import com.collegeportal.modules.classstructure.repository.ClassStructureRepository;
 import com.collegeportal.modules.course.entity.Course;
 import com.collegeportal.modules.course.repository.CourseRepository;
+import com.collegeportal.modules.faculty.entity.Faculty;
+import com.collegeportal.modules.faculty.repository.FacultyRepository;
+import com.collegeportal.modules.facultyassignment.repository.FacultyCourseAssignmentRepository;
 import com.collegeportal.modules.ia.dto.request.AssignmentSaveRequestDTO;
 import com.collegeportal.modules.ia.dto.request.SeminarSaveRequestDTO;
 import com.collegeportal.modules.ia.dto.response.StudentAssignmentResponseDTO;
@@ -17,7 +21,9 @@ import com.collegeportal.modules.classbatch.entity.ClassBatch;
 import com.collegeportal.modules.classbatch.repository.ClassBatchRepository;
 import com.collegeportal.modules.student.entity.Student;
 import com.collegeportal.modules.student.repository.StudentRepository;
+import com.collegeportal.shared.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,11 +41,27 @@ public class AssignmentSeminarService {
     private final CourseRepository courseRepository;
     private final StudentRepository studentRepository;
     private final ClassBatchRepository classBatchRepository;
+    private final FacultyCourseAssignmentRepository assignmentFcaRepository;
+    private final FacultyRepository facultyRepository;
+    private final SecurityUtils securityUtils;
+
+    private void assertFacultyCourseAccess(Long courseId) {
+        boolean isFaculty = SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_FACULTY"));
+        if (!isFaculty) return;
+        Faculty faculty = facultyRepository.findByUser(securityUtils.getCurrentUser())
+                .orElseThrow(() -> new ResourceNotFoundException("Faculty profile not found"));
+        if (!assignmentFcaRepository.existsByFacultyIdAndCourseId(faculty.getId(), courseId)) {
+            throw new ForbiddenException("You are not assigned to this course");
+        }
+    }
 
     // ── Assignment ────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public List<StudentAssignmentResponseDTO> getAssignments(Long classStructureId, Long courseId) {
+        assertFacultyCourseAccess(courseId);
         ClassStructure cs = classStructureRepository.findById(classStructureId)
                 .orElseThrow(() -> new ResourceNotFoundException("ClassStructure not found"));
         List<Student> students = resolveStudents(cs);
@@ -63,6 +85,7 @@ public class AssignmentSeminarService {
 
     @Transactional
     public void saveAssignments(AssignmentSaveRequestDTO req) {
+        assertFacultyCourseAccess(req.getCourseId());
         ClassStructure cs = classStructureRepository.findById(req.getClassStructureId())
                 .orElseThrow(() -> new ResourceNotFoundException("ClassStructure not found"));
         Course course = courseRepository.findById(req.getCourseId())
@@ -90,6 +113,7 @@ public class AssignmentSeminarService {
 
     @Transactional(readOnly = true)
     public List<StudentSeminarResponseDTO> getSeminars(Long classStructureId, Long courseId) {
+        assertFacultyCourseAccess(courseId);
         ClassStructure cs = classStructureRepository.findById(classStructureId)
                 .orElseThrow(() -> new ResourceNotFoundException("ClassStructure not found"));
         List<Student> students = resolveStudents(cs);
@@ -115,6 +139,7 @@ public class AssignmentSeminarService {
 
     @Transactional
     public void saveSeminars(SeminarSaveRequestDTO req) {
+        assertFacultyCourseAccess(req.getCourseId());
         ClassStructure cs = classStructureRepository.findById(req.getClassStructureId())
                 .orElseThrow(() -> new ResourceNotFoundException("ClassStructure not found"));
         Course course = courseRepository.findById(req.getCourseId())

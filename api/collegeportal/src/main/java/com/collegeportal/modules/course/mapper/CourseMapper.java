@@ -30,6 +30,11 @@ public class CourseMapper {
 
     public CourseResponseDTO toResponseDTO(Course course, int studentCount, Boolean enrolled,
                                            Long facultyId, String facultyName) {
+        return toResponseDTO(course, studentCount, enrolled, facultyId, facultyName, null);
+    }
+
+    public CourseResponseDTO toResponseDTO(Course course, int studentCount, Boolean enrolled,
+                                           Long facultyId, String facultyName, String facultyDesignation) {
         return CourseResponseDTO.builder()
                 .id(course.getId())
                 .name(course.getName())
@@ -38,6 +43,7 @@ public class CourseMapper {
                 .programType(course.getProgramType())
                 .facultyId(facultyId)
                 .facultyName(facultyName)
+                .facultyDesignation(facultyDesignation)
                 .studentCount(studentCount)
                 .enrolled(enrolled)
                 .specialization(course.getSpecialization())

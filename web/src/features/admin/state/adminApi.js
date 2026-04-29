@@ -6,6 +6,7 @@ export const adminApi = apiSlice.injectEndpoints({
   endpoints: (b) => ({
     getStats:               b.query({ query: () => `${BASE}/stats`, providesTags: ['AdminStats'] }),
     getDepartmentsSummary:  b.query({ query: () => `${BASE}/departments-summary`, providesTags: ['DeptSummary'] }),
+    getStudentsByDepartment: b.query({ query: () => `${BASE}/students-by-department`, providesTags: ['StudentsByDept'] }),
     getPendingUsers:        b.query({ query: ({ role, department } = {}) => { const p = new URLSearchParams(); if (role) p.set('role', role); if (department) p.set('department', department); const q = p.toString(); return `${BASE}/pending-users${q ? `?${q}` : ''}`; }, providesTags: (_, __, arg) => [{ type: 'PendingUsers', id: arg?.department ?? 'ALL' }] }),
     getApprovedUsers:       b.query({ query: ({ role, department } = {}) => { const p = new URLSearchParams(); if (role) p.set('role', role); if (department) p.set('department', department); const q = p.toString(); return `${BASE}/approved-users${q ? `?${q}` : ''}`; }, providesTags: (_, __, arg) => [{ type: 'ApprovedUsers', id: arg?.department ?? 'ALL' }] }),
     getRejectedUsers:       b.query({ query: ({ department } = {}) => `${BASE}/rejected-users${department ? `?department=${encodeURIComponent(department)}` : ''}`, providesTags: (_, __, arg) => [{ type: 'RejectedUsers', id: arg?.department ?? 'ALL' }] }),
@@ -18,12 +19,20 @@ export const adminApi = apiSlice.injectEndpoints({
     bulkReject:   b.mutation({ query: ({ userIds, reason }) => ({ url: `${BASE}/bulk-reject`,  method: 'DELETE', body: { userIds, reason } }), invalidatesTags: ['PendingUsers', 'RejectedUsers', 'AdminStats', 'DeptSummary'] }),
     assignHod:    b.mutation({ query: (userId) => ({ url: `${BASE}/users/${userId}/assign-hod`, method: 'PUT' }), invalidatesTags: ['Faculty', 'ApprovedUsers'] }),
     removeHod:    b.mutation({ query: (userId) => ({ url: `${BASE}/users/${userId}/remove-hod`, method: 'PUT' }), invalidatesTags: ['Faculty', 'ApprovedUsers'] }),
+
+    getRegistrationWindows:    b.query({ query: () => '/api/v1/admin/registration-windows', providesTags: ['RegistrationWindow'] }),
+    createRegistrationWindow:  b.mutation({ query: (data) => ({ url: '/api/v1/admin/registration-windows', method: 'POST', body: data }), invalidatesTags: ['RegistrationWindow'] }),
+    updateRegistrationWindow:  b.mutation({ query: ({ id, ...data }) => ({ url: `/api/v1/admin/registration-windows/${id}`, method: 'PUT', body: data }), invalidatesTags: ['RegistrationWindow'] }),
+    deleteRegistrationWindow:  b.mutation({ query: (id) => ({ url: `/api/v1/admin/registration-windows/${id}`, method: 'DELETE' }), invalidatesTags: ['RegistrationWindow'] }),
+    toggleRegistrationWindow:  b.mutation({ query: (id) => ({ url: `/api/v1/admin/registration-windows/${id}/toggle`, method: 'PATCH' }), invalidatesTags: ['RegistrationWindow'] }),
+    sendAnnouncement: b.mutation({ query: (data) => ({ url: '/api/v1/admin/announcements', method: 'POST', body: data }), invalidatesTags: ['Notification'] }),
   }),
 });
 
 export const {
   useGetStatsQuery,
   useGetDepartmentsSummaryQuery,
+  useGetStudentsByDepartmentQuery,
   useGetPendingUsersQuery,
   useGetApprovedUsersQuery,
   useGetRejectedUsersQuery,
@@ -35,4 +44,10 @@ export const {
   useBulkRejectMutation,
   useAssignHodMutation,
   useRemoveHodMutation,
+  useGetRegistrationWindowsQuery,
+  useCreateRegistrationWindowMutation,
+  useUpdateRegistrationWindowMutation,
+  useDeleteRegistrationWindowMutation,
+  useToggleRegistrationWindowMutation,
+  useSendAnnouncementMutation,
 } = adminApi;

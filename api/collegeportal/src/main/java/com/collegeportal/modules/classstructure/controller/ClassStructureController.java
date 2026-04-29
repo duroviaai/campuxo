@@ -30,6 +30,14 @@ public class ClassStructureController {
         return ResponseEntity.ok(classStructureService.getByBatchDeptSpec(batchId, deptId, specId));
     }
 
+    @GetMapping("/public")
+    public ResponseEntity<List<ClassStructureResponseDTO>> getPublic(
+            @RequestParam Long batchId,
+            @RequestParam Long deptId,
+            @RequestParam(required = false) Long specId) {
+        return ResponseEntity.ok(classStructureService.getByBatchDeptSpec(batchId, deptId, specId));
+    }
+
     /** Auto-creates the semester record if it doesn't exist yet (idempotent). */
     @PostMapping
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_HOD')")

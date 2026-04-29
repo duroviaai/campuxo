@@ -6,6 +6,7 @@ import com.collegeportal.modules.hod.dto.response.FacultyCourseAssignmentDTO;
 import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.department.repository.DepartmentRepository;
 import com.collegeportal.modules.faculty.dto.response.FacultyResponseDTO;
+import com.collegeportal.modules.hod.dto.request.HodUpdateProfileRequestDTO;
 import com.collegeportal.modules.hod.dto.response.HodStatsDTO;
 import com.collegeportal.modules.hod.service.HodService;
 import com.collegeportal.modules.student.dto.response.StudentResponseDTO;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;
@@ -126,5 +128,11 @@ public class HodController {
     @GetMapping("/me")
     public ResponseEntity<FacultyResponseDTO> getMe() {
         return ResponseEntity.ok(hodService.getHodProfile());
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<FacultyResponseDTO> updateMyProfile(
+            @Valid @RequestBody HodUpdateProfileRequestDTO request) {
+        return ResponseEntity.ok(hodService.updateHodProfile(request));
     }
 }

@@ -43,6 +43,23 @@ export const iaApi = apiSlice.injectEndpoints({
         { type: 'IA', id: `sem-${classStructureId}-${courseId}` },
       ],
     }),
+    getFinalMarks: b.query({
+      query: ({ classStructureId, courseId }) =>
+        `${BASE}/final-marks?classStructureId=${classStructureId}&courseId=${courseId}`,
+      providesTags: (_, __, { classStructureId, courseId }) => [
+        { type: 'IA', id: `final-${classStructureId}-${courseId}` },
+      ],
+    }),
+    calculateFinalMarks: b.mutation({
+      query: ({ classStructureId, courseId }) => ({
+        url: `${BASE}/calculate-final-marks?classStructureId=${classStructureId}&courseId=${courseId}`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_, __, { classStructureId, courseId }) => [
+        { type: 'IA', id: `final-${classStructureId}-${courseId}` },
+        { type: 'IA', id: `ia-${classStructureId}-${courseId}` },
+      ],
+    }),
   }),
 });
 
@@ -53,4 +70,6 @@ export const {
   useSaveAssignmentsMutation,
   useGetSeminarsQuery,
   useSaveSeminarsMutation,
+  useGetFinalMarksQuery,
+  useCalculateFinalMarksMutation,
 } = iaApi;

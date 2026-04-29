@@ -12,6 +12,7 @@ export const getFacultyCourses    = () => axiosInstance.get('/api/v1/faculty/me/
 export const getFacultyAttendance = () => axiosInstance.get('/api/v1/faculty/me/attendance').then((r) => r.data);
 export const getFacultyAssignments = () => axiosInstance.get('/api/v1/faculty/me/assignments').then((r) => r.data);
 export const getMyProfile          = () => axiosInstance.get('/api/v1/faculty/me/profile').then((r) => r.data);
+export const updateMyProfile       = (data) => axiosInstance.put('/api/v1/faculty/me/profile', data).then((r) => r.data);
 
 export const getFacultyAssignedCourses = (facultyId) =>
   axiosInstance.get(`${BASE}/${facultyId}/courses`).then((r) => r.data);

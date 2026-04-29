@@ -12,6 +12,8 @@ const SOCIALS = [
   { icon: 'fa-brands fa-instagram', href: '#', label: 'Instagram' },
 ];
 
+import BrandLogo from '../../../shared/components/ui/BrandLogo';
+
 const Footer = () => (
   <footer className="bg-[#060b18] border-t border-white/[0.05]">
     <div className="max-w-6xl mx-auto px-6 md:px-10 pt-16 pb-10">
@@ -20,12 +22,7 @@ const Footer = () => (
         {/* Brand col */}
         <div className="col-span-2">
           <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md">
-              <i className="fa-solid fa-graduation-cap text-white text-xs" />
-            </div>
-            <span className="text-lg font-black bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent font-['Syne']">
-              campuxo
-            </span>
+            <BrandLogo size="md" dark />
           </div>
           <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-xs">
             The all-in-one campus management platform for students, faculty, and admins.
@@ -51,7 +48,7 @@ const Footer = () => (
             <ul className="space-y-2.5">
               {items.map(item => (
                 <li key={item}>
-                  <a href="#" className="text-slate-400 hover:text-white text-sm transition-colors">
+                  <a href="#" className="!text-slate-400 hover:!text-white text-sm transition-colors">
                     {item}
                   </a>
                 </li>

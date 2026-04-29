@@ -18,4 +18,7 @@ public interface InternalAssessmentRepository extends JpaRepository<InternalAsse
     @Query("SELECT ia FROM InternalAssessment ia WHERE ia.student.id = :studentId AND ia.classStructure.id = :classStructureId")
     List<InternalAssessment> findByStudentIdAndClassStructureId(
             @Param("studentId") Long studentId, @Param("classStructureId") Long classStructureId);
+
+    @Query("SELECT DISTINCT ia.course.id FROM InternalAssessment ia WHERE ia.student.id = :studentId")
+    List<Long> findDistinctCourseIdsByStudentId(@Param("studentId") Long studentId);
 }

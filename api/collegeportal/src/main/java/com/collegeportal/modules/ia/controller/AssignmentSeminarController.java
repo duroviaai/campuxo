@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/ia")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_HOD')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_HOD', 'ROLE_FACULTY')")
 public class AssignmentSeminarController {
 
     private final AssignmentSeminarService service;

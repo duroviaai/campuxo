@@ -21,7 +21,8 @@ export const AuthProvider = ({ children }) => {
     if (timerRef.current) clearInterval(timerRef.current);
     // Navigate via hard redirect so the interceptor doesn't need router access
     const dest = expired ? '/login?expired=1' : '/login';
-    if (window.location.pathname !== '/login') window.location.replace(dest);
+    if (window.location.pathname !== '/login' && window.location.pathname !== '/register')
+      window.location.replace(dest);
   }, []);
 
   // Periodic expiry check

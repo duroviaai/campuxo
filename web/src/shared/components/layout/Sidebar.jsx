@@ -3,22 +3,25 @@ import ROUTES from '../../../app/routes/routeConstants';
 import ROLES from '../../constants/roles';
 import SidebarItem from './SidebarItem';
 import { useGetStatsQuery } from '../../../features/admin/state/adminApi';
-import { Icon, NavIcons, AcademicIcons, ActionIcons, StatusIcons } from '../icons/IconLibrary';
-import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { Icon, NavIcons, AcademicIcons, ActionIcons, StatusIcons, TimeIcons } from '../icons/IconLibrary';
+import { faChevronLeft, faChevronRight, faBullhorn } from '@fortawesome/free-solid-svg-icons';
 import BrandLogo from '../ui/BrandLogo';
 
 const HOD_ITEMS = [
-  { to: ROUTES.HOD_DASHBOARD,  label: 'Dashboard',          icon: NavIcons.dashboard,    end: true },
-  { to: ROUTES.HOD_FACULTY,    label: 'Faculty',             icon: NavIcons.faculty },
-  { to: ROUTES.HOD_STUDENTS,   label: 'Students',            icon: NavIcons.students },
-  { to: ROUTES.HOD_COURSES,    label: 'Programs',  icon: AcademicIcons.book },
-  { to: ROUTES.HOD_MY_COURSES, label: 'My Programs', icon: AcademicIcons.marks },
+  { to: ROUTES.HOD_DASHBOARD,  label: 'Dashboard',    icon: NavIcons.dashboard,    end: true },
+  { to: ROUTES.HOD_FACULTY,    label: 'Faculty',       icon: NavIcons.faculty },
+  { to: ROUTES.HOD_STUDENTS,   label: 'Students',      icon: NavIcons.students },
+  { to: ROUTES.HOD_COURSES,    label: 'Programs',      icon: AcademicIcons.book },
+  { to: ROUTES.HOD_MY_COURSES, label: 'My Programs',   icon: AcademicIcons.marks },
+  { to: ROUTES.HOD_PROFILE,    label: 'My Profile',    icon: NavIcons.users },
 ];
 
 const FACULTY_ITEMS = [
   { to: ROUTES.FACULTY_DASHBOARD,  label: 'Dashboard',  icon: NavIcons.dashboard, end: true },
   { to: ROUTES.FACULTY_COURSES,    label: 'My Courses', icon: AcademicIcons.book },
   { to: ROUTES.FACULTY_ATTENDANCE, label: 'Attendance', icon: NavIcons.attendance },
+  { to: ROUTES.FACULTY_COURSE_ATTENDANCE_SUMMARY, label: 'Attendance Summary', icon: AcademicIcons.marks },
+  { to: ROUTES.FACULTY_IA,         label: 'IA Marks',   icon: AcademicIcons.marks },
   { to: ROUTES.FACULTY_PROFILE,    label: 'Profile',    icon: NavIcons.users },
 ];
 
@@ -26,6 +29,7 @@ const STUDENT_ITEMS = [
   { to: ROUTES.STUDENT_DASHBOARD,  label: 'Dashboard',  icon: NavIcons.dashboard, end: true },
   { to: ROUTES.STUDENT_COURSES,    label: 'My Courses', icon: AcademicIcons.book },
   { to: ROUTES.STUDENT_ATTENDANCE, label: 'Attendance', icon: NavIcons.attendance },
+  { to: ROUTES.STUDENT_IA,         label: 'IA Marks',   icon: AcademicIcons.marks },
   { to: ROUTES.STUDENT_PROFILE,    label: 'Profile',    icon: NavIcons.users },
 ];
 
@@ -55,6 +59,8 @@ const Sidebar = ({ collapsed, onToggle }) => {
     { to: ROUTES.ADMIN_ATTENDANCE,label: 'Attendance',         icon: NavIcons.attendance },
     { to: ROUTES.ADMIN_IA,        label: 'Internal Assessment',icon: AcademicIcons.marks },
     { to: ROUTES.ADMIN_APPROVALS, label: 'Approvals',          icon: StatusIcons.check, badge: pendingCount },
+    { to: ROUTES.ADMIN_REGISTRATION_WINDOWS, label: 'Reg. Windows', icon: TimeIcons.calendar },
+    { to: ROUTES.ADMIN_ANNOUNCEMENTS,         label: 'Announcements', icon: faBullhorn },
   ];
 
   const items   = isAdmin ? ADMIN_ITEMS : isHod ? HOD_ITEMS : isFaculty ? FACULTY_ITEMS : STUDENT_ITEMS;
@@ -73,33 +79,33 @@ const Sidebar = ({ collapsed, onToggle }) => {
     >
       {/* Brand */}
       <div className="flex items-center h-16 shrink-0 px-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="shrink-0">
-          {collapsed
-            ? <BrandLogo size="sm" dark iconOnly />
-            : <BrandLogo size="sm" dark />
-          }
-        </div>
-
-        {!collapsed && (
-          <div className="ml-auto">
-            <span
-              className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md inline-block"
-              style={{ background: badge.bg, color: badge.color }}
+        {collapsed ? (
+          <button
+            onClick={onToggle}
+            className="w-6 h-6 flex items-center justify-center rounded-md transition-colors shrink-0 mx-auto"
+            style={{ color: 'rgba(100,116,139,1)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'rgba(100,116,139,1)'; }}
+          >
+            <Icon icon={faChevronRight} size="xs" />
+          </button>
+        ) : (
+          <>
+            <div className="flex items-center gap-2.5">
+              <img src="/campuxo_logo.png" alt="Campuxo" width={48} height={48} style={{ display: 'block', flexShrink: 0, objectFit: 'contain' }} />
+              <span style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif", fontSize: '18px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#ffffff', lineHeight: 1, userSelect: 'none' }}>CAMPUXO</span>
+            </div>
+            <button
+              onClick={onToggle}
+              className="w-6 h-6 flex items-center justify-center rounded-md transition-colors shrink-0 ml-auto"
+              style={{ color: 'rgba(100,116,139,1)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'rgba(100,116,139,1)'; }}
             >
-              {badge.label}
-            </span>
-          </div>
+              <Icon icon={faChevronLeft} size="xs" />
+            </button>
+          </>
         )}
-
-        <button
-          onClick={onToggle}
-          className="w-6 h-6 flex items-center justify-center rounded-md transition-colors shrink-0"
-          style={{ color: 'rgba(100,116,139,1)', marginLeft: collapsed ? 'auto' : undefined }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'rgba(100,116,139,1)'; }}
-        >
-          <Icon icon={collapsed ? faChevronRight : faChevronLeft} size="xs" />
-        </button>
       </div>
 
       {/* Nav */}

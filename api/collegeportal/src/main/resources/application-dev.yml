@@ -31,3 +31,8 @@ spring:
 jwt:
   secret: VqChmzuV2ojiCUrmZw71b2gZIfStoqMub/uIhS1SV5M=
   expiration: 86400000
+
+vapid:
+  public-key: BDATZ9GXWjobHYwLCh-u4FQUMkXlbznopEdnBbBoL2PG77qcSpM8k-tAYzdcQP_HYvP7movh4UAbmK2zP1WYsrk
+  private-key: vL6bUC9aeyM2V5G1leuAW0dC8AKOlWHafGJtSt3M_94
+  subject: mailto:admin@campuxo.com

@@ -13,6 +13,7 @@ public class CourseResponseDTO {
     private Integer credits;
     private Long facultyId;
     private String facultyName;
+    private String facultyDesignation;
     private Integer studentCount;
     private String programType;
     private Boolean enrolled;

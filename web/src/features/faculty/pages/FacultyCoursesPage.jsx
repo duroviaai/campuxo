@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getFacultyCourses, getFacultyAssignments, getCourseStudents } from '../services/facultyService';
+import { getFacultyCourses, getFacultyAssignments } from '../services/facultyService';
 import ROUTES from '../../../app/routes/routeConstants';
-import { TableWrap, Thead, Tr, Td, EmptyState, Modal, Badge, Btn } from '../../../shared/components/ui/PageShell';
+import { TableWrap, Thead, Tr, Td, EmptyState, Btn } from '../../../shared/components/ui/PageShell';
 
 const FacultyCoursesPage = () => {
   const [courses, setCourses]         = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
-  const [studentsModal, setStudentsModal]     = useState(null);
-  const [studentsLoading, setStudentsLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,17 +17,6 @@ const FacultyCoursesPage = () => {
       .catch((err) => setError(err.message ?? 'Failed to load courses'))
       .finally(() => setLoading(false));
   }, []);
-
-  const openStudents = async (course) => {
-    setStudentsModal({ courseName: course.name, students: [] });
-    setStudentsLoading(true);
-    try {
-      const students = await getCourseStudents(course.id);
-      setStudentsModal({ courseName: course.name, students: students ?? [] });
-    } finally {
-      setStudentsLoading(false);
-    }
-  };
 
   if (loading) return <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="rounded-xl h-12 skeleton" />)}</div>;
   if (error)   return <p className="text-sm" style={{ color: '#dc2626' }}>{error}</p>;
@@ -65,7 +52,7 @@ const FacultyCoursesPage = () => {
                 <Td muted>{classNames || <span style={{ color: '#cbd5e1' }}>None</span>}</Td>
                 <Td>
                   <button
-                    onClick={() => openStudents(course)}
+                    onClick={() => navigate(ROUTES.FACULTY_COURSE_STUDENTS.replace(':courseId', course.id))}
                     className="text-xs font-semibold transition-colors"
                     style={{ color: '#7c3aed' }}
                   >
@@ -82,36 +69,6 @@ const FacultyCoursesPage = () => {
           })}
         </tbody>
       </TableWrap>
-
-      {studentsModal && (
-        <Modal title={`${studentsModal.courseName} — Students`} onClose={() => setStudentsModal(null)}>
-          {studentsLoading ? (
-            <div className="p-5 space-y-2">{[1,2,3].map(i => <div key={i} className="h-10 rounded-lg skeleton" />)}</div>
-          ) : studentsModal.students.length === 0 ? (
-            <p className="text-sm text-center py-10" style={{ color: '#94a3b8' }}>No students enrolled.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#fafafa' }}>
-                  {['#', 'Name', 'Reg No.', 'Class'].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#94a3b8' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {studentsModal.students.map((s, i) => (
-                  <tr key={s.id} style={{ borderBottom: '1px solid #f8fafc' }}>
-                    <td className="px-5 py-3 text-xs" style={{ color: '#94a3b8' }}>{i + 1}</td>
-                    <td className="px-5 py-3 font-medium" style={{ color: '#0f172a' }}>{s.fullName}</td>
-                    <td className="px-5 py-3 text-xs font-mono" style={{ color: '#94a3b8' }}>{s.registrationNumber ?? '—'}</td>
-                    <td className="px-5 py-3 text-xs" style={{ color: '#64748b' }}>{s.classBatchName ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </Modal>
-      )}
     </div>
   );
 };

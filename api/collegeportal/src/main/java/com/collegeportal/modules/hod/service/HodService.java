@@ -5,6 +5,7 @@ import com.collegeportal.modules.attendance.dto.response.StudentAttendanceOvervi
 import com.collegeportal.modules.hod.dto.response.FacultyCourseAssignmentDTO;
 import com.collegeportal.modules.course.dto.response.CourseResponseDTO;
 import com.collegeportal.modules.faculty.dto.response.FacultyResponseDTO;
+import com.collegeportal.modules.hod.dto.request.HodUpdateProfileRequestDTO;
 import com.collegeportal.modules.hod.dto.response.HodStatsDTO;
 import com.collegeportal.modules.student.dto.response.StudentResponseDTO;
 
@@ -25,4 +26,5 @@ public interface HodService {
     List<AttendanceSummaryDTO> getStudentPerformance(Long studentId);
     List<FacultyCourseAssignmentDTO> getFacultyAssignments(Long facultyId);
     FacultyResponseDTO getHodProfile();
+    FacultyResponseDTO updateHodProfile(HodUpdateProfileRequestDTO request);
 }

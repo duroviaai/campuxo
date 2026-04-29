@@ -15,7 +15,9 @@ import com.collegeportal.modules.faculty.repository.FacultyRepository;
 import com.collegeportal.modules.facultyassignment.repository.FacultyCourseAssignmentRepository;
 import com.collegeportal.modules.student.entity.Student;
 import com.collegeportal.modules.student.repository.StudentRepository;
+import com.collegeportal.modules.notification.service.NotificationService;
 import com.collegeportal.shared.enums.FacultyRole;
+import com.collegeportal.shared.enums.NotificationType;
 import com.collegeportal.shared.enums.RoleType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -37,6 +39,7 @@ public class AdminServiceImpl implements AdminService {
     private final FacultyCourseAssignmentRepository assignmentRepository;
     private final CourseRepository courseRepository;
     private final RoleRepository roleRepository;
+    private final NotificationService notificationService;
 
     // ── User approval lifecycle ───────────────────────────────────────────────
 
@@ -70,6 +73,14 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    public Map<String, Long> getStudentCountByDepartment() {
+        return jdbcTemplate.query(
+            "SELECT department, COUNT(*) AS cnt FROM students WHERE department IS NOT NULL GROUP BY department ORDER BY department",
+            (rs, n) -> Map.entry(rs.getString("department"), rs.getLong("cnt"))
+        ).stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    @Override
     @Transactional
     public AdminResponseDTO approveUser(Long userId) {
         User user = getUser(userId);
@@ -78,6 +89,9 @@ public class AdminServiceImpl implements AdminService {
         user.setRejected(false);
         user.setRejectionReason(null);
         userRepository.save(user);
+        notificationService.send(user.getId(), NotificationType.ACCOUNT_APPROVED,
+                "Account Approved", "Your account has been approved. You can now log in.",
+                "/login", null, null);
         AdminResponseDTO dto = toDTO(user);
         dto.setMessage("User approved successfully");
         return dto;
@@ -92,6 +106,11 @@ public class AdminServiceImpl implements AdminService {
         user.setRejected(true);
         user.setRejectionReason(reason);
         userRepository.save(user);
+        notificationService.send(user.getId(), NotificationType.ACCOUNT_REJECTED,
+                "Account Not Approved",
+                reason != null ? "Your account was not approved: " + reason
+                               : "Your account registration was not approved.",
+                null, null, null);
     }
 
     @Override
@@ -101,6 +120,10 @@ public class AdminServiceImpl implements AdminService {
         user.setApproved(false);
         user.setEnabled(false);
         userRepository.save(user);
+        notificationService.send(user.getId(), NotificationType.ACCOUNT_REVOKED,
+                "Account Access Revoked",
+                "Your account access has been revoked. Please contact the admin.",
+                null, null, null);
     }
 
     @Override
@@ -190,6 +213,10 @@ public class AdminServiceImpl implements AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("ROLE_HOD not found in DB. Run the startup migration."));
         user.getRoles().add(hodRole);
         userRepository.save(user);
+        notificationService.send(user.getId(), NotificationType.HOD_ASSIGNED,
+                "You are now HOD",
+                "You have been assigned as Head of Department for " + department + ".",
+                "/hod/dashboard", null, null);
     }
 
     @Override

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   useGetBatchesQuery,
-  useGetSpecializationsByDeptQuery,
   useGetClassStructureQuery,
 } from '../../admin/courses/coursesAdminApi';
 import {
@@ -11,128 +10,20 @@ import {
 } from '../state/hodApi';
 import { Badge, PctBar } from '../../../shared/components/ui/PageShell';
 
-const L = { BATCH: 0, SEMESTER: 1, STUDENTS: 2, DETAIL: 3 };
-
 const pctColor = (p) => p >= 75 ? '#059669' : p >= 50 ? '#d97706' : '#dc2626';
 
-// ── Breadcrumb ────────────────────────────────────────────────────────────────
-const Crumb = ({ items, onNav }) => (
-  <div className="flex items-center gap-1 text-xs flex-wrap" style={{ color: '#64748b' }}>
-    {items.map((item, i) => (
-      <span key={i} className="flex items-center gap-1">
-        {i > 0 && <span style={{ color: '#cbd5e1' }}>›</span>}
-        {i < items.length - 1
-          ? <button onClick={() => onNav(i)} className="font-medium hover:underline" style={{ color: '#7c3aed' }}>{item}</button>
-          : <span className="font-semibold" style={{ color: '#334155' }}>{item}</span>}
-      </span>
-    ))}
-  </div>
-);
-
-// ── Step 0: Batch ─────────────────────────────────────────────────────────────
-const BatchStep = ({ onSelect }) => {
-  const { data: batches = [], isLoading } = useGetBatchesQuery();
-  if (isLoading) return <p className="text-sm" style={{ color: '#94a3b8' }}>Loading batches…</p>;
-  if (!batches.length) return <p className="text-sm" style={{ color: '#94a3b8' }}>No batches found.</p>;
-  return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium" style={{ color: '#64748b' }}>Select Batch</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {batches.map(b => (
-          <button key={b.id} onClick={() => onSelect(b)}
-            className="p-4 rounded-xl text-left transition-all"
-            style={{ border: '2px solid #e2e8f0' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.background = '#f5f3ff'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = ''; }}>
-            <p className="text-base font-bold font-mono" style={{ color: '#0f172a' }}>{b.startYear}–{b.endYear}</p>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${b.scheme === 'NEP' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>{b.scheme}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ── Step 1: Semester ──────────────────────────────────────────────────────────
-const YEAR_GROUPS = [
-  { year: 1, label: 'Year 1', sems: [1, 2] },
-  { year: 2, label: 'Year 2', sems: [3, 4] },
-  { year: 3, label: 'Year 3', sems: [5, 6] },
-];
-
-const SemesterStep = ({ batch, dept, onSelect }) => {
-  const [spec, setSpec] = useState(null);
-  const { data: specs = [] } = useGetSpecializationsByDeptQuery(
-    { deptId: dept.id, scheme: batch.scheme }, { skip: !dept.id }
-  );
-  const { data: structures = [], isLoading } = useGetClassStructureQuery(
-    { batchId: batch.id, deptId: dept.id, specId: spec?.id ?? undefined },
-    { skip: !batch.id || !dept.id }
-  );
-  const existingMap = Object.fromEntries(structures.map(cs => [`${cs.yearOfStudy}-${cs.semester}`, cs]));
-
-  if (isLoading) return <p className="text-sm" style={{ color: '#94a3b8' }}>Loading semesters…</p>;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-sm font-medium" style={{ color: '#64748b' }}>{dept.name} — Select Semester</p>
-        {specs.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            <button onClick={() => setSpec(null)}
-              className="px-3 py-1 rounded-full text-xs font-semibold"
-              style={!spec ? { background: '#7c3aed', color: '#fff' } : { border: '1px solid #e2e8f0', color: '#64748b' }}>
-              All
-            </button>
-            {specs.map(s => (
-              <button key={s.id} onClick={() => setSpec(s)}
-                className="px-3 py-1 rounded-full text-xs font-semibold"
-                style={spec?.id === s.id ? { background: '#7c3aed', color: '#fff' } : { border: '1px solid #e2e8f0', color: '#64748b' }}>
-                {s.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      {!structures.length
-        ? <p className="text-sm" style={{ color: '#94a3b8' }}>No semesters configured yet.</p>
-        : YEAR_GROUPS.map(({ year, label, sems }) => (
-          <div key={year}>
-            <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#94a3b8' }}>{label}</p>
-            <div className="grid grid-cols-2 gap-3">
-              {sems.map(sem => {
-                const cs = existingMap[`${year}-${sem}`];
-                return (
-                  <button key={sem} onClick={() => cs && onSelect(cs, spec)} disabled={!cs}
-                    className="py-5 rounded-xl text-sm font-bold transition-all disabled:opacity-30"
-                    style={{
-                      border: cs ? '2px solid #7c3aed' : '2px dashed #e2e8f0',
-                      background: cs ? '#f5f3ff' : '',
-                      color: cs ? '#7c3aed' : '#94a3b8',
-                      cursor: cs ? 'pointer' : 'not-allowed',
-                    }}>
-                    Semester {sem}
-                    {cs && <span className="block text-xs font-normal mt-0.5" style={{ color: '#a78bfa' }}>configured</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))
-      }
-    </div>
-  );
-};
-
-// ── Step 2: Students Panel ────────────────────────────────────────────────────
-const StudentsPanel = ({ classStructure, spec, onStudentSelect }) => {
-  const { data: students = [], isLoading } = useGetHodStudentsByClassStructureQuery(classStructure.id);
-  const [search, setSearch] = useState('');
+// ── Students Panel ────────────────────────────────────────────────────────────
+const StudentsPanel = ({ classStructureId, semesterLabel }) => {
+  const { data: students = [], isLoading } = useGetHodStudentsByClassStructureQuery(classStructureId);
+  const [search, setSearch]   = useState('');
+  const [selected, setSelected] = useState(null);
 
   const filtered = students.filter(s => {
     const q = search.toLowerCase();
     return !q || s.fullName?.toLowerCase().includes(q) || (s.registrationNumber ?? '').toLowerCase().includes(q);
   });
+
+  if (selected) return <StudentDetail student={selected} onBack={() => setSelected(null)} />;
 
   if (isLoading) return (
     <div className="space-y-2">
@@ -144,7 +35,7 @@ const StudentsPanel = ({ classStructure, spec, onStudentSelect }) => {
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <p className="text-sm font-medium" style={{ color: '#64748b' }}>
-          Semester {classStructure.semester}{spec ? ` · ${spec.name}` : ''} — {students.length} Student{students.length !== 1 ? 's' : ''}
+          {semesterLabel} — {students.length} Student{students.length !== 1 ? 's' : ''}
         </p>
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#94a3b8' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,7 +43,7 @@ const StudentsPanel = ({ classStructure, spec, onStudentSelect }) => {
           </svg>
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search name or reg no…"
-            className="pl-8 pr-4 py-2 text-sm rounded-lg outline-none transition-all"
+            className="pl-8 pr-4 py-2 text-sm rounded-lg outline-none"
             style={{ border: '1px solid #e2e8f0', background: '#fff', color: '#0f172a', width: 220 }}
             onFocus={e => { e.target.style.borderColor = '#7c3aed'; e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.1)'; }}
             onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = ''; }} />
@@ -173,7 +64,7 @@ const StudentsPanel = ({ classStructure, spec, onStudentSelect }) => {
               </thead>
               <tbody>
                 {filtered.map((s, i) => (
-                  <tr key={s.id} onClick={() => onStudentSelect(s)}
+                  <tr key={s.id} onClick={() => setSelected(s)}
                     className="cursor-pointer"
                     style={{ borderBottom: '1px solid #f8fafc' }}
                     onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
@@ -213,7 +104,7 @@ const StudentsPanel = ({ classStructure, spec, onStudentSelect }) => {
   );
 };
 
-// ── Step 3: Student Detail ────────────────────────────────────────────────────
+// ── Field helper ──────────────────────────────────────────────────────────────
 const Field = ({ label, value }) => value ? (
   <div>
     <p className="text-[10px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: '#94a3b8' }}>{label}</p>
@@ -221,6 +112,7 @@ const Field = ({ label, value }) => value ? (
   </div>
 ) : null;
 
+// ── Student Detail ────────────────────────────────────────────────────────────
 const StudentDetail = ({ student, onBack }) => {
   const { data: courses = [], isLoading, isError } = useGetHodStudentPerformanceQuery(student.id);
   const [search, setSearch] = useState('');
@@ -252,7 +144,6 @@ const StudentDetail = ({ student, onBack }) => {
       {/* Profile card */}
       <div className="rounded-xl p-5" style={{ border: '1px solid #e2e8f0', background: '#fafafa' }}>
         <div className="flex items-start gap-4 flex-wrap">
-          {/* Avatar / photo */}
           {student.photoUrl
             ? <img src={student.photoUrl} alt={student.fullName} className="w-16 h-16 rounded-xl object-cover shrink-0" />
             : (
@@ -274,8 +165,6 @@ const StudentDetail = ({ student, onBack }) => {
                 {student.department && <Badge color="gray">{student.department}</Badge>}
               </div>
             </div>
-
-            {/* Detail grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 mt-4">
               <Field label="Email"        value={student.email} />
               <Field label="Phone"        value={student.phone} />
@@ -385,56 +274,54 @@ const StudentDetail = ({ student, onBack }) => {
 const HodStudentsPage = () => {
   const { data: dept, isLoading: deptLoading } = useGetHodDeptQuery();
 
-  const [level, setLevel]                   = useState(L.BATCH);
-  const [batch, setBatch]                   = useState(null);
-  const [spec, setSpec]                     = useState(null);
-  const [classStructure, setClassStructure] = useState(null);
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [batchId, setBatchId] = useState('');
+  const [csId, setCsId]       = useState('');
 
-  const goTo = (lv) => {
-    if (lv <= L.BATCH)    { setBatch(null); setSpec(null); setClassStructure(null); setSelectedStudent(null); }
-    if (lv <= L.SEMESTER) { setClassStructure(null); setSpec(null); setSelectedStudent(null); }
-    if (lv <= L.STUDENTS) { setSelectedStudent(null); }
-    setLevel(lv);
-  };
+  const { data: batches = [] }    = useGetBatchesQuery();
+  const { data: structures = [] } = useGetClassStructureQuery(
+    { batchId, deptId: dept?.id ?? 0 }, { skip: !batchId || !dept?.id }
+  );
 
-  const crumbs = [
-    'Students',
-    ...(batch          ? [`${batch.startYear}–${batch.endYear} (${batch.scheme})`] : []),
-    ...(classStructure ? [`Sem ${classStructure.semester}${spec ? ` · ${spec.name}` : ''}`] : []),
-    ...(selectedStudent ? [selectedStudent.fullName] : []),
-  ];
+  const selectedStructure = structures.find(cs => cs.id === Number(csId));
+  const semesterLabel = selectedStructure
+    ? `Year ${selectedStructure.yearOfStudy} · Sem ${selectedStructure.semester}`
+    : '';
 
   if (deptLoading) return <p className="text-sm" style={{ color: '#94a3b8' }}>Loading…</p>;
 
   return (
     <div className="space-y-5 max-w-5xl">
-      <Crumb items={crumbs} onNav={i => {
-        if (i === 0) goTo(L.BATCH);
-        else if (i === 1) goTo(L.SEMESTER);
-        else if (i === 2) goTo(L.STUDENTS);
-      }} />
-      <div className="bg-white rounded-xl p-6" style={{ border: '1px solid #e2e8f0' }}>
-        {level === L.BATCH && (
-          <BatchStep onSelect={b => { setBatch(b); setLevel(L.SEMESTER); }} />
-        )}
-        {level === L.SEMESTER && batch && dept && (
-          <SemesterStep batch={batch} dept={dept} onSelect={(cs, s) => { setClassStructure(cs); setSpec(s ?? null); setLevel(L.STUDENTS); }} />
-        )}
-        {level === L.STUDENTS && classStructure && (
-          <StudentsPanel
-            classStructure={classStructure}
-            spec={spec}
-            onStudentSelect={s => { setSelectedStudent(s); setLevel(L.DETAIL); }}
-          />
-        )}
-        {level === L.DETAIL && selectedStudent && (
-          <StudentDetail
-            student={selectedStudent}
-            onBack={() => goTo(L.STUDENTS)}
-          />
+      {/* Cascading dropdowns */}
+      <div className="rounded-xl p-4 space-y-4" style={{ border: '1px solid #e2e8f0', background: '#fff' }}>
+        <div>
+          <label className="text-xs font-semibold block mb-1.5" style={{ color: '#64748b' }}>Batch</label>
+          <select value={batchId} onChange={e => { setBatchId(e.target.value); setCsId(''); }}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            style={{ border: '1px solid #e2e8f0' }}>
+            <option value="">Select batch</option>
+            {batches.map(b => <option key={b.id} value={b.id}>{b.startYear}–{b.endYear} ({b.scheme})</option>)}
+          </select>
+        </div>
+        {batchId && (
+          <div>
+            <label className="text-xs font-semibold block mb-1.5" style={{ color: '#64748b' }}>Semester</label>
+            <select value={csId} onChange={e => setCsId(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              style={{ border: '1px solid #e2e8f0' }}>
+              <option value="">Select semester</option>
+              {structures.map(cs => (
+                <option key={cs.id} value={cs.id}>Year {cs.yearOfStudy} · Sem {cs.semester}</option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
+
+      {csId && (
+        <div className="bg-white rounded-xl p-6" style={{ border: '1px solid #e2e8f0' }}>
+          <StudentsPanel key={csId} classStructureId={Number(csId)} semesterLabel={semesterLabel} />
+        </div>
+      )}
     </div>
   );
 };

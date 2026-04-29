@@ -43,4 +43,18 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     List<Attendance> findByCourseIn(@Param("courses") List<Course> courses);
 
     void deleteByCourseId(Long courseId);
+
+    @Query("SELECT a FROM Attendance a JOIN FETCH a.student JOIN FETCH a.course WHERE a.course.id = :courseId AND a.date BETWEEN :startDate AND :endDate ORDER BY a.date ASC, a.student.id ASC")
+    List<Attendance> findByCourseIdAndDateBetween(
+            @Param("courseId") Long courseId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
+
+    /** Present count / total count across all courses in the given list. Returns [presentCount, totalCount]. */
+    @Query("SELECT SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END), COUNT(a) FROM Attendance a WHERE a.course.id IN :courseIds")
+    Object[] findAttendanceRateByCourseIds(@Param("courseIds") List<Long> courseIds);
+
+    long countByStudentIdAndCourseId(Long studentId, Long courseId);
+
+    long countByStudentIdAndCourseIdAndStatus(Long studentId, Long courseId, com.collegeportal.shared.enums.AttendanceStatus status);
 }

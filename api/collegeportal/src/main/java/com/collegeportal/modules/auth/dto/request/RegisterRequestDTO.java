@@ -35,6 +35,10 @@ public class RegisterRequestDTO {
     private Integer yearOfStudy;
     private Integer courseStartYear;
     private Integer courseEndYear;
+    private Long specializationId;
+    private String scheme;
+    private Long classStructureId;
+    private Long batchId;
 
     // Faculty fields
     private String facultyId;

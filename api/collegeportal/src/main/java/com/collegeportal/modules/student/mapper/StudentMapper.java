@@ -52,6 +52,8 @@ public class StudentMapper {
                 .courseEndYear(student.getCourseEndYear())
                 .photoUrl(student.getPhotoUrl())
                 .scheme(student.getScheme())
+                .specializationId(student.getSpecialization() != null ? student.getSpecialization().getId() : null)
+                .specializationName(student.getSpecialization() != null ? student.getSpecialization().getName() : null)
                 .classBatchName(student.getClassBatch() != null ? student.getClassBatch().getName() : null)
                 .classBatchId(student.getClassBatch() != null ? student.getClassBatch().getId() : null)
                 .classBatchStartYear(student.getClassBatch() != null ? student.getClassBatch().getStartYear() : null)
@@ -61,6 +63,14 @@ public class StudentMapper {
                             + (student.getYearOfStudy() != null ? " Y" + student.getYearOfStudy() : "")
                             + " " + student.getClassBatch().getStartYear() + "-" + student.getClassBatch().getEndYear()
                             + " (" + student.getClassBatch().getScheme() + ")"
+                        : null)
+                .classStructureId(student.getClassStructure() != null ? student.getClassStructure().getId() : null)
+                .classStructureDisplay(student.getClassStructure() != null
+                        ? student.getClassStructure().getDepartment().getName()
+                            + " " + student.getClassStructure().getBatch().getStartYear()
+                            + "-" + student.getClassStructure().getBatch().getEndYear()
+                            + " · Year " + student.getClassStructure().getYearOfStudy()
+                            + " Sem " + student.getClassStructure().getSemester()
                         : null)
                 .build();
     }
